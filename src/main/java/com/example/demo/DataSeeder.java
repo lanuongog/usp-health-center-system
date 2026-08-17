@@ -20,6 +20,12 @@ public class DataSeeder {
                 System.out.println("Seeded default admin user: admin / admin123");
             }
 
+            if (userRepository.findByUsername("nurse").isEmpty()) {
+                User nurse = new User("nurse", passwordEncoder.encode("nurse123"), "NURSE");
+                userRepository.save(nurse);
+                System.out.println("Seeded default nurse user: nurse / nurse123");
+            }
+
             if (appointmentRepository.count() == 0) {
                 Appointment a1 = new Appointment();
                 a1.setStudentName("Alice Tan");
@@ -57,7 +63,25 @@ public class DataSeeder {
                 a4.setStatus("COMPLETED");
                 appointmentRepository.save(a4);
 
-                System.out.println("Seeded 4 sample appointments.");
+                Appointment a5 = new Appointment();
+                a5.setStudentName("Elena Prasad");
+                a5.setDoctorName("Dr. Patel");
+                a5.setAppointmentDate(LocalDate.now());
+                a5.setVisitReason("Headache");
+                a5.setUrgencyLevel("Routine");
+                a5.setStatus("BOOKED");
+                appointmentRepository.save(a5);
+
+                Appointment a6 = new Appointment();
+                a6.setStudentName("Frank Lal");
+                a6.setDoctorName("Dr. Lee");
+                a6.setAppointmentDate(LocalDate.now());
+                a6.setVisitReason("Sprained Ankle");
+                a6.setUrgencyLevel("Urgent");
+                a6.setStatus("BOOKED");
+                appointmentRepository.save(a6);
+
+                System.out.println("Seeded 6 sample appointments (2 waiting in the check-in queue).");
             }
         };
     }
