@@ -48,7 +48,7 @@ This file is **intentionally not included in the repo** (it holds a real databas
 2. Create a new file named exactly `application.properties`
 3. Paste this in, editing the two marked lines with YOUR actual port and password:
 
-```properties
+```
 spring.application.name=demo
 
 # EDIT THESE TWO — use YOUR port from Step 3 and YOUR PostgreSQL password
@@ -75,7 +75,42 @@ Wait for the log to show `Started DemoApplication` with **no red ERROR lines**. 
 
 Visit `http://localhost:8080/` in your browser. You should see the Admin Reporting Dashboard login page.
 
-**Default login:** username `admin`, password `admin123` (this account and 4 sample appointments are created automatically the first time the app runs — no manual database setup needed beyond creating the empty database itself).
+**Default login:** username `admin`, password `admin123` (this account and sample appointments are created automatically the first time the app runs — no manual database setup needed beyond creating the empty database itself).
+
+For the Nurse Check-in page, visit `http://localhost:8080/checkin.html` and log in with username `nurse`, password `nurse123`.
+
+---
+
+## Shared Database Mode (for in-person team sessions)
+
+During team sessions where everyone's on the same hotspot/WiFi, you can connect directly to Lanuongo's database instead of running your own local one — useful for testing features against the same shared data together.
+
+**To connect in shared mode**, use this in your `application.properties` instead of your own local settings:
+
+```
+spring.datasource.url=jdbc:postgresql://172.20.10.4:5434/usp_health_center
+spring.datasource.username=postgres
+spring.datasource.password=grp123
+```
+
+**Important — this only works when:**
+- Everyone is connected to the same hotspot/network as Lanuongo
+- Lanuongo's laptop is on and PostgreSQL is running
+- The IP address above may change if the hotspot reconnects — ask in the group chat for the current IP if this stops working
+
+**Switching back to local mode:** for solo work at home, or whenever shared mode isn't available, comment out the shared settings and use your own local database instead:
+
+```
+# Shared mode (only during team sessions):
+# spring.datasource.url=jdbc:postgresql://172.20.10.4:5434/usp_health_center
+# spring.datasource.username=postgres
+# spring.datasource.password=grp123
+
+# Local mode (default — your own database):
+spring.datasource.url=jdbc:postgresql://localhost:YOUR_PORT/usp_health_center
+spring.datasource.username=postgres
+spring.datasource.password=YOUR_PASSWORD
+```
 
 ---
 
@@ -95,13 +130,13 @@ Then use that same password in `application.properties`.
 This is a Windows Temp-folder permission quirk. It's already fixed in this project via the `server.tomcat.basedir=./tomcat-temp` line — make sure that line is in your `application.properties`.
 
 ### "Unable to determine Dialect without JDBC metadata"
-Your `application.properties` still has a placeholder or missing value (commonly the password field left as `CHANGE_ME` or similar). Double-check both the URL and password lines are filled in with real values.
+Your `application.properties` still has a placeholder or missing value (commonly the password field left blank or unedited). Double-check both the URL and password lines are filled in with real values.
 
-### App starts fine but `/` shows a blank page or old content
+### App starts fine but a page shows blank or old content
 Do a hard refresh in your browser: **Ctrl+F5**. Or try an incognito/private window to rule out caching.
 
-### "Invalid character constant" or a compile error mentioning a file you didn't expect
-A file got corrupted, usually from a copy-paste issue. Re-copy that specific file's content fresh from the repo (or ask in the group chat) and re-save it — don't try to hand-fix a corrupted file.
+### A compile error mentioning a file you didn't expect
+A file may have gotten corrupted from a copy-paste issue. Re-copy that specific file's content fresh from the repo and re-save it — don't try to hand-fix a corrupted file.
 
 ## Working directly on your own feature
 
