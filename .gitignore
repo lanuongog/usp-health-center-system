@@ -1,7 +1,6 @@
-HEAD
 HELP.md
 target/
-.mvn/wrapper/maven-wrapper.jar
+!.mvn/wrapper/maven-wrapper.jar
 !**/src/main/**/target/
 !**/src/test/**/target/
 
@@ -53,8 +52,13 @@ build/
 *.zip
 *.tar.gz
 *.rar
-application.properties
-# virtual machine crash logs, see http://www.java.com/en/download/help/error_hotspot.xml
+
+# virtual machine crash logs
 hs_err_pid*
 replay_pid*
-d17fba3e2b908db8f94becd0e8127031db9ce431
+
+# Real database credentials - never commit this
+application.properties
+
+# Tomcat temp folder created locally
+tomcat-temp/

@@ -1,6 +1,7 @@
 package com.example.demo;
 
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
 import java.time.LocalDate;
 import java.util.List;
 
@@ -11,4 +12,12 @@ public interface AppointmentRepository extends JpaRepository<Appointment, Long> 
     List<Appointment> findByStatus(String status);
 
     List<Appointment> findByDoctorName(String doctorName);
+
+    long countByStatus(String status);
+
+    @Query("SELECT a.visitReason, COUNT(a) FROM Appointment a GROUP BY a.visitReason")
+    List<Object[]> countByVisitReason();
+
+    @Query("SELECT a.doctorName, COUNT(a) FROM Appointment a GROUP BY a.doctorName")
+    List<Object[]> countByDoctor();
 }

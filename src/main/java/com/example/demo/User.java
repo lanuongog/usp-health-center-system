@@ -17,7 +17,7 @@ public class User {
     private String password;
 
     @Column(nullable = false)
-    private String role;
+    private String role; // ADMIN, DOCTOR, NURSE, STUDENT
 
     public User() {}
 

@@ -1,4 +1,3 @@
-@'
 package com.example.demo;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -54,4 +53,3 @@ public class DashboardController {
         return new DashboardSummary(total, noShows, noShowRate, byReason, byDoctor);
     }
 }
-'@ | Set-Content -Path "src\main\java\com\example\demo\DashboardController.java"
