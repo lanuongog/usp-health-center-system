@@ -1,15 +1,18 @@
 package com.example.demo;
 
-import org.springframework.data.jpa.repository.JpaRepository;
-import org.springframework.data.jpa.repository.Query;
 import java.time.LocalDate;
 import java.util.List;
+
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
 
 public interface AppointmentRepository extends JpaRepository<Appointment, Long> {
 
     List<Appointment> findByAppointmentDateBetween(LocalDate start, LocalDate end);
 
     List<Appointment> findByStatus(String status);
+
+    List<Appointment> findByStudentName(String studentName);
 
     List<Appointment> findByDoctorName(String doctorName);
 

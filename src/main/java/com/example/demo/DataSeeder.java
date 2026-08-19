@@ -1,10 +1,11 @@
 package com.example.demo;
 
+import java.time.LocalDate;
+
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.crypto.password.PasswordEncoder;
-import java.time.LocalDate;
 
 @Configuration
 public class DataSeeder {
@@ -24,6 +25,12 @@ public class DataSeeder {
                 User nurse = new User("nurse", passwordEncoder.encode("nurse123"), "NURSE");
                 userRepository.save(nurse);
                 System.out.println("Seeded default nurse user: nurse / nurse123");
+            }
+
+            if (userRepository.findByUsername("doctor").isEmpty()) {
+                User doctor = new User("doctor", passwordEncoder.encode("doctor123"), "DOCTOR");
+                userRepository.save(doctor);
+                System.out.println("Seeded default doctor user: doctor / doctor123");
             }
 
             if (appointmentRepository.count() == 0) {

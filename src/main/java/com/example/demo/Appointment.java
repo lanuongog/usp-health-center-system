@@ -1,7 +1,12 @@
 package com.example.demo;
 
-import jakarta.persistence.*;
 import java.time.LocalDate;
+
+import jakarta.persistence.Entity;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.Table;
 
 @Entity
 @Table(name = "appointments")
@@ -17,6 +22,9 @@ public class Appointment {
     private String visitReason;
     private String urgencyLevel; // e.g. "Routine", "Urgent", "Emergency"
     private String status; // e.g. "PENDING", "COMPLETED", "NO_SHOW", "CANCELLED"
+    private String diagnosis;
+    private String consultationNotes;
+    private String consultedByDoctor;
 
     public Appointment() {}
 
@@ -41,4 +49,13 @@ public class Appointment {
 
     public String getStatus() { return status; }
     public void setStatus(String status) { this.status = status; }
+
+    public String getDiagnosis() { return diagnosis; }
+    public void setDiagnosis(String diagnosis) { this.diagnosis = diagnosis; }
+
+    public String getConsultationNotes() { return consultationNotes; }
+    public void setConsultationNotes(String consultationNotes) { this.consultationNotes = consultationNotes; }
+
+    public String getConsultedByDoctor() { return consultedByDoctor; }
+    public void setConsultedByDoctor(String consultedByDoctor) { this.consultedByDoctor = consultedByDoctor; }
 }
