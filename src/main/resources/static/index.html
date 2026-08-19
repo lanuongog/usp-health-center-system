@@ -71,15 +71,6 @@
   .filterBar input { padding: 7px; border: 1px solid #d1d5db; border-radius: 6px; }
   .filterBar .clearBtn { background: #9ca3af; }
   .filterBar .clearBtn:hover { background: #6b7280; }
-
-  table { width: 100%; border-collapse: collapse; font-size: 13px; }
-  th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid #eee; }
-  th { color: #6b7280; font-weight: 600; }
-  .status { padding: 2px 8px; border-radius: 10px; font-size: 11px; font-weight: 600; }
-  .status.COMPLETED { background: #DCEBFA; color: #17324A; }
-  .status.NO_SHOW { background: #FDEAEA; color: #B03A2E; }
-  .status.PENDING { background: #FFF4E5; color: #8A4B12; }
-  .status.CANCELLED { background: #eee; color: #666; }
 </style>
 </head>
 <body>
@@ -138,15 +129,10 @@
       <div id="byDoctor"></div>
     </div>
 
-    <div class="panel">
-      <h3>All Appointments</h3>
-      <table>
-        <thead>
-          <tr><th>Student</th><th>Doctor</th><th>Date</th><th>Reason</th><th>Urgency</th><th>Status</th></tr>
-        </thead>
-        <tbody id="apptTableBody"></tbody>
-      </table>
-    </div>
+    <p style="font-size:12px;color:#9ca3af;margin-top:20px;">
+      Per REQ 63, Admin has access to aggregate statistics only. Individual student names,
+      visit reasons, and records are not shown here.
+    </p>
   </div>
 
 </div>
@@ -185,10 +171,6 @@ async function loadDashboard() {
   const res = await fetch('/dashboard/summary', { headers: { 'Authorization': authHeader } });
   const data = await res.json();
   renderSummary(data);
-
-  const apptRes = await fetch('/dashboard', { headers: { 'Authorization': authHeader } });
-  const appts = await apptRes.json();
-  renderTable(appts);
 }
 
 async function applyFilter() {
@@ -234,27 +216,6 @@ function renderBars(containerId, obj, total) {
       <div class="bar-count">${count}</div>
     `;
     container.appendChild(row);
-  }
-}
-
-function renderTable(appts) {
-  const body = document.getElementById('apptTableBody');
-  body.innerHTML = '';
-  if (appts.length === 0) {
-    body.innerHTML = '<tr><td colspan="6" style="color:#9ca3af;">No appointments found.</td></tr>';
-    return;
-  }
-  for (const a of appts) {
-    const row = document.createElement('tr');
-    row.innerHTML = `
-      <td>${a.studentName}</td>
-      <td>${a.doctorName}</td>
-      <td>${a.appointmentDate}</td>
-      <td>${a.visitReason}</td>
-      <td>${a.urgencyLevel}</td>
-      <td><span class="status ${a.status}">${a.status.replace('_',' ')}</span></td>
-    `;
-    body.appendChild(row);
   }
 }
 

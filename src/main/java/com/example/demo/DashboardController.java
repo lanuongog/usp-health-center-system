@@ -12,10 +12,10 @@ public class DashboardController {
     @Autowired
     private AppointmentRepository appointmentRepository;
 
-    @GetMapping("/dashboard")
-    public List<Appointment> getAllAppointments() {
-        return appointmentRepository.findAll();
-    }
+    // NOTE: A raw "list all appointments" endpoint was intentionally removed from here.
+    // REQ 63 requires Admin to see aggregate statistics only, never individual patient
+    // records (name, reason, urgency per student). Only the summary endpoints below
+    // are exposed to the ADMIN role.
 
     @PostMapping("/appointments")
     public Appointment createAppointment(@RequestBody Appointment appointment) {

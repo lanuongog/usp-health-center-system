@@ -42,6 +42,7 @@ public class SecurityConfig {
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers("/dashboard/**").hasRole("ADMIN")
                 .requestMatchers("/nurse/**").hasRole("NURSE")
+                .requestMatchers("/doctor/**").hasRole("DOCTOR")
                 .anyRequest().permitAll()
             )
             .httpBasic(basic -> {})
