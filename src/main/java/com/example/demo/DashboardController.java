@@ -27,10 +27,16 @@ public class DashboardController {
         return buildSummary(appointmentRepository.findAll());
     }
 
+    // FR-05-62: filter by date range; FR-05 error table: invalid date range must be rejected
     @GetMapping("/dashboard/summary/filter")
     public DashboardSummary getFilteredSummary(
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate) {
+        if (startDate.isAfter(endDate)) {
+            throw new org.springframework.web.server.ResponseStatusException(
+                    org.springframework.http.HttpStatus.BAD_REQUEST,
+                    "Invalid date range: start date must be on or before the end date");
+        }
         List<Appointment> filtered = appointmentRepository.findByAppointmentDateBetween(startDate, endDate);
         return buildSummary(filtered);
     }

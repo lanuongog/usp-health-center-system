@@ -98,6 +98,8 @@
       <button class="secondary" onclick="logout()">Log Out</button>
     </div>
 
+    <div id="pageError" style="background:#FDEAEA;color:#B03A2E;border:1px solid #f2b8b8;border-radius:6px;padding:10px 14px;font-size:13px;margin-bottom:16px;display:none;"></div>
+
     <div class="panel">
       <h3>Students Waiting to be Checked In</h3>
       <div id="queueList"></div>
@@ -112,6 +114,7 @@
       <input type="text" id="bloodPressure" placeholder="e.g. 120/80" />
       <label>Presenting Complaint</label>
       <textarea id="presentingComplaint" placeholder="What is the student here for, in their own words..."></textarea>
+      <div id="formError" style="color:#B03A2E;font-size:13px;margin-top:10px;display:none;"></div>
       <div class="formActions">
         <button onclick="submitCheckIn()">Complete Check-in</button>
         <button class="secondary" onclick="cancelCheckIn()">Cancel</button>
@@ -135,20 +138,31 @@ let authHeader = null;
 async function login() {
   const user = document.getElementById('username').value;
   const pass = document.getElementById('password').value;
-  const header = 'Basic ' + btoa(user + ':' + pass);
+  const errorBox = document.getElementById('loginError');
 
   try {
-    const res = await fetch('/nurse/queue', { headers: { 'Authorization': header } });
-    if (!res.ok) throw new Error('unauthorized');
+    const checkRes = await fetch('/api/check-login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username: user, password: pass, requiredRole: 'NURSE' })
+    });
+    const checkData = await checkRes.json();
 
-    authHeader = header;
+    if (!checkData.ok) {
+      errorBox.innerText = checkData.message;
+      errorBox.style.display = 'block';
+      return;
+    }
+
+    authHeader = 'Basic ' + btoa(user + ':' + pass);
     document.getElementById('loginBox').style.display = 'none';
     document.getElementById('app').style.display = 'block';
-    document.getElementById('loginError').style.display = 'none';
+    errorBox.style.display = 'none';
     loadQueue();
     loadCheckIns();
   } catch (e) {
-    document.getElementById('loginError').style.display = 'block';
+    errorBox.innerText = 'Service temporarily unavailable';
+    errorBox.style.display = 'block';
   }
 }
 
@@ -160,29 +174,45 @@ function logout() {
   document.getElementById('password').value = '';
 }
 
+function showPageError(message) {
+  const box = document.getElementById('pageError');
+  box.innerText = message;
+  box.style.display = message ? 'block' : 'none';
+}
+
 async function loadQueue() {
-  const res = await fetch('/nurse/queue', { headers: { 'Authorization': authHeader } });
-  const appts = await res.json();
   const list = document.getElementById('queueList');
-  list.innerHTML = '';
+  try {
+    const res = await fetch('/nurse/queue', { headers: { 'Authorization': authHeader } });
+    if (!res.ok) {
+      const err = await res.json();
+      showPageError(err.message || 'Unable to load patient queue');
+      return;
+    }
+    showPageError(null);
+    const appts = await res.json();
+    list.innerHTML = '';
 
-  if (appts.length === 0) {
-    list.innerHTML = '<p style="color:#9ca3af;font-size:13px;">No students currently waiting.</p>';
-    return;
-  }
+    if (appts.length === 0) {
+      list.innerHTML = '<p style="color:#9ca3af;font-size:13px;">No students currently waiting.</p>';
+      return;
+    }
 
-  for (const a of appts) {
-    const item = document.createElement('div');
-    item.className = 'queue-item';
-    item.innerHTML = `
-      <div class="info">
-        <strong>${a.studentName}</strong>
-        <span class="urgency-tag ${a.urgencyLevel}">${a.urgencyLevel}</span>
-        <div>${a.doctorName} &middot; ${a.visitReason}</div>
-      </div>
-      <button onclick="startCheckIn(${a.id}, '${a.studentName.replace(/'/g, "\\'")}')">Check In</button>
-    `;
-    list.appendChild(item);
+    for (const a of appts) {
+      const item = document.createElement('div');
+      item.className = 'queue-item';
+      item.innerHTML = `
+        <div class="info">
+          <strong>${a.studentName}</strong>
+          <span class="urgency-tag ${a.urgencyLevel}">${a.urgencyLevel}</span>
+          <div>${a.doctorName} &middot; ${a.visitReason}</div>
+        </div>
+        <button onclick="startCheckIn(${a.id}, '${a.studentName.replace(/'/g, "\\'")}')">Check In</button>
+      `;
+      list.appendChild(item);
+    }
+  } catch (e) {
+    showPageError('Service temporarily unavailable');
   }
 }
 
@@ -192,6 +222,7 @@ function startCheckIn(appointmentId, studentName) {
   document.getElementById('temperature').value = '';
   document.getElementById('bloodPressure').value = '';
   document.getElementById('presentingComplaint').value = '';
+  document.getElementById('formError').style.display = 'none';
   document.getElementById('checkinForm').style.display = 'block';
   document.getElementById('checkinForm').scrollIntoView({ behavior: 'smooth' });
 }
@@ -200,54 +231,80 @@ function cancelCheckIn() {
   document.getElementById('checkinForm').style.display = 'none';
 }
 
+function showFormError(message) {
+  const box = document.getElementById('formError');
+  box.innerText = message;
+  box.style.display = message ? 'block' : 'none';
+}
+
 async function submitCheckIn() {
   const appointmentId = document.getElementById('checkinAppointmentId').value;
   const temperature = document.getElementById('temperature').value;
   const bloodPressure = document.getElementById('bloodPressure').value;
   const presentingComplaint = document.getElementById('presentingComplaint').value;
 
-  if (!temperature || !bloodPressure || !presentingComplaint) {
-    alert('Please fill in all fields before completing check-in.');
+  if (!presentingComplaint) {
+    showFormError('Missing presenting complaint - this field is required.');
+    return;
+  }
+  if (!temperature || !bloodPressure) {
+    showFormError('Display validation messages for incomplete vital information.');
     return;
   }
 
-  await fetch('/nurse/checkin', {
-    method: 'POST',
-    headers: { 'Authorization': authHeader, 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      appointmentId: parseInt(appointmentId),
-      temperature, bloodPressure, presentingComplaint
-    })
-  });
+  try {
+    const res = await fetch('/nurse/checkin', {
+      method: 'POST',
+      headers: { 'Authorization': authHeader, 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        appointmentId: parseInt(appointmentId),
+        temperature, bloodPressure, presentingComplaint
+      })
+    });
 
-  document.getElementById('checkinForm').style.display = 'none';
-  loadQueue();
-  loadCheckIns();
+    if (!res.ok) {
+      const err = await res.json();
+      showFormError(err.message || 'Unable to save check-in.');
+      return;
+    }
+
+    showFormError(null);
+    document.getElementById('checkinForm').style.display = 'none';
+    loadQueue();
+    loadCheckIns();
+  } catch (e) {
+    showFormError('Service temporarily unavailable');
+  }
 }
 
 async function loadCheckIns() {
-  const res = await fetch('/nurse/checkins', { headers: { 'Authorization': authHeader } });
-  const checkins = await res.json();
-  const body = document.getElementById('checkinTableBody');
-  body.innerHTML = '';
+  try {
+    const res = await fetch('/nurse/checkins', { headers: { 'Authorization': authHeader } });
+    if (!res.ok) return;
+    const checkins = await res.json();
+    const body = document.getElementById('checkinTableBody');
+    body.innerHTML = '';
 
-  if (checkins.length === 0) {
-    body.innerHTML = '<tr><td colspan="5" style="color:#9ca3af;">No check-ins completed yet.</td></tr>';
-    return;
-  }
+    if (checkins.length === 0) {
+      body.innerHTML = '<tr><td colspan="5" style="color:#9ca3af;">No check-ins completed yet.</td></tr>';
+      return;
+    }
 
-  for (const c of checkins) {
-    const row = document.createElement('tr');
-    const name = c.appointment ? c.appointment.studentName : 'Unknown';
-    const time = c.checkInTime ? new Date(c.checkInTime).toLocaleTimeString() : '';
-    row.innerHTML = `
-      <td>${name}</td>
-      <td>${c.temperature}</td>
-      <td>${c.bloodPressure}</td>
-      <td>${c.presentingComplaint}</td>
-      <td>${time}</td>
-    `;
-    body.appendChild(row);
+    for (const c of checkins) {
+      const row = document.createElement('tr');
+      const name = c.appointment ? c.appointment.studentName : 'Unknown';
+      const time = c.checkInTime ? new Date(c.checkInTime).toLocaleTimeString() : '';
+      row.innerHTML = `
+        <td>${name}</td>
+        <td>${c.temperature}</td>
+        <td>${c.bloodPressure}</td>
+        <td>${c.presentingComplaint}</td>
+        <td>${time}</td>
+      `;
+      body.appendChild(row);
+    }
+  } catch (e) {
+    // non-critical section; leave existing content on transient failure
   }
 }
 

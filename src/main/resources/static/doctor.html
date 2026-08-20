@@ -366,28 +366,34 @@
       return;
     }
 
-    const candidate = 'Basic ' + btoa(username + ':' + password);
-
-    fetch('/doctor/queue', { headers: { 'Authorization': candidate } })
+    fetch('/api/check-login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username, password, requiredRole: 'DOCTOR' })
+    })
+      .then(res => res.json())
+      .then(checkData => {
+        if (!checkData.ok) {
+          throw new Error(checkData.message);
+        }
+        authHeader = 'Basic ' + btoa(username + ':' + password);
+        currentUsername = username;
+        return fetch('/doctor/queue', { headers: { 'Authorization': authHeader } });
+      })
       .then(res => {
-        if (res.status === 401 || res.status === 403) {
-          throw new Error('Invalid username or password, or this account is not a doctor.');
-        }
-        if (!res.ok) {
-          throw new Error('Unable to reach the server. Please try again.');
-        }
+        if (!res) return; // already threw above
+        if (!res.ok) throw new Error('Unable to load patient queue');
         return res.json();
       })
       .then(queue => {
-        authHeader = candidate;
-        currentUsername = username;
+        if (!queue) return;
         document.getElementById('login-screen').style.display = 'none';
         document.getElementById('app-screen').style.display = 'block';
-        document.getElementById('who-label').textContent = username;
+        document.getElementById('who-label').textContent = currentUsername;
         renderQueue(queue);
       })
       .catch(err => {
-        errorEl.textContent = err.message;
+        errorEl.textContent = err.message || 'Service temporarily unavailable';
       });
   }
 
@@ -474,7 +480,7 @@
       })
       .catch(() => {
         document.getElementById('history-box').innerHTML =
-          '<div class="history-empty">Unable to load medical history.</div>';
+          '<div class="history-empty">Unable to load medical record.</div>';
       });
   }
 
@@ -502,7 +508,9 @@
       body: JSON.stringify({ appointmentId, diagnosis, consultationNotes: notes })
     })
       .then(res => {
-        if (!res.ok) throw new Error('Unable to save consultation record.');
+        if (!res.ok) {
+          return res.json().then(err => { throw new Error(err.message || 'Unable to save consultation record'); });
+        }
         return res.json();
       })
       .then(() => {

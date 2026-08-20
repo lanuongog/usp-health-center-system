@@ -6,6 +6,7 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -13,6 +14,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.server.ResponseStatusException;
 
 @RestController
 @RequestMapping("/doctor")
@@ -57,7 +59,11 @@ public class DoctorController {
     // FR-04-48/49: a student's visit history
     @GetMapping("/history/{studentName}")
     public List<Appointment> getMedicalHistory(@PathVariable String studentName) {
-        return appointmentRepository.findByStudentName(studentName);
+        List<Appointment> history = appointmentRepository.findByStudentName(studentName);
+        if (history.isEmpty()) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Medical record not found");
+        }
+        return history;
     }
 
     public static class ConsultationRequest {
@@ -70,11 +76,19 @@ public class DoctorController {
     @PostMapping("/consultation")
     public Appointment recordConsultation(@RequestBody ConsultationRequest request, Authentication auth) {
         Appointment appointment = appointmentRepository.findById(request.appointmentId)
-                .orElseThrow(() -> new RuntimeException("Appointment not found: " + request.appointmentId));
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Medical record not found"));
 
+        // 4.4.3.4: required consultation information is missing
+        if (isBlank(request.diagnosis) || isBlank(request.consultationNotes)) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                    "Display validation messages for incomplete fields");
+        }
+
+        // FR-04-57: prevent a doctor from editing another doctor's submitted consultation
         if (appointment.getConsultedByDoctor() != null &&
                 !appointment.getConsultedByDoctor().equals(auth.getName())) {
-            throw new RuntimeException("This consultation was already recorded by another doctor.");
+            throw new ResponseStatusException(HttpStatus.CONFLICT,
+                    "This consultation was already recorded by another doctor.");
         }
 
         appointment.setDiagnosis(request.diagnosis);
@@ -83,5 +97,9 @@ public class DoctorController {
         appointment.setStatus("COMPLETED");
 
         return appointmentRepository.save(appointment);
+    }
+
+    private boolean isBlank(String s) {
+        return s == null || s.trim().isEmpty();
     }
 }
