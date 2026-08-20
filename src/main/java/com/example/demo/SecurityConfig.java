@@ -36,13 +36,17 @@ public class SecurityConfig {
         };
     }
 
-    @Bean
+        @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers("/dashboard/**").hasRole("ADMIN")
                 .requestMatchers("/nurse/**").hasRole("NURSE")
                 .requestMatchers("/doctor/**").hasRole("DOCTOR")
+                .requestMatchers("/student/register").permitAll()
+                .requestMatchers("/schedule/available").permitAll()
+                .requestMatchers("/schedule/manage/**").hasAnyRole("DOCTOR", "ADMIN")
+                .requestMatchers("/admin/users/**").hasRole("ADMIN")
                 .anyRequest().permitAll()
             )
             .httpBasic(basic -> {})

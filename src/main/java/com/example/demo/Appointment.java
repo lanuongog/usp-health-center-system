@@ -25,6 +25,7 @@ public class Appointment {
     private String diagnosis;
     private String consultationNotes;
     private String consultedByDoctor;
+    private Long scheduleSlotId;
 
     public Appointment() {}
 
@@ -58,4 +59,7 @@ public class Appointment {
 
     public String getConsultedByDoctor() { return consultedByDoctor; }
     public void setConsultedByDoctor(String consultedByDoctor) { this.consultedByDoctor = consultedByDoctor; }
+
+    public Long getScheduleSlotId() { return scheduleSlotId; }
+    public void setScheduleSlotId(Long scheduleSlotId) { this.scheduleSlotId = scheduleSlotId; }
 }

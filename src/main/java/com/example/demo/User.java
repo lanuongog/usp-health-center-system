@@ -1,6 +1,11 @@
 package com.example.demo;
 
-import jakarta.persistence.*;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.Table;
 
 @Entity
 @Table(name = "users")
@@ -19,12 +24,15 @@ public class User {
     @Column(nullable = false)
     private String role; // ADMIN, DOCTOR, NURSE, STUDENT
 
+    private boolean active = true;
+
     public User() {}
 
     public User(String username, String password, String role) {
         this.username = username;
         this.password = password;
         this.role = role;
+        this.active = true;
     }
 
     public Long getId() { return id; }
@@ -38,4 +46,7 @@ public class User {
 
     public String getRole() { return role; }
     public void setRole(String role) { this.role = role; }
+
+    public boolean isActive() { return active; }
+    public void setActive(boolean active) { this.active = active; }
 }
