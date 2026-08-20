@@ -32,6 +32,7 @@ public class SecurityConfig {
                     .withUsername(user.getUsername())
                     .password(user.getPassword())
                     .roles(user.getRole())
+                    .disabled(!user.isActive())
                     .build();
         };
     }
@@ -41,6 +42,7 @@ public class SecurityConfig {
         http
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers("/dashboard/**").hasRole("ADMIN")
+                .requestMatchers("/admin/**").hasRole("ADMIN")
                 .requestMatchers("/nurse/**").hasRole("NURSE")
                 .requestMatchers("/doctor/**").hasRole("DOCTOR")
                 .anyRequest().permitAll()

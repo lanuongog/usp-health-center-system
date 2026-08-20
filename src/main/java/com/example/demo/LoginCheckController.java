@@ -33,6 +33,11 @@ public class LoginCheckController {
         }
 
         User user = userOpt.get();
+
+        if (!user.isActive()) {
+            return Map.of("ok", false, "message", "This account has been deactivated. Contact an administrator.");
+        }
+
         if (!user.getRole().equals(request.requiredRole)) {
             String message = switch (request.requiredRole) {
                 case "NURSE" -> "You do not have permission to perform check-in";

@@ -1,0 +1,88 @@
+package com.example.demo;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
+import org.springframework.web.bind.annotation.*;
+import org.springframework.web.server.ResponseStatusException;
+import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
+
+@RestController
+@RequestMapping("/admin/users")
+public class AdminUserController {
+
+    @Autowired
+    private UserRepository userRepository;
+
+    @Autowired
+    private AppointmentRepository appointmentRepository;
+
+    @Autowired
+    private CheckInRepository checkInRepository;
+
+    // A safe view of a user account - never exposes the password hash.
+    // FR-05-73: this endpoint only ever returns account metadata, never
+    // any patient/appointment data, even though it lives under Admin.
+    public static class UserView {
+        public Long id;
+        public String username;
+        public String role;
+        public boolean active;
+
+        public UserView(User u) {
+            this.id = u.getId();
+            this.username = u.getUsername();
+            this.role = u.getRole();
+            this.active = u.isActive();
+        }
+    }
+
+    // FR-05-68/69: view all registered accounts and their status
+    @GetMapping
+    public List<UserView> getAllUsers() {
+        return userRepository.findAll().stream().map(UserView::new).collect(Collectors.toList());
+    }
+
+    public static class ToggleRequest {
+        public boolean confirm = false;
+    }
+
+    // FR-05-70/71: activate or deactivate an account
+    @PostMapping("/{id}/toggle")
+    public Map<String, Object> toggleStatus(@PathVariable Long id, @RequestBody(required = false) ToggleRequest request) {
+        User user = userRepository.findById(id)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User account not found"));
+
+        boolean confirm = request != null && request.confirm;
+
+        // 4.5.3.4: warn before deactivating an account with active dependent records
+        if (user.isActive() && !confirm) {
+            boolean hasDependentRecords = hasDependentRecords(user.getUsername());
+            if (hasDependentRecords) {
+                return Map.of(
+                        "requiresConfirmation", true,
+                        "message", "This account has active records. Are you sure you want to deactivate it?"
+                );
+            }
+        }
+
+        user.setActive(!user.isActive());
+        userRepository.save(user);
+
+        return Map.of(
+                "requiresConfirmation", false,
+                "id", user.getId(),
+                "username", user.getUsername(),
+                "active", user.isActive()
+        );
+    }
+
+    private boolean hasDependentRecords(String username) {
+        boolean inAppointments = appointmentRepository.findAll().stream()
+                .anyMatch(a -> username.equals(a.getConsultedByDoctor()));
+        boolean inCheckIns = checkInRepository.findAll().stream()
+                .anyMatch(c -> username.equals(c.getCheckedInBy()));
+        return inAppointments || inCheckIns;
+    }
+}
