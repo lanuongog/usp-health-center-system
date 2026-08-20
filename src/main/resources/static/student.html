@@ -1,0 +1,445 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Student Portal — USP Health Center</title>
+<style>
+  :root {
+    --bg: #F5F7F8;
+    --panel: #FFFFFF;
+    --ink: #1B2B33;
+    --ink-soft: #5C707A;
+    --line: #DCE3E6;
+    --brand: #1F4E5F;
+    --brand-soft: #E5EEF0;
+    --emergency: #B23A2E;
+    --emergency-bg: #FBEAE8;
+    --urgent: #B8721E;
+    --urgent-bg: #FBF1E1;
+    --routine: #3E6E85;
+    --routine-bg: #E7EFF2;
+    --ok: #3D7A55;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+    background: var(--bg);
+    color: var(--ink);
+  }
+  .topbar {
+    background: var(--brand);
+    color: #fff;
+    padding: 14px 24px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .topbar h1 { font-size: 17px; font-weight: 600; margin: 0; letter-spacing: 0.2px; }
+  .topbar .who { font-size: 13px; color: #CFE0E6; display: flex; align-items: center; gap: 12px; }
+  .topbar button {
+    background: transparent; border: 1px solid rgba(255,255,255,0.4); color: #fff;
+    padding: 5px 12px; border-radius: 5px; font-size: 12px; cursor: pointer;
+  }
+  .topbar button:hover { background: rgba(255,255,255,0.1); }
+
+  #auth-screen { min-height: 100vh; display: flex; align-items: center; justify-content: center; }
+  .auth-card {
+    background: var(--panel); border: 1px solid var(--line); border-radius: 10px;
+    padding: 36px 32px; width: 340px; box-shadow: 0 1px 3px rgba(20,40,50,0.06);
+  }
+  .auth-card .mark { width: 40px; height: 4px; background: var(--brand); border-radius: 2px; margin-bottom: 18px; }
+  .auth-card h2 { margin: 0 0 4px; font-size: 19px; }
+  .auth-card p.sub { margin: 0 0 22px; color: var(--ink-soft); font-size: 13px; }
+  .tabs { display: flex; gap: 4px; margin-bottom: 20px; background: var(--bg); border-radius: 7px; padding: 3px; }
+  .tab-btn {
+    flex: 1; padding: 7px; border: none; background: transparent; border-radius: 5px;
+    font-size: 13px; font-weight: 600; color: var(--ink-soft); cursor: pointer;
+  }
+  .tab-btn.active { background: var(--panel); color: var(--brand); box-shadow: 0 1px 2px rgba(20,40,50,0.08); }
+  .field { margin-bottom: 14px; }
+  .field label { display: block; font-size: 12px; color: var(--ink-soft); margin-bottom: 5px; }
+  .field input {
+    width: 100%; padding: 9px 10px; border: 1px solid var(--line); border-radius: 6px;
+    font-size: 14px; background: #fff;
+  }
+  .field input:focus { outline: 2px solid var(--brand); outline-offset: 1px; border-color: var(--brand); }
+  .btn-primary {
+    width: 100%; background: var(--brand); color: #fff; border: none; padding: 10px;
+    border-radius: 6px; font-size: 14px; font-weight: 600; cursor: pointer; margin-top: 4px;
+  }
+  .btn-primary:hover { background: #173C49; }
+  .error-text { color: var(--emergency); font-size: 12.5px; margin-top: 10px; min-height: 16px; }
+  .ok-text { color: var(--ok); font-size: 12.5px; margin-top: 10px; min-height: 16px; }
+
+  #app-screen { display: none; }
+  .layout {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 20px;
+    padding: 22px 24px; max-width: 1180px; margin: 0 auto;
+  }
+  @media (max-width: 860px) { .layout { grid-template-columns: 1fr; } }
+
+  .panel { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; overflow: hidden; }
+  .panel-head { padding: 16px 18px; border-bottom: 1px solid var(--line); display: flex; align-items: baseline; justify-content: space-between; }
+  .panel-head h2 { font-size: 15px; margin: 0; }
+  .panel-body { padding: 18px; }
+
+  .field-row { display: flex; gap: 10px; margin-bottom: 12px; }
+  .field-row .field { flex: 1; margin-bottom: 0; }
+  select {
+    width: 100%; padding: 9px 10px; border: 1px solid var(--line); border-radius: 6px;
+    font-size: 13px; background: #fff; font-family: inherit;
+  }
+  .slot-list { display: flex; flex-direction: column; gap: 7px; margin: 10px 0 16px; max-height: 220px; overflow-y: auto; }
+  .slot-option {
+    border: 1px solid var(--line); border-radius: 7px; padding: 9px 12px;
+    font-size: 13px; cursor: pointer; display: flex; justify-content: space-between;
+  }
+  .slot-option:hover { background: var(--brand-soft); }
+  .slot-option.selected { background: var(--brand-soft); border-color: var(--brand); }
+  .slot-option .doc { font-weight: 600; }
+  .slot-option .time { color: var(--ink-soft); }
+  .empty-state { padding: 30px 20px; text-align: center; color: var(--ink-soft); font-size: 13px; }
+
+  .appt-card {
+    border: 1px solid var(--line); border-radius: 8px; padding: 12px 14px; margin-bottom: 10px;
+  }
+  .appt-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px; }
+  .appt-top .doc { font-weight: 600; font-size: 14px; }
+  .badge { font-size: 11px; font-weight: 600; padding: 3px 9px; border-radius: 20px; white-space: nowrap; }
+  .badge.Emergency { background: var(--emergency-bg); color: var(--emergency); }
+  .badge.Urgent { background: var(--urgent-bg); color: var(--urgent); }
+  .badge.Routine { background: var(--routine-bg); color: var(--routine); }
+  .appt-meta { font-size: 12.5px; color: var(--ink-soft); margin-bottom: 10px; }
+  .appt-actions { display: flex; gap: 8px; }
+  .btn-small {
+    flex: 1; padding: 7px; border-radius: 6px; font-size: 12.5px; font-weight: 600;
+    cursor: pointer; border: 1px solid var(--line); background: #fff;
+  }
+  .btn-small.danger { color: var(--emergency); border-color: #EBD3D0; }
+  .btn-small.danger:hover { background: var(--emergency-bg); }
+  .btn-small.neutral { color: var(--brand); border-color: var(--line); }
+  .btn-small.neutral:hover { background: var(--brand-soft); }
+
+  .toast { font-size: 12.5px; margin-top: 8px; min-height: 16px; }
+  .toast.ok { color: var(--ok); }
+  .toast.err { color: var(--emergency); }
+</style>
+</head>
+<body>
+
+<div id="auth-screen">
+  <div class="auth-card">
+    <div class="mark"></div>
+    <h2>Student Portal</h2>
+    <p class="sub">USP Health Center — book and manage your appointments.</p>
+
+    <div class="tabs">
+      <button class="tab-btn active" id="tab-login-btn" onclick="switchTab('login')">Log In</button>
+      <button class="tab-btn" id="tab-register-btn" onclick="switchTab('register')">Register</button>
+    </div>
+
+    <div id="login-form">
+      <div class="field">
+        <label for="login-id">Student ID</label>
+        <input id="login-id" type="text" autocomplete="username" />
+      </div>
+      <div class="field">
+        <label for="login-password">Password</label>
+        <input id="login-password" type="password" autocomplete="current-password" />
+      </div>
+      <button class="btn-primary" onclick="login()">Log In</button>
+      <div class="error-text" id="login-error"></div>
+    </div>
+
+    <div id="register-form" style="display:none;">
+      <div class="field">
+        <label for="reg-id">Student ID</label>
+        <input id="reg-id" type="text" placeholder="e.g. S12345678" />
+      </div>
+      <div class="field">
+        <label for="reg-password">Password</label>
+        <input id="reg-password" type="password" />
+      </div>
+      <button class="btn-primary" onclick="register()">Create Account</button>
+      <div class="error-text" id="register-error"></div>
+      <div class="ok-text" id="register-success"></div>
+    </div>
+  </div>
+</div>
+
+<div id="app-screen">
+  <div class="topbar">
+    <h1>Student Portal</h1>
+    <div class="who">
+      <span id="who-label"></span>
+      <button onclick="logout()">Log out</button>
+    </div>
+  </div>
+
+  <div class="layout">
+    <div class="panel">
+      <div class="panel-head"><h2>Book an Appointment</h2></div>
+      <div class="panel-body">
+        <div class="field">
+          <label for="date-input">Date</label>
+          <input id="date-input" type="date" onchange="loadSlots()" />
+        </div>
+        <div id="slot-container">
+          <div class="empty-state">Pick a date to see open slots.</div>
+        </div>
+        <div class="field-row">
+          <div class="field">
+            <label for="reason-input">Reason for visit</label>
+            <input id="reason-input" type="text" placeholder="e.g. Fever" />
+          </div>
+          <div class="field">
+            <label for="urgency-input">Urgency</label>
+            <select id="urgency-input">
+              <option value="Routine">Routine</option>
+              <option value="Urgent">Urgent</option>
+              <option value="Emergency">Emergency</option>
+            </select>
+          </div>
+        </div>
+        <button class="btn-primary" id="book-btn" onclick="bookAppointment()">Confirm Booking</button>
+        <div class="toast" id="book-toast"></div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-head">
+        <h2>My Appointments</h2>
+        <span class="count" id="appt-count"></span>
+      </div>
+      <div class="panel-body" id="appt-list"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+  let authHeader = null;
+  let currentStudentId = null;
+  let selectedSlot = null;
+
+  function switchTab(tab) {
+    document.getElementById('tab-login-btn').classList.toggle('active', tab === 'login');
+    document.getElementById('tab-register-btn').classList.toggle('active', tab === 'register');
+    document.getElementById('login-form').style.display = tab === 'login' ? 'block' : 'none';
+    document.getElementById('register-form').style.display = tab === 'register' ? 'block' : 'none';
+  }
+
+  function register() {
+    const studentId = document.getElementById('reg-id').value.trim();
+    const password = document.getElementById('reg-password').value;
+    const errorEl = document.getElementById('register-error');
+    const successEl = document.getElementById('register-success');
+    errorEl.textContent = '';
+    successEl.textContent = '';
+
+    if (!studentId || !password) {
+      errorEl.textContent = 'Enter both a Student ID and password.';
+      return;
+    }
+
+    fetch('/student/register', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ studentId, password })
+    })
+      .then(res => res.json())
+      .then(data => {
+        if (data.error) {
+          errorEl.textContent = data.error;
+        } else {
+          successEl.textContent = data.message + ' Switch to Log In above.';
+          document.getElementById('reg-id').value = '';
+          document.getElementById('reg-password').value = '';
+        }
+      })
+      .catch(() => { errorEl.textContent = 'Unable to reach the server.'; });
+  }
+
+  function login() {
+    const studentId = document.getElementById('login-id').value.trim();
+    const password = document.getElementById('login-password').value;
+    const errorEl = document.getElementById('login-error');
+    errorEl.textContent = '';
+
+    if (!studentId || !password) {
+      errorEl.textContent = 'Enter both Student ID and password.';
+      return;
+    }
+
+    const candidate = 'Basic ' + btoa(studentId + ':' + password);
+
+    fetch('/student/my-appointments', { headers: { 'Authorization': candidate } })
+      .then(res => {
+        if (res.status === 401 || res.status === 403) {
+          throw new Error('Invalid Student ID or password.');
+        }
+        if (!res.ok) throw new Error('Unable to reach the server.');
+        return res.json();
+      })
+      .then(appointments => {
+        authHeader = candidate;
+        currentStudentId = studentId;
+        document.getElementById('auth-screen').style.display = 'none';
+        document.getElementById('app-screen').style.display = 'block';
+        document.getElementById('who-label').textContent = studentId;
+        renderAppointments(appointments);
+        const dateInput = document.getElementById('date-input');
+        const tomorrow = new Date();
+        tomorrow.setDate(tomorrow.getDate() + 1);
+        dateInput.value = tomorrow.toISOString().split('T')[0];
+        loadSlots();
+      })
+      .catch(err => { errorEl.textContent = err.message; });
+  }
+
+  function logout() {
+    authHeader = null;
+    currentStudentId = null;
+    selectedSlot = null;
+    document.getElementById('app-screen').style.display = 'none';
+    document.getElementById('auth-screen').style.display = 'flex';
+    document.getElementById('login-password').value = '';
+  }
+
+  function loadSlots() {
+    const date = document.getElementById('date-input').value;
+    if (!date) return;
+    selectedSlot = null;
+
+    fetch('/schedule/available?date=' + date)
+      .then(res => res.json())
+      .then(slots => {
+        const container = document.getElementById('slot-container');
+        if (slots.length === 0) {
+          container.innerHTML = '<div class="empty-state">No available appointments for the selected date.</div>';
+          return;
+        }
+        container.innerHTML = '<div class="slot-list">' + slots.map(s => `
+          <div class="slot-option" data-id="${s.id}" onclick='pickSlot(${s.id}, this)'>
+            <span class="doc">${escapeHtml(s.doctorName)}</span>
+            <span class="time">${escapeHtml(s.timeSlot)}</span>
+          </div>
+        `).join('') + '</div>';
+      })
+      .catch(() => {
+        document.getElementById('slot-container').innerHTML =
+          '<div class="empty-state">Unable to load availability.</div>';
+      });
+  }
+
+  function pickSlot(slotId, el) {
+    selectedSlot = slotId;
+    document.querySelectorAll('.slot-option').forEach(o => o.classList.remove('selected'));
+    el.classList.add('selected');
+  }
+
+  function bookAppointment() {
+    const toast = document.getElementById('book-toast');
+    const reason = document.getElementById('reason-input').value.trim();
+    const urgency = document.getElementById('urgency-input').value;
+
+    if (!selectedSlot) {
+      toast.textContent = 'Select an available slot first.';
+      toast.className = 'toast err';
+      return;
+    }
+    if (!reason) {
+      toast.textContent = 'Reason for visit is required.';
+      toast.className = 'toast err';
+      return;
+    }
+
+    fetch('/student/book', {
+      method: 'POST',
+      headers: { 'Authorization': authHeader, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ slotId: selectedSlot, visitReason: reason, urgencyLevel: urgency })
+    })
+      .then(res => res.json())
+      .then(data => {
+        if (data.error) {
+          toast.textContent = data.error;
+          toast.className = 'toast err';
+          return;
+        }
+        toast.textContent = 'Appointment confirmed with ' + data.doctorName + '.';
+        toast.className = 'toast ok';
+        document.getElementById('reason-input').value = '';
+        selectedSlot = null;
+        loadSlots();
+        refreshAppointments();
+      })
+      .catch(() => {
+        toast.textContent = 'Unable to reach the server.';
+        toast.className = 'toast err';
+      });
+  }
+
+  function refreshAppointments() {
+    fetch('/student/my-appointments', { headers: { 'Authorization': authHeader } })
+      .then(res => res.json())
+      .then(renderAppointments)
+      .catch(() => {});
+  }
+
+  function renderAppointments(appointments) {
+    const listEl = document.getElementById('appt-list');
+    const countEl = document.getElementById('appt-count');
+    countEl.textContent = appointments.length + (appointments.length === 1 ? ' upcoming' : ' upcoming');
+
+    if (appointments.length === 0) {
+      listEl.innerHTML = '<div class="empty-state">You have no upcoming appointments.</div>';
+      return;
+    }
+
+    listEl.innerHTML = appointments.map(a => `
+      <div class="appt-card">
+        <div class="appt-top">
+          <span class="doc">${escapeHtml(a.doctorName)}</span>
+          <span class="badge ${a.urgencyLevel}">${escapeHtml(a.urgencyLevel)}</span>
+        </div>
+        <div class="appt-meta">${escapeHtml(a.visitReason)} · ${escapeHtml(a.appointmentDate)}</div>
+        <div class="appt-actions">
+          <button class="btn-small danger" onclick="cancelAppointment(${a.id})">Cancel</button>
+        </div>
+      </div>
+    `).join('');
+  }
+
+  function cancelAppointment(appointmentId) {
+    if (!confirm('Cancel this appointment?')) return;
+
+    fetch('/student/cancel', {
+      method: 'POST',
+      headers: { 'Authorization': authHeader, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ appointmentId })
+    })
+      .then(res => res.json())
+      .then(() => {
+        refreshAppointments();
+        loadSlots();
+      })
+      .catch(() => {});
+  }
+
+  function escapeHtml(str) {
+    if (str === null || str === undefined) return '';
+    return String(str)
+      .replaceAll('&', '&amp;')
+      .replaceAll('<', '&lt;')
+      .replaceAll('>', '&gt;')
+      .replaceAll('"', '&quot;');
+  }
+
+  document.getElementById('login-password').addEventListener('keydown', e => {
+    if (e.key === 'Enter') login();
+  });
+</script>
+
+</body>
+</html>

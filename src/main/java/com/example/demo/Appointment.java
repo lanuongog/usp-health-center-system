@@ -22,6 +22,7 @@ public class Appointment {
     private String visitReason;
     private String urgencyLevel; // e.g. "Routine", "Urgent", "Emergency"
     private String status; // e.g. "PENDING", "COMPLETED", "NO_SHOW", "CANCELLED"
+    private Long scheduleSlotId;
     private String diagnosis;
     private String consultationNotes;
     private String consultedByDoctor;
@@ -58,4 +59,7 @@ public class Appointment {
 
     public String getConsultedByDoctor() { return consultedByDoctor; }
     public void setConsultedByDoctor(String consultedByDoctor) { this.consultedByDoctor = consultedByDoctor; }
+
+    public Long getScheduleSlotId() { return scheduleSlotId; }
+    public void setScheduleSlotId(Long scheduleSlotId) { this.scheduleSlotId = scheduleSlotId; }
 }

@@ -13,6 +13,7 @@ public class DataSeeder {
     @Bean
     public CommandLineRunner seedData(UserRepository userRepository,
                                        AppointmentRepository appointmentRepository,
+                                       DoctorScheduleRepository scheduleRepository,
                                        PasswordEncoder passwordEncoder) {
         return args -> {
             if (userRepository.findByUsername("admin").isEmpty()) {
@@ -31,6 +32,34 @@ public class DataSeeder {
                 User doctor = new User("doctor", passwordEncoder.encode("doctor123"), "DOCTOR");
                 userRepository.save(doctor);
                 System.out.println("Seeded default doctor user: doctor / doctor123");
+            }
+
+            if (userRepository.findByUsername("student1").isEmpty()) {
+                User student = new User("student1", passwordEncoder.encode("student123"), "STUDENT");
+                userRepository.save(student);
+                System.out.println("Seeded default student user: student1 / student123");
+            }
+
+            if (scheduleRepository.count() == 0) {
+                DoctorSchedule s1 = new DoctorSchedule();
+                s1.setDoctorName("Dr. Patel");
+                s1.setScheduleDate(LocalDate.now().plusDays(1));
+                s1.setTimeSlot("09:00 AM - 09:30 AM");
+                scheduleRepository.save(s1);
+
+                DoctorSchedule s2 = new DoctorSchedule();
+                s2.setDoctorName("Dr. Patel");
+                s2.setScheduleDate(LocalDate.now().plusDays(1));
+                s2.setTimeSlot("09:30 AM - 10:00 AM");
+                scheduleRepository.save(s2);
+
+                DoctorSchedule s3 = new DoctorSchedule();
+                s3.setDoctorName("Dr. Lee");
+                s3.setScheduleDate(LocalDate.now().plusDays(1));
+                s3.setTimeSlot("10:00 AM - 10:30 AM");
+                scheduleRepository.save(s3);
+
+                System.out.println("Seeded 3 doctor availability slots.");
             }
 
             if (appointmentRepository.count() == 0) {
