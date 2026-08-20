@@ -76,6 +76,34 @@
   .filterBar input { padding: 7px; border: 1px solid #d1d5db; border-radius: 6px; }
   .filterBar .clearBtn { background: #9ca3af; }
   .filterBar .clearBtn:hover { background: #6b7280; }
+
+  /* Tabs */
+  .tabs { display: flex; gap: 4px; margin-bottom: 20px; border-bottom: 2px solid #e5e7eb; }
+  .tab-btn {
+    background: none; border: none; padding: 10px 18px; cursor: pointer; font-size: 14px;
+    color: #6b7280; border-bottom: 2px solid transparent; margin-bottom: -2px;
+  }
+  .tab-btn.active { color: #17324A; border-bottom-color: #17324A; font-weight: 600; }
+  .tab-panel { display: none; }
+  .tab-panel.active { display: block; }
+
+  /* Reports */
+  .reportBar { display: flex; gap: 10px; align-items: center; margin-bottom: 20px; flex-wrap: wrap; }
+  .reportBar select { padding: 7px; border: 1px solid #d1d5db; border-radius: 6px; }
+  .report-meta { font-size: 12px; color: #6b7280; margin-bottom: 16px; }
+
+  /* User Management */
+  .user-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  .user-table th, .user-table td { text-align: left; padding: 10px; border-bottom: 1px solid #eee; }
+  .user-table th { color: #6b7280; font-weight: 600; }
+  .status-badge { padding: 2px 10px; border-radius: 10px; font-size: 11px; font-weight: 600; }
+  .status-badge.active { background: #DCEBFA; color: #17324A; }
+  .status-badge.inactive { background: #eee; color: #666; }
+  .toggle-btn {
+    background: #2C5F8A; color: white; border: none; padding: 6px 12px;
+    border-radius: 6px; cursor: pointer; font-size: 12px;
+  }
+  .toggle-btn.deactivate { background: #B03A2E; }
 </style>
 </head>
 <body>
@@ -104,6 +132,13 @@
 
     <div id="pageError"></div>
 
+    <div class="tabs">
+      <button class="tab-btn active" id="tab-btn-dashboard" onclick="switchTab('dashboard')">Dashboard</button>
+      <button class="tab-btn" id="tab-btn-reports" onclick="switchTab('reports')">Reports</button>
+      <button class="tab-btn" id="tab-btn-users" onclick="switchTab('users')">User Management</button>
+    </div>
+
+    <div id="tab-dashboard" class="tab-panel active">
     <div class="filterBar">
       <label>From <input type="date" id="startDate"></label>
       <label>To <input type="date" id="endDate"></label>
@@ -140,6 +175,37 @@
       Per REQ 63, Admin has access to aggregate statistics only. Individual student names,
       visit reasons, and records are not shown here.
     </p>
+    </div>
+
+    <div id="tab-reports" class="tab-panel">
+      <div class="panel">
+        <h3>Generate Report</h3>
+        <div class="reportBar">
+          <select id="reportType"></select>
+          <label>From <input type="date" id="reportStartDate"></label>
+          <label>To <input type="date" id="reportEndDate"></label>
+          <button onclick="generateReport()">Generate</button>
+        </div>
+        <div id="reportError" style="color:#B03A2E;font-size:13px;margin-bottom:12px;display:none;"></div>
+        <div id="reportMeta" class="report-meta"></div>
+        <div id="reportResults"></div>
+      </div>
+    </div>
+
+    <div id="tab-users" class="tab-panel">
+      <div class="panel">
+        <h3>User Accounts</h3>
+        <div id="userMgmtError" style="color:#B03A2E;font-size:13px;margin-bottom:12px;display:none;"></div>
+        <table class="user-table">
+          <thead><tr><th>Username</th><th>Role</th><th>Status</th><th></th></tr></thead>
+          <tbody id="userTableBody"></tbody>
+        </table>
+        <p style="font-size:12px;color:#9ca3af;margin-top:16px;">
+          Per FR-05-73, account management shows account status only - never individual
+          patient or medical record data.
+        </p>
+      </div>
+    </div>
   </div>
 
 </div>
@@ -249,6 +315,141 @@ function clearFilter() {
   document.getElementById('endDate').classList.remove('invalid');
   showPageError(null);
   loadDashboard();
+}
+
+// ---------- Tabs ----------
+function switchTab(tab) {
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+  document.getElementById('tab-btn-' + tab).classList.add('active');
+  document.getElementById('tab-' + tab).classList.add('active');
+
+  if (tab === 'reports') loadReportTypes();
+  if (tab === 'users') loadUsers();
+}
+
+// ---------- Reports (4.5.2) ----------
+async function loadReportTypes() {
+  const select = document.getElementById('reportType');
+  if (select.options.length > 0) return; // already loaded
+  try {
+    const res = await fetch('/admin/reports/types', { headers: { 'Authorization': authHeader } });
+    const types = await res.json();
+    select.innerHTML = types.map(t => `<option value="${t}">${t}</option>`).join('');
+  } catch (e) {
+    select.innerHTML = '<option>Unable to load report types</option>';
+  }
+}
+
+function showReportError(message) {
+  const box = document.getElementById('reportError');
+  box.innerText = message;
+  box.style.display = message ? 'block' : 'none';
+}
+
+async function generateReport() {
+  const type = document.getElementById('reportType').value;
+  const start = document.getElementById('reportStartDate').value;
+  const end = document.getElementById('reportEndDate').value;
+  const resultsBox = document.getElementById('reportResults');
+  const metaBox = document.getElementById('reportMeta');
+
+  if (!start || !end) {
+    showReportError('Please provide both a start and end date for the report');
+    metaBox.innerText = '';
+    resultsBox.innerHTML = '';
+    return;
+  }
+  if (start > end) {
+    showReportError('Invalid date range: start date must be on or before the end date');
+    metaBox.innerText = '';
+    resultsBox.innerHTML = '';
+    return;
+  }
+
+  try {
+    const res = await fetch(`/admin/reports?type=${encodeURIComponent(type)}&startDate=${start}&endDate=${end}`,
+      { headers: { 'Authorization': authHeader } });
+
+    if (!res.ok) {
+      const err = await res.json();
+      showReportError(err.message || 'Unable to generate report');
+      metaBox.innerText = '';
+      resultsBox.innerHTML = '';
+      return;
+    }
+
+    showReportError(null);
+    const report = await res.json();
+    metaBox.innerText = `${report.reportType} · ${report.dateRangeStart} to ${report.dateRangeEnd} · Generated ${new Date(report.generatedAt).toLocaleString()}`;
+    renderBars('reportResults', report.data, report.totalAppointments);
+  } catch (e) {
+    showReportError('Service temporarily unavailable');
+  }
+}
+
+// ---------- User Management (4.5.3) ----------
+function showUserMgmtError(message) {
+  const box = document.getElementById('userMgmtError');
+  box.innerText = message;
+  box.style.display = message ? 'block' : 'none';
+}
+
+async function loadUsers() {
+  try {
+    const res = await fetch('/admin/users', { headers: { 'Authorization': authHeader } });
+    if (!res.ok) {
+      const err = await res.json();
+      showUserMgmtError(err.message || 'Unable to load user accounts');
+      return;
+    }
+    showUserMgmtError(null);
+    const users = await res.json();
+    const body = document.getElementById('userTableBody');
+    body.innerHTML = users.map(u => `
+      <tr>
+        <td>${u.username}</td>
+        <td>${u.role}</td>
+        <td><span class="status-badge ${u.active ? 'active' : 'inactive'}">${u.active ? 'Active' : 'Inactive'}</span></td>
+        <td>
+          <button class="toggle-btn ${u.active ? 'deactivate' : ''}" onclick="toggleUser(${u.id}, false)">
+            ${u.active ? 'Deactivate' : 'Activate'}
+          </button>
+        </td>
+      </tr>
+    `).join('');
+  } catch (e) {
+    showUserMgmtError('Service temporarily unavailable');
+  }
+}
+
+async function toggleUser(id, confirmed) {
+  try {
+    const res = await fetch(`/admin/users/${id}/toggle`, {
+      method: 'POST',
+      headers: { 'Authorization': authHeader, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ confirm: confirmed })
+    });
+
+    if (!res.ok) {
+      const err = await res.json();
+      showUserMgmtError(err.message || 'Unable to update account');
+      return;
+    }
+
+    const result = await res.json();
+    if (result.requiresConfirmation) {
+      if (window.confirm(result.message)) {
+        toggleUser(id, true);
+      }
+      return;
+    }
+
+    showUserMgmtError(null);
+    loadUsers();
+  } catch (e) {
+    showUserMgmtError('Service temporarily unavailable');
+  }
 }
 
 function renderSummary(data) {
