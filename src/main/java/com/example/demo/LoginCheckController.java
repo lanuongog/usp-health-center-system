@@ -38,7 +38,12 @@ public class LoginCheckController {
             return Map.of("ok", false, "message", "This account has been deactivated. Contact an administrator.");
         }
 
-        if (!user.getRole().equals(request.requiredRole)) {
+        // requiredRole may be a single role ("NURSE") or comma-separated ("DOCTOR,ADMIN")
+        boolean roleMatches = java.util.Arrays.stream(request.requiredRole.split(","))
+                .map(String::trim)
+                .anyMatch(r -> r.equals(user.getRole()));
+
+        if (!roleMatches) {
             String message = switch (request.requiredRole) {
                 case "NURSE" -> "You do not have permission to perform check-in";
                 case "DOCTOR" -> "You do not have permission to view this page";

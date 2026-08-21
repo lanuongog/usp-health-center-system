@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>USP Health Center - Manage Schedule</title>
+<style>
+  * { box-sizing: border-box; }
+  body { font-family: -apple-system, Segoe UI, Roboto, Arial, sans-serif; background: #f2f4f7; margin: 0; color: #1f2937; }
+  header { background: #6B3FA0; color: white; padding: 18px 30px; font-size: 20px; font-weight: 600; }
+  .container { max-width: 900px; margin: 30px auto; padding: 0 20px; }
+
+  #loginBox { background: white; border-radius: 10px; padding: 40px; max-width: 380px; margin: 80px auto; box-shadow: 0 2px 10px rgba(0,0,0,0.08); }
+  #loginBox h2 { margin-top: 0; color: #6B3FA0; }
+  #loginBox input { width: 100%; padding: 10px; margin: 8px 0 16px 0; border: 1px solid #d1d5db; border-radius: 6px; font-size: 14px; }
+  button { background: #6B3FA0; color: white; border: none; padding: 10px 18px; border-radius: 6px; cursor: pointer; font-size: 14px; }
+  button:hover { background: #55317F; }
+  button.secondary { background: #9ca3af; }
+  button.secondary:hover { background: #6b7280; }
+  button.danger { background: #B03A2E; padding: 6px 12px; font-size: 12px; }
+  button.danger:hover { background: #8A2C22; }
+  button.small { padding: 6px 12px; font-size: 12px; }
+  #loginError { color: #B03A2E; font-size: 13px; margin-top: -8px; margin-bottom: 10px; display: none; }
+  #pageError { background: #FDEAEA; color: #B03A2E; border: 1px solid #f2b8b8; border-radius: 6px; padding: 10px 14px; font-size: 13px; margin-bottom: 16px; display: none; }
+  #formError { color: #B03A2E; font-size: 13px; margin-top: 10px; display: none; }
+
+  #app { display: none; }
+  .topbar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+  .panel { background: white; border-radius: 10px; padding: 20px; margin-bottom: 20px; box-shadow: 0 1px 4px rgba(0,0,0,0.06); }
+  .panel h3 { margin-top: 0; color: #6B3FA0; font-size: 15px; }
+
+  .newSlotForm { display: flex; gap: 10px; align-items: flex-end; flex-wrap: wrap; margin-bottom: 10px; }
+  .newSlotForm label { font-size: 12px; color: #374151; display: block; margin-bottom: 4px; }
+  .newSlotForm input { padding: 7px; border: 1px solid #d1d5db; border-radius: 6px; }
+
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid #eee; }
+  th { color: #6b7280; font-weight: 600; }
+  .status-badge { padding: 2px 10px; border-radius: 10px; font-size: 11px; font-weight: 600; }
+  .status-badge.open { background: #DCEBFA; color: #17324A; }
+  .status-badge.booked { background: #FDEAEA; color: #B03A2E; }
+</style>
+</head>
+<body>
+
+<header>USP Online Appointment &amp; Medical Records System &mdash; Manage Schedule</header>
+
+<div class="container">
+
+  <div id="loginBox">
+    <h2>Login</h2>
+    <label style="font-size:13px;">Username</label>
+    <input type="text" id="username" placeholder="doctor or admin" />
+    <label style="font-size:13px;">Password</label>
+    <input type="password" id="password" placeholder="••••••••" />
+    <div id="loginError"></div>
+    <button onclick="login()">Log In</button>
+  </div>
+
+  <div id="app">
+    <div class="topbar">
+      <h2 style="color:#6B3FA0;margin:0;">Manage Consultation Schedule</h2>
+      <button class="secondary" onclick="logout()">Log Out</button>
+    </div>
+
+    <div id="pageError"></div>
+
+    <div class="panel">
+      <h3>Add New Slot</h3>
+      <div class="newSlotForm">
+        <div><label>Doctor Name</label><input type="text" id="newDoctorName" placeholder="Dr. Patel"></div>
+        <div><label>Date</label><input type="date" id="newDate"></div>
+        <div><label>Time Slot</label><input type="text" id="newTimeSlot" placeholder="09:00 AM - 09:30 AM"></div>
+        <button onclick="createSlot()">Add Slot</button>
+      </div>
+      <div id="formError"></div>
+    </div>
+
+    <div class="panel">
+      <h3>Current Schedule</h3>
+      <table>
+        <thead><tr><th>Doctor</th><th>Date</th><th>Time</th><th>Status</th><th></th></tr></thead>
+        <tbody id="scheduleTableBody"></tbody>
+      </table>
+    </div>
+  </div>
+
+</div>
+
+<script>
+let authHeader = null;
+
+async function login() {
+  const user = document.getElementById('username').value;
+  const pass = document.getElementById('password').value;
+  const errorBox = document.getElementById('loginError');
+
+  try {
+    const checkRes = await fetch('/api/check-login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username: user, password: pass, requiredRole: 'DOCTOR,ADMIN' })
+    });
+    const checkData = await checkRes.json();
+
+    if (!checkData.ok) {
+      errorBox.innerText = checkData.message;
+      errorBox.style.display = 'block';
+      return;
+    }
+
+    authHeader = 'Basic ' + btoa(user + ':' + pass);
+    document.getElementById('loginBox').style.display = 'none';
+    document.getElementById('app').style.display = 'block';
+    errorBox.style.display = 'none';
+    loadSchedule();
+  } catch (e) {
+    errorBox.innerText = 'Service temporarily unavailable';
+    errorBox.style.display = 'block';
+  }
+}
+
+function logout() {
+  authHeader = null;
+  document.getElementById('app').style.display = 'none';
+  document.getElementById('loginBox').style.display = 'block';
+  document.getElementById('username').value = '';
+  document.getElementById('password').value = '';
+}
+
+function showPageError(message) {
+  const box = document.getElementById('pageError');
+  box.innerText = message;
+  box.style.display = message ? 'block' : 'none';
+}
+
+function showFormError(message) {
+  const box = document.getElementById('formError');
+  box.innerText = message;
+  box.style.display = message ? 'block' : 'none';
+}
+
+async function loadSchedule() {
+  try {
+    const res = await fetch('/schedule/manage', { headers: { 'Authorization': authHeader } });
+    if (!res.ok) {
+      const err = await res.json();
+      showPageError(err.message || 'Unable to load schedule');
+      return;
+    }
+    showPageError(null);
+    const slots = await res.json();
+    const body = document.getElementById('scheduleTableBody');
+
+    if (slots.length === 0) {
+      body.innerHTML = '<tr><td colspan="5" style="color:#9ca3af;">No schedule slots yet.</td></tr>';
+      return;
+    }
+
+    body.innerHTML = slots.map(s => `
+      <tr>
+        <td>${s.doctorName}</td>
+        <td>${s.scheduleDate}</td>
+        <td>${s.timeSlot}</td>
+        <td><span class="status-badge ${s.booked ? 'booked' : 'open'}">${s.booked ? 'Booked' : 'Open'}</span></td>
+        <td>${s.booked ? '' : `<button class="danger" onclick="deleteSlot(${s.id})">Remove</button>`}</td>
+      </tr>
+    `).join('');
+  } catch (e) {
+    showPageError('Service temporarily unavailable');
+  }
+}
+
+async function createSlot() {
+  const doctorName = document.getElementById('newDoctorName').value;
+  const date = document.getElementById('newDate').value;
+  const timeSlot = document.getElementById('newTimeSlot').value;
+
+  if (!doctorName || !date || !timeSlot) {
+    showFormError('Display validation messages for the missing fields');
+    return;
+  }
+
+  try {
+    const res = await fetch('/schedule/manage', {
+      method: 'POST',
+      headers: { 'Authorization': authHeader, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ doctorName, scheduleDate: date, timeSlot })
+    });
+
+    if (!res.ok) {
+      const err = await res.json();
+      showFormError(err.message || 'Unable to create slot');
+      return;
+    }
+
+    showFormError(null);
+    document.getElementById('newDoctorName').value = '';
+    document.getElementById('newDate').value = '';
+    document.getElementById('newTimeSlot').value = '';
+    loadSchedule();
+  } catch (e) {
+    showFormError('Service temporarily unavailable');
+  }
+}
+
+async function deleteSlot(id) {
+  try {
+    const res = await fetch(`/schedule/manage/${id}`, {
+      method: 'DELETE',
+      headers: { 'Authorization': authHeader }
+    });
+
+    if (!res.ok) {
+      const err = await res.json();
+      showPageError(err.message || 'Unable to remove slot');
+      return;
+    }
+
+    showPageError(null);
+    loadSchedule();
+  } catch (e) {
+    showPageError('Service temporarily unavailable');
+  }
+}
+
+document.getElementById('password')?.addEventListener('keyup', e => {
+  if (e.key === 'Enter') login();
+});
+</script>
+
+</body>
+</html>
