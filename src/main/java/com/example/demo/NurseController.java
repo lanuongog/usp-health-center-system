@@ -1,77 +1,45 @@
 package com.example.demo;
 
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.HttpStatus;
-import org.springframework.security.core.Authentication;
-import org.springframework.web.bind.annotation.*;
-import org.springframework.web.server.ResponseStatusException;
+import org.springframework.web.bind.annotation.CrossOrigin;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+
 import java.time.LocalDateTime;
 import java.util.List;
 
 @RestController
-@RequestMapping("/nurse")
+@RequestMapping("/api/nurse")
+@CrossOrigin(origins = "*")
 public class NurseController {
 
     @Autowired
-    private AppointmentRepository appointmentRepository;
+    private PatientRepository patientRepository;
 
-    @Autowired
-    private CheckInRepository checkInRepository;
-
-    // FR-03-29: view students with scheduled appointments who have not yet been checked in
-    @GetMapping("/queue")
-    public List<Appointment> getQueue() {
-        return appointmentRepository.findByStatus("BOOKED");
-    }
-
-    public static class CheckInRequest {
-        public Long appointmentId;
-        public String temperature;
-        public String bloodPressure;
-        public String presentingComplaint;
-    }
-
-    // FR-03-30/31/32/37/38/39/41: check in a booked student, record vitals + complaint,
-    // prevent the same student being checked in twice for the same visit
     @PostMapping("/checkin")
-    public CheckIn checkInStudent(@RequestBody CheckInRequest request, Authentication auth) {
-        Appointment appointment = appointmentRepository.findById(request.appointmentId)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Student record not found"));
+    public Patient checkInPatient(@RequestBody Patient patient) {
+        patient.setCheckInTime(LocalDateTime.now());
 
-        // FR-03-32: prevent duplicate check-in for the same visit
-        if (checkInRepository.findByAppointmentId(appointment.getId()).isPresent()) {
-            throw new ResponseStatusException(HttpStatus.CONFLICT, "This student has already been checked in");
-        }
-        if (!"BOOKED".equals(appointment.getStatus())) {
-            throw new ResponseStatusException(HttpStatus.CONFLICT, "No valid appointment found");
-        }
+        int bp = patient.getSystolicBp() != null ? patient.getSystolicBp() : 0;
+        double temp = patient.getTemperature() != null ? patient.getTemperature() : 0.0;
+        int hr = patient.getHeartRate() != null ? patient.getHeartRate() : 0;
 
-        // FR-03-40 (basic validation): required fields must be present
-        if (isBlank(request.temperature) || isBlank(request.bloodPressure) || isBlank(request.presentingComplaint)) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
-                    "Display validation messages for incomplete vital information");
+        if (bp > 140 || temp >= 38.5 || hr > 100) {
+            patient.setUrgencyLevel("HIGH");
+        } else if (bp > 120 || temp >= 37.5) {
+            patient.setUrgencyLevel("MEDIUM");
+        } else {
+            patient.setUrgencyLevel("LOW");
         }
 
-        CheckIn checkIn = new CheckIn();
-        checkIn.setAppointment(appointment);
-        checkIn.setTemperature(request.temperature);
-        checkIn.setBloodPressure(request.bloodPressure);
-        checkIn.setPresentingComplaint(request.presentingComplaint);
-        checkIn.setCheckInTime(LocalDateTime.now());
-        checkIn.setCheckedInBy(auth.getName());
-
-        appointment.setStatus("CHECKED_IN");
-        appointmentRepository.save(appointment);
-
-        return checkInRepository.save(checkIn);
+        return patientRepository.save(patient);
     }
 
-    @GetMapping("/checkins")
-    public List<CheckIn> getAllCheckIns() {
-        return checkInRepository.findAll();
-    }
-
-    private boolean isBlank(String s) {
-        return s == null || s.trim().isEmpty();
+    @GetMapping("/queue")
+    public List<Patient> getPrioritizedQueue() {
+        return patientRepository.findAllPrioritizedQueue();
     }
 }
