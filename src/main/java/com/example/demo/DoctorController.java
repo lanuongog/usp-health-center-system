@@ -26,6 +26,9 @@ public class DoctorController {
     @Autowired
     private CheckInRepository checkInRepository;
 
+    @Autowired
+    private DoctorScheduleRepository scheduleRepository;
+
     // Lower number = seen sooner
     private int urgencyRank(String urgencyLevel) {
         if (urgencyLevel == null) return 3;
@@ -54,6 +57,18 @@ public class DoctorController {
                         .comparingInt((Appointment a) -> urgencyRank(a.getUrgencyLevel()))
                         .thenComparing(a -> getCheckInTime(a.getId())))
                 .collect(Collectors.toList());
+    }
+
+    // View all booked / scheduled appointments that have not yet been checked in by nurse
+    @GetMapping("/booked")
+    public List<Appointment> getBookedAppointments() {
+        return appointmentRepository.findByStatus("BOOKED");
+    }
+
+    // View all appointments for the doctor dashboard overview
+    @GetMapping("/all")
+    public List<Appointment> getAllAppointments() {
+        return appointmentRepository.findAll();
     }
 
     // FR-04-48/49: a student's visit history
@@ -96,7 +111,17 @@ public class DoctorController {
         appointment.setConsultedByDoctor(auth.getName());
         appointment.setStatus("COMPLETED");
 
-        return appointmentRepository.save(appointment);
+        Appointment saved = appointmentRepository.save(appointment);
+
+        // Free up the schedule slot so other students can book it again if desired
+        if (saved.getScheduleSlotId() != null) {
+            scheduleRepository.findById(saved.getScheduleSlotId()).ifPresent(slot -> {
+                slot.setBooked(false);
+                scheduleRepository.save(slot);
+            });
+        }
+
+        return saved;
     }
 
     private boolean isBlank(String s) {
