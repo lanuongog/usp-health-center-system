@@ -52,7 +52,10 @@ public class ReportController {
                     "Invalid date range: start date must be on or before the end date");
         }
 
-        List<Appointment> appointments = appointmentRepository.findByAppointmentDateBetween(startDate, endDate);
+        List<Appointment> appointments = appointmentRepository.findByAppointmentDateBetween(startDate, endDate)
+                .stream()
+                .filter(a -> !"CANCELLED".equalsIgnoreCase(a.getStatus()))
+                .toList();
 
         // 4.5.2.4: no information is available
         if (appointments.isEmpty()) {
