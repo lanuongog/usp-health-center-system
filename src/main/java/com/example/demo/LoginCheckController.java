@@ -18,14 +18,17 @@ public class LoginCheckController {
     public static class LoginCheckRequest {
         public String username;
         public String password;
-        public String requiredRole; // ADMIN, NURSE, or DOCTOR
+        public String requiredRole; // ADMIN, NURSE, DOCTOR, STUDENT, or null/empty for universal login
     }
 
-    // Public endpoint used only to determine WHY a login attempt failed, so the
-    // frontend can display the exact wording required by the SRS error tables
-    // (e.g. FR-03-01.4, FR-04-01.4, FR-05-03.4) rather than a generic message.
+    // Public endpoint used to authenticate and verify user role, supporting both
+    // role-specific pages and the universal login.html page.
     @PostMapping("/check-login")
     public Map<String, Object> checkLogin(@RequestBody LoginCheckRequest request) {
+        if (request.username == null || request.password == null) {
+            return Map.of("ok", false, "message", "Username and password are required.");
+        }
+
         var userOpt = userRepository.findByUsername(request.username);
 
         if (userOpt.isEmpty() || !passwordEncoder.matches(request.password, userOpt.get().getPassword())) {
@@ -38,21 +41,29 @@ public class LoginCheckController {
             return Map.of("ok", false, "message", "This account has been deactivated. Contact an administrator.");
         }
 
-        // requiredRole may be a single role ("NURSE") or comma-separated ("DOCTOR,ADMIN")
-        boolean roleMatches = java.util.Arrays.stream(request.requiredRole.split(","))
-                .map(String::trim)
-                .anyMatch(r -> r.equals(user.getRole()));
+        // If a specific role or list of roles is requested, validate it
+        if (request.requiredRole != null && !request.requiredRole.isBlank() && !"ANY".equalsIgnoreCase(request.requiredRole.trim())) {
+            boolean roleMatches = java.util.Arrays.stream(request.requiredRole.split(","))
+                    .map(String::trim)
+                    .anyMatch(r -> r.equalsIgnoreCase(user.getRole()));
 
-        if (!roleMatches) {
-            String message = switch (request.requiredRole) {
-                case "NURSE" -> "You do not have permission to perform check-in";
-                case "DOCTOR" -> "You do not have permission to view this page";
-                case "ADMIN" -> "You do not have permission to view this page";
-                default -> "You do not have permission to view this page";
-            };
-            return Map.of("ok", false, "message", message);
+            if (!roleMatches) {
+                String message = switch (request.requiredRole.toUpperCase()) {
+                    case "NURSE" -> "You do not have permission to perform check-in";
+                    case "DOCTOR" -> "You do not have permission to view this page";
+                    case "ADMIN" -> "You do not have permission to view this page";
+                    case "STUDENT" -> "This portal is reserved for students";
+                    default -> "You do not have permission to view this page";
+                };
+                return Map.of("ok", false, "message", message);
+            }
         }
 
-        return Map.of("ok", true, "message", "");
+        return Map.of(
+            "ok", true,
+            "role", user.getRole(),
+            "username", user.getUsername(),
+            "message", ""
+        );
     }
 }
