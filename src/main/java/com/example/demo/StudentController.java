@@ -25,7 +25,7 @@ public class StudentController {
         public String fullName;
     }
 
-    // FR-01-01 to FR-01-04: student self-registration
+    // FR-01-01 to 04: student self-registration logic
     @PostMapping("/register")
     public Object register(@RequestBody RegisterRequest request) {
         if (request.studentId == null || request.studentId.isBlank() ||
@@ -36,10 +36,9 @@ public class StudentController {
         if (userRepository.findByUsername(request.studentId).isPresent()) {
             return Map.of("error", "This student ID is already registered. Please log in.");
         }
-
+        // encrypts student password
         User student = new User(request.studentId, passwordEncoder.encode(request.password), "STUDENT");
         userRepository.save(student);
-
         return Map.of("message", "Registration successful. You can now log in.", "studentId", request.studentId);
     }
 }
