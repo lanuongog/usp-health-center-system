@@ -41,25 +41,45 @@ public class DataSeeder {
             }
 
             if (scheduleRepository.count() == 0) {
-                DoctorSchedule s1 = new DoctorSchedule();
-                s1.setDoctorName("Dr. Patel");
-                s1.setScheduleDate(LocalDate.now().plusDays(1));
-                s1.setTimeSlot("09:00 AM - 09:30 AM");
-                scheduleRepository.save(s1);
+                String[] timeSlots = {
+                    "09:00 AM - 09:30 AM",
+                    "09:30 AM - 10:00 AM",
+                    "10:00 AM - 10:30 AM",
+                    "10:30 AM - 11:00 AM",
+                    "02:00 PM - 02:30 PM",
+                    "02:30 PM - 03:00 PM",
+                    "03:00 PM - 03:30 PM"
+                };
 
-                DoctorSchedule s2 = new DoctorSchedule();
-                s2.setDoctorName("Dr. Patel");
-                s2.setScheduleDate(LocalDate.now().plusDays(1));
-                s2.setTimeSlot("09:30 AM - 10:00 AM");
-                scheduleRepository.save(s2);
+                // Seed for Today, Tomorrow, and Next 2 Days
+                LocalDate today = LocalDate.now();
+                String[] doctors = {"Dr. Patel", "Dr. Lee", "Dr. Sharma"};
 
-                DoctorSchedule s3 = new DoctorSchedule();
-                s3.setDoctorName("Dr. Lee");
-                s3.setScheduleDate(LocalDate.now().plusDays(1));
-                s3.setTimeSlot("10:00 AM - 10:30 AM");
-                scheduleRepository.save(s3);
+                for (int dayOffset = 0; dayOffset <= 3; dayOffset++) {
+                    LocalDate date = today.plusDays(dayOffset);
+                    for (int i = 0; i < doctors.length; i++) {
+                        String doctor = doctors[i];
+                        // Add 2 slots per doctor per day
+                        int slotIdx1 = (dayOffset + i) % timeSlots.length;
+                        int slotIdx2 = (dayOffset + i + 2) % timeSlots.length;
 
-                System.out.println("Seeded 3 doctor availability slots.");
+                        DoctorSchedule s1 = new DoctorSchedule();
+                        s1.setDoctorName(doctor);
+                        s1.setScheduleDate(date);
+                        s1.setTimeSlot(timeSlots[slotIdx1]);
+                        s1.setBooked(false);
+                        scheduleRepository.save(s1);
+
+                        DoctorSchedule s2 = new DoctorSchedule();
+                        s2.setDoctorName(doctor);
+                        s2.setScheduleDate(date);
+                        s2.setTimeSlot(timeSlots[slotIdx2]);
+                        s2.setBooked(false);
+                        scheduleRepository.save(s2);
+                    }
+                }
+
+                System.out.println("Seeded doctor availability slots across multiple days.");
             }
 
             if (appointmentRepository.count() == 0) {
