@@ -3,13 +3,16 @@
 <head>
 <meta charset="UTF-8">
 <title>USP Health Center - Nurse Check-in</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <style>
   * { box-sizing: border-box; }
   body {
-    font-family: -apple-system, Segoe UI, Roboto, Arial, sans-serif;
-    background: #f2f4f7;
+    font-family: 'Geist', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    background: #f8fafc;
     margin: 0;
-    color: #1f2937;
+    color: #0f172a;
   }
   header {
     background: #3C7A4E;
@@ -135,6 +138,19 @@
 <script>
 let authHeader = null;
 
+window.addEventListener('DOMContentLoaded', () => {
+  const storedAuth = sessionStorage.getItem('authHeader');
+  const storedRole = sessionStorage.getItem('userRole');
+
+  if (storedAuth && (storedRole === 'NURSE' || storedRole === 'ADMIN')) {
+    authHeader = storedAuth;
+    document.getElementById('loginBox').style.display = 'none';
+    document.getElementById('app').style.display = 'block';
+    loadQueue();
+    loadCheckIns();
+  }
+});
+
 async function login() {
   const user = document.getElementById('username').value;
   const pass = document.getElementById('password').value;
@@ -155,6 +171,9 @@ async function login() {
     }
 
     authHeader = 'Basic ' + btoa(user + ':' + pass);
+    sessionStorage.setItem('authHeader', authHeader);
+    sessionStorage.setItem('currentUser', user);
+    sessionStorage.setItem('userRole', 'NURSE');
     document.getElementById('loginBox').style.display = 'none';
     document.getElementById('app').style.display = 'block';
     errorBox.style.display = 'none';
@@ -167,11 +186,13 @@ async function login() {
 }
 
 function logout() {
+  sessionStorage.clear();
   authHeader = null;
   document.getElementById('app').style.display = 'none';
   document.getElementById('loginBox').style.display = 'block';
   document.getElementById('username').value = '';
   document.getElementById('password').value = '';
+  window.location.href = '/login.html';
 }
 
 function showPageError(message) {
