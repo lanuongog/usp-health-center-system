@@ -2,490 +2,443 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>USP Health Center - Admin Reporting Dashboard</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>USP Health & Wellness Center</title>
 <style>
+  :root {
+    --bg: #F4F8F8;
+    --panel: #FFFFFF;
+    --ink: #14213D;
+    --ink-soft: #5C7070;
+    --line: #D8E6E6;
+    --brand: #0D7377;
+    --brand-dark: #095558;
+    --brand-soft: #E3F1F1;
+    --footer-bg: #0F2B2E;
+    --footer-text: #C7DBDB;
+  }
   * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
   body {
-    font-family: -apple-system, Segoe UI, Roboto, Arial, sans-serif;
-    background: #f2f4f7;
     margin: 0;
-    color: #1f2937;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+    background: var(--bg);
+    color: var(--ink);
   }
+
   header {
-    background: #17324A;
-    color: white;
-    padding: 18px 30px;
-    font-size: 20px;
-    font-weight: 600;
+    background: var(--brand);
+    padding: 12px 28px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    flex-wrap: wrap;
   }
-  .container { max-width: 1000px; margin: 30px auto; padding: 0 20px; }
+  header a.logo-link { display: flex; align-items: center; gap: 12px; text-decoration: none; }
+  header .logo-chip {
+    background: #fff;
+    border-radius: 8px;
+    padding: 4px 8px;
+    display: flex;
+    align-items: center;
+  }
+  header img.logo { height: 32px; display: block; }
+  header .site-name { font-size: 15px; font-weight: 700; color: #fff; }
 
-  /* Login box */
-  #loginBox {
-    background: white;
+  .header-search {
+    position: relative;
+    width: 100%;
+    max-width: 260px;
+  }
+  .header-search input {
+    width: 100%;
+    padding: 9px 12px;
+    border-radius: 7px;
+    border: none;
+    font-size: 13.5px;
+  }
+  .header-search input:focus { outline: 2px solid rgba(255,255,255,0.5); }
+  .header-search .search-suggestions {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    background: #fff;
+    border-radius: 8px;
+    margin-top: 4px;
+    box-shadow: 0 4px 14px rgba(0,0,0,0.2);
+    overflow: hidden;
+    text-align: left;
+    display: none;
+    z-index: 10;
+  }
+  .header-search .search-suggestions.show { display: block; }
+  .header-search .search-suggestions a {
+    display: block;
+    padding: 10px 14px;
+    font-size: 13.5px;
+    color: var(--ink);
+    text-decoration: none;
+  }
+  .header-search .search-suggestions a:hover { background: var(--brand-soft); }
+  .header-search .search-suggestions .none { padding: 10px 14px; font-size: 13px; color: var(--ink-soft); }
+
+  .hero {
+    position: relative;
+    height: 220px;
+    overflow: hidden;
+  }
+  .hero img.banner {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+  }
+  .hero .overlay {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(180deg, rgba(13,115,119,0.20), rgba(9,25,30,0.78));
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    padding: 20px;
+  }
+  .hero h1 { color: #fff; font-size: 26px; margin: 0 0 6px; }
+  .hero p { color: #DCF0F0; font-size: 14px; margin: 0; max-width: 460px; }
+
+  .eligibility-bar {
+    background: var(--brand-soft);
+    color: var(--brand-dark);
+    text-align: center;
+    font-size: 12.5px;
+    padding: 9px 16px;
+  }
+
+  main { max-width: 900px; margin: 0 auto; padding: 34px 24px 10px; }
+
+  .student-block {
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    padding: 26px;
+    display: flex;
+    align-items: center;
+    gap: 18px;
+    margin-bottom: 36px;
+  }
+  .student-block .icon-lg {
+    width: 56px;
+    height: 56px;
+    flex-shrink: 0;
+    border-radius: 12px;
+    background: var(--brand-soft);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .student-block .icon-lg svg { width: 28px; height: 28px; stroke: var(--brand); }
+  .student-block .content { flex: 1; }
+  .student-block h2 { margin: 0 0 4px; font-size: 18px; }
+  .student-block p { margin: 0; font-size: 13.5px; color: var(--ink-soft); }
+  .student-block .cta-link {
+    flex-shrink: 0;
+    background: var(--brand);
+    color: #fff;
+    font-weight: 700;
+    font-size: 13.5px;
+    padding: 10px 18px;
+    border-radius: 7px;
+    text-decoration: none;
+    white-space: nowrap;
+  }
+  .student-block .cta-link:hover { background: var(--brand-dark); }
+  @media (max-width: 620px) {
+    .student-block { flex-direction: column; text-align: center; }
+  }
+
+  .section-title {
+    text-align: center;
+    font-size: 18px;
+    font-weight: 700;
+    margin: 0 0 4px;
+  }
+  .section-sub {
+    text-align: center;
+    color: var(--ink-soft);
+    font-size: 13px;
+    margin: 0 0 20px;
+  }
+
+  .services {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 14px;
+    margin-bottom: 40px;
+  }
+  @media (max-width: 760px) { .services { grid-template-columns: repeat(2, 1fr); } }
+
+  .service-card {
+    background: var(--panel);
+    border: 1px solid var(--line);
     border-radius: 10px;
-    padding: 40px;
-    max-width: 380px;
-    margin: 80px auto;
-    box-shadow: 0 2px 10px rgba(0,0,0,0.08);
+    padding: 18px 14px;
+    text-align: center;
   }
-  #loginBox h2 { margin-top: 0; color: #17324A; }
-  #loginBox input {
-    width: 100%; padding: 10px; margin: 8px 0 16px 0;
-    border: 1px solid #d1d5db; border-radius: 6px; font-size: 14px;
+  .service-card .icon-md {
+    width: 40px;
+    height: 40px;
+    margin: 0 auto 10px;
+    border-radius: 9px;
+    background: var(--brand-soft);
+    display: flex;
+    align-items: center;
+    justify-content: center;
   }
-  #loginBox button, .filterBar button, #logoutBtn {
-    background: #2C5F8A; color: white; border: none;
-    padding: 10px 18px; border-radius: 6px; cursor: pointer; font-size: 14px;
+  .service-card .icon-md svg { width: 20px; height: 20px; stroke: var(--brand); }
+  .service-card .title { font-weight: 700; font-size: 13.5px; margin-bottom: 4px; }
+  .service-card .desc { font-size: 12px; color: var(--ink-soft); line-height: 1.4; }
+
+  .staff-label {
+    text-align: center;
+    color: var(--ink-soft);
+    font-size: 12.5px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.6px;
+    margin: 0 0 14px;
   }
-  #loginBox button:hover, .filterBar button:hover, #logoutBtn:hover { background: #1F4666; }
-  #loginError { color: #B03A2E; font-size: 13px; margin-top: -8px; margin-bottom: 10px; display: none; }
-  #pageError {
-    background: #FDEAEA; color: #B03A2E; border: 1px solid #f2b8b8;
-    border-radius: 6px; padding: 10px 14px; font-size: 13px; margin-bottom: 16px; display: none;
+
+  .staff-row {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 12px;
+    margin-bottom: 40px;
   }
-  .filterBar input.invalid { border-color: #B03A2E; }
+  @media (max-width: 620px) { .staff-row { grid-template-columns: 1fr; } }
 
-  /* Dashboard */
-  #dashboard { display: none; }
-  .topbar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
-
-  .cards { display: flex; gap: 16px; margin-bottom: 24px; flex-wrap: wrap; }
-  .card {
-    background: white; border-radius: 10px; padding: 20px; flex: 1; min-width: 150px;
-    box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+  a.staff-card {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: 9px;
+    padding: 13px 14px;
+    text-decoration: none;
+    color: var(--ink);
+    font-size: 13.5px;
+    font-weight: 600;
+    transition: border-color 0.12s, background 0.12s;
   }
-  .card .label { font-size: 13px; color: #6b7280; margin-bottom: 6px; }
-  .card .value { font-size: 28px; font-weight: 700; color: #17324A; }
-  .card.warn .value { color: #B03A2E; }
-
-  .panel {
-    background: white; border-radius: 10px; padding: 20px; margin-bottom: 20px;
-    box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+  a.staff-card:hover { border-color: var(--brand); background: var(--brand-soft); }
+  .staff-card .icon-sm {
+    width: 30px;
+    height: 30px;
+    flex-shrink: 0;
+    border-radius: 7px;
+    background: var(--brand-soft);
+    display: flex;
+    align-items: center;
+    justify-content: center;
   }
-  .panel h3 { margin-top: 0; color: #17324A; font-size: 15px; }
+  .staff-card .icon-sm svg { width: 15px; height: 15px; stroke: var(--brand); }
 
-  .bar-row { display: flex; align-items: center; margin-bottom: 10px; font-size: 13px; }
-  .bar-label { width: 160px; flex-shrink: 0; color: #374151; }
-  .bar-track { flex: 1; background: #e5e7eb; border-radius: 4px; height: 18px; margin: 0 10px; overflow: hidden; }
-  .bar-fill { background: #5B9BD5; height: 100%; border-radius: 4px; }
-  .bar-count { width: 30px; text-align: right; font-weight: 600; color: #17324A; }
-
-  .filterBar { display: flex; gap: 10px; align-items: center; margin-bottom: 20px; flex-wrap: wrap; }
-  .filterBar label { font-size: 13px; color: #374151; }
-  .filterBar input { padding: 7px; border: 1px solid #d1d5db; border-radius: 6px; }
-  .filterBar .clearBtn { background: #9ca3af; }
-  .filterBar .clearBtn:hover { background: #6b7280; }
-
-  /* Tabs */
-  .tabs { display: flex; gap: 4px; margin-bottom: 20px; border-bottom: 2px solid #e5e7eb; }
-  .tab-btn {
-    background: none; border: none; padding: 10px 18px; cursor: pointer; font-size: 14px;
-    color: #6b7280; border-bottom: 2px solid transparent; margin-bottom: -2px;
+  .map-wrap {
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    overflow: hidden;
+    margin-bottom: 10px;
   }
-  .tab-btn.active { color: #17324A; border-bottom-color: #17324A; font-weight: 600; }
-  .tab-panel { display: none; }
-  .tab-panel.active { display: block; }
-
-  /* Reports */
-  .reportBar { display: flex; gap: 10px; align-items: center; margin-bottom: 20px; flex-wrap: wrap; }
-  .reportBar select { padding: 7px; border: 1px solid #d1d5db; border-radius: 6px; }
-  .report-meta { font-size: 12px; color: #6b7280; margin-bottom: 16px; }
-
-  /* User Management */
-  .user-table { width: 100%; border-collapse: collapse; font-size: 13px; }
-  .user-table th, .user-table td { text-align: left; padding: 10px; border-bottom: 1px solid #eee; }
-  .user-table th { color: #6b7280; font-weight: 600; }
-  .status-badge { padding: 2px 10px; border-radius: 10px; font-size: 11px; font-weight: 600; }
-  .status-badge.active { background: #DCEBFA; color: #17324A; }
-  .status-badge.inactive { background: #eee; color: #666; }
-  .toggle-btn {
-    background: #2C5F8A; color: white; border: none; padding: 6px 12px;
-    border-radius: 6px; cursor: pointer; font-size: 12px;
+  .map-wrap iframe {
+    width: 100%;
+    height: 260px;
+    border: 0;
+    display: block;
   }
-  .toggle-btn.deactivate { background: #B03A2E; }
+
+  footer {
+    margin-top: 36px;
+    background: var(--footer-bg);
+    padding: 24px 24px 20px;
+    text-align: center;
+    font-size: 12.5px;
+    color: var(--footer-text);
+  }
+  footer .line { margin-bottom: 4px; }
+  footer .line strong { color: #fff; }
+  footer .back-to-top {
+    display: inline-block;
+    margin-top: 14px;
+    color: var(--footer-text);
+    font-size: 12px;
+    text-decoration: none;
+    border-top: 1px solid rgba(255,255,255,0.15);
+    padding-top: 14px;
+  }
+  footer .back-to-top:hover { color: #fff; text-decoration: underline; }
 </style>
 </head>
 <body>
 
-<header>USP Online Appointment &amp; Medical Records System &mdash; Admin Reporting</header>
-
-<div class="container">
-
-  <!-- LOGIN -->
-  <div id="loginBox">
-    <h2>Admin Login</h2>
-    <label>Username</label>
-    <input type="text" id="username" placeholder="admin" />
-    <label>Password</label>
-    <input type="password" id="password" placeholder="••••••••" />
-    <div id="loginError">Invalid username or password.</div>
-    <button onclick="login()">Log In</button>
+<header id="top">
+  <a class="logo-link" href="https://www.usp.ac.fj" target="_blank" rel="noopener">
+    <span class="logo-chip"><img class="logo" src="/images/usp-logo.png" alt="USP logo" /></span>
+    <span class="site-name">USP Health & Wellness Center</span>
+  </a>
+  <div class="header-search">
+    <input id="doctor-search" type="text" placeholder="Search for a doctor..." autocomplete="off" />
+    <div class="search-suggestions" id="search-suggestions"></div>
   </div>
+</header>
 
-  <!-- DASHBOARD -->
-  <div id="dashboard">
-    <div class="topbar">
-      <h2 style="color:#17324A;margin:0;">Reporting &amp; Analytics Dashboard</h2>
-      <button id="logoutBtn" onclick="logout()">Log Out</button>
-    </div>
-
-    <div id="pageError"></div>
-
-    <div class="tabs">
-      <button class="tab-btn active" id="tab-btn-dashboard" onclick="switchTab('dashboard')">Dashboard</button>
-      <button class="tab-btn" id="tab-btn-reports" onclick="switchTab('reports')">Reports</button>
-      <button class="tab-btn" id="tab-btn-users" onclick="switchTab('users')">User Management</button>
-    </div>
-
-    <div id="tab-dashboard" class="tab-panel active">
-    <div class="filterBar">
-      <label>From <input type="date" id="startDate"></label>
-      <label>To <input type="date" id="endDate"></label>
-      <button onclick="applyFilter()">Apply Filter</button>
-      <button class="clearBtn" onclick="clearFilter()">Clear Filter</button>
-    </div>
-
-    <div class="cards">
-      <div class="card">
-        <div class="label">Total Appointments</div>
-        <div class="value" id="statTotal">-</div>
-      </div>
-      <div class="card warn">
-        <div class="label">No-Shows</div>
-        <div class="value" id="statNoShow">-</div>
-      </div>
-      <div class="card warn">
-        <div class="label">No-Show Rate</div>
-        <div class="value" id="statRate">-</div>
-      </div>
-    </div>
-
-    <div class="panel">
-      <h3>Appointments by Visit Reason</h3>
-      <div id="byReason"></div>
-    </div>
-
-    <div class="panel">
-      <h3>Appointments by Doctor (Caseload)</h3>
-      <div id="byDoctor"></div>
-    </div>
-
-    <p style="font-size:12px;color:#9ca3af;margin-top:20px;">
-      Per REQ 63, Admin has access to aggregate statistics only. Individual student names,
-      visit reasons, and records are not shown here.
-    </p>
-    </div>
-
-    <div id="tab-reports" class="tab-panel">
-      <div class="panel">
-        <h3>Generate Report</h3>
-        <div class="reportBar">
-          <select id="reportType"></select>
-          <label>From <input type="date" id="reportStartDate"></label>
-          <label>To <input type="date" id="reportEndDate"></label>
-          <button onclick="generateReport()">Generate</button>
-        </div>
-        <div id="reportError" style="color:#B03A2E;font-size:13px;margin-bottom:12px;display:none;"></div>
-        <div id="reportMeta" class="report-meta"></div>
-        <div id="reportResults"></div>
-      </div>
-    </div>
-
-    <div id="tab-users" class="tab-panel">
-      <div class="panel">
-        <h3>User Accounts</h3>
-        <div id="userMgmtError" style="color:#B03A2E;font-size:13px;margin-bottom:12px;display:none;"></div>
-        <table class="user-table">
-          <thead><tr><th>Username</th><th>Role</th><th>Status</th><th></th></tr></thead>
-          <tbody id="userTableBody"></tbody>
-        </table>
-        <p style="font-size:12px;color:#9ca3af;margin-top:16px;">
-          Per FR-05-73, account management shows account status only - never individual
-          patient or medical record data.
-        </p>
-      </div>
-    </div>
+<div class="hero">
+  <img class="banner" src="/images/healthcenter.jpg" alt="USP Health Center" />
+  <div class="overlay">
+    <h1>Book your visit online</h1>
+    <p>Check availability, book, or manage your visit — all in one place.</p>
   </div>
-
 </div>
 
+<div class="eligibility-bar">
+  Open to registered USP students, and spouses/children under 18 (subject to the applicable Health Services Fee)
+</div>
+
+<main>
+  <div class="student-block">
+    <div class="icon-lg">
+      <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M22 10L12 5 2 10l10 5 10-5z"/><path d="M6 12v5c0 1.5 3 3 6 3s6-1.5 6-3v-5"/>
+      </svg>
+    </div>
+    <div class="content">
+      <h2>Are you a student?</h2>
+      <p>Register or log in to book, reschedule, or cancel your appointments, and check doctor availability before you visit.</p>
+    </div>
+    <a class="cta-link" href="/student.html">Go to Student Portal</a>
+  </div>
+
+  <p class="section-title">Our Services</p>
+  <p class="section-sub">What the Health & Wellness Center provides on Laucala Campus</p>
+  <div class="services">
+    <div class="service-card">
+      <div class="icon-md">
+        <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0016.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 002 8.5c0 2.29 1.51 4.04 3 5.5l7 7z"/>
+        </svg>
+      </div>
+      <div class="title">Medical Consultations</div>
+      <div class="desc">Illness and injury consultations with University Medical Officers</div>
+    </div>
+    <div class="service-card">
+      <div class="icon-md">
+        <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M9 12l2 2 4-4"/><circle cx="12" cy="12" r="10"/>
+        </svg>
+      </div>
+      <div class="title">Preventative Care</div>
+      <div class="desc">Wound dressing and basic health screenings</div>
+    </div>
+    <div class="service-card">
+      <div class="icon-md">
+        <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M13 2L3 14h7l-1 8 11-14h-7l1-6z"/>
+        </svg>
+      </div>
+      <div class="title">Emergency Assistance</div>
+      <div class="desc">First response and immediate treatment for injuries</div>
+    </div>
+    <div class="service-card">
+      <div class="icon-md">
+        <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M9 18l6-6-6-6"/>
+        </svg>
+      </div>
+      <div class="title">Specialist Referrals</div>
+      <div class="desc">Referrals to the National Hospital for further care</div>
+    </div>
+  </div>
+
+  <p class="staff-label">Staff Access</p>
+  <div class="staff-row">
+    <a class="staff-card" href="/checkin.html">
+      <span class="icon-sm">
+        <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M9 12l2 2 4-4"/><circle cx="12" cy="12" r="10"/>
+        </svg>
+      </span>
+      Nurse
+    </a>
+    <a class="staff-card" href="/doctor.html">
+      <span class="icon-sm">
+        <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0016.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 002 8.5c0 2.29 1.51 4.04 3 5.5l7 7z"/>
+        </svg>
+      </span>
+      Doctor
+    </a>
+    <a class="staff-card" href="/admin.html">
+      <span class="icon-sm">
+        <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="8" r="4"/><path d="M4 21v-1a8 8 0 0116 0v1"/>
+        </svg>
+      </span>
+      Admin
+    </a>
+  </div>
+
+  <p class="section-title">Find Us</p>
+  <p class="section-sub">Laucala Campus, Suva</p>
+  <div class="map-wrap">
+    <iframe
+      src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d947.8256446631589!2d178.44378066812286!3d-18.14997014420256!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x6e1bddcdbdbb5761%3A0xb5677e95ee8c0da7!2sUSP%20Health%20%26%20Wellness%20Center!5e0!3m2!1sen!2sfj!4v1779332384433!5m2!1sen!2sfj"
+      loading="lazy"
+      referrerpolicy="no-referrer-when-downgrade">
+    </iframe>
+  </div>
+</main>
+
+<footer>
+  <div class="line"><strong>USP Health & Wellness Center</strong> — Laucala Campus</div>
+  <div class="line">Semester hours: Mon–Fri, 7:30 AM – 6:30 PM (closed 1–2 PM)</div>
+  <div class="line">Phone: 3231618</div>
+  <a class="back-to-top" href="#top">↑ Back to Top</a>
+</footer>
+
 <script>
-let authHeader = null;
+  const searchInput = document.getElementById('doctor-search');
+  const suggestionsBox = document.getElementById('search-suggestions');
+  let allDoctors = [];
 
-async function login() {
-  const user = document.getElementById('username').value;
-  const pass = document.getElementById('password').value;
-  const errorBox = document.getElementById('loginError');
+  fetch('/schedule/doctors')
+    .then(res => res.json())
+    .then(doctors => { allDoctors = doctors; })
+    .catch(() => { allDoctors = []; });
 
-  try {
-    const checkRes = await fetch('/api/check-login', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ username: user, password: pass, requiredRole: 'ADMIN' })
-    });
-    const checkData = await checkRes.json();
-
-    if (!checkData.ok) {
-      errorBox.innerText = checkData.message;
-      errorBox.style.display = 'block';
+  searchInput.addEventListener('input', () => {
+    const term = searchInput.value.trim().toLowerCase();
+    if (!term) {
+      suggestionsBox.classList.remove('show');
       return;
     }
-
-    authHeader = 'Basic ' + btoa(user + ':' + pass);
-    document.getElementById('loginBox').style.display = 'none';
-    document.getElementById('dashboard').style.display = 'block';
-    errorBox.style.display = 'none';
-    loadDashboard();
-  } catch (e) {
-    errorBox.innerText = 'Service temporarily unavailable';
-    errorBox.style.display = 'block';
-  }
-}
-
-function logout() {
-  authHeader = null;
-  document.getElementById('dashboard').style.display = 'none';
-  document.getElementById('loginBox').style.display = 'block';
-  document.getElementById('username').value = '';
-  document.getElementById('password').value = '';
-}
-
-function showPageError(message) {
-  const box = document.getElementById('pageError');
-  box.innerText = message;
-  box.style.display = message ? 'block' : 'none';
-}
-
-async function loadDashboard() {
-  try {
-    const res = await fetch('/dashboard/summary', { headers: { 'Authorization': authHeader } });
-    if (!res.ok) {
-      const err = await res.json();
-      showPageError(err.message || 'Unable to load statistics');
-      return;
+    const matches = allDoctors.filter(d => d.toLowerCase().includes(term));
+    if (matches.length === 0) {
+      suggestionsBox.innerHTML = '<div class="none">No doctors found.</div>';
+    } else {
+      suggestionsBox.innerHTML = matches.map(d =>
+        `<a href="/student.html?doctor=${encodeURIComponent(d)}">${d}</a>`
+      ).join('');
     }
-    showPageError(null);
-    const data = await res.json();
-    renderSummary(data);
-  } catch (e) {
-    showPageError('Service temporarily unavailable');
-  }
-}
+    suggestionsBox.classList.add('show');
+  });
 
-async function applyFilter() {
-  const startInput = document.getElementById('startDate');
-  const endInput = document.getElementById('endDate');
-  const start = startInput.value;
-  const end = endInput.value;
-
-  startInput.classList.remove('invalid');
-  endInput.classList.remove('invalid');
-
-  if (!start || !end) {
-    showPageError('Please select both a start and end date.');
-    return;
-  }
-  if (start > end) {
-    startInput.classList.add('invalid');
-    endInput.classList.add('invalid');
-    showPageError('Invalid date range: start date must be on or before the end date.');
-    return;
-  }
-
-  try {
-    const res = await fetch(`/dashboard/summary/filter?startDate=${start}&endDate=${end}`, { headers: { 'Authorization': authHeader } });
-    if (!res.ok) {
-      const err = await res.json();
-      showPageError(err.message || 'Unable to load statistics');
-      return;
+  document.addEventListener('click', e => {
+    if (!e.target.closest('.header-search')) {
+      suggestionsBox.classList.remove('show');
     }
-    showPageError(null);
-    const data = await res.json();
-    renderSummary(data);
-  } catch (e) {
-    showPageError('Service temporarily unavailable');
-  }
-}
-
-function clearFilter() {
-  document.getElementById('startDate').value = '';
-  document.getElementById('endDate').value = '';
-  document.getElementById('startDate').classList.remove('invalid');
-  document.getElementById('endDate').classList.remove('invalid');
-  showPageError(null);
-  loadDashboard();
-}
-
-// ---------- Tabs ----------
-function switchTab(tab) {
-  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-  document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
-  document.getElementById('tab-btn-' + tab).classList.add('active');
-  document.getElementById('tab-' + tab).classList.add('active');
-
-  if (tab === 'reports') loadReportTypes();
-  if (tab === 'users') loadUsers();
-}
-
-// ---------- Reports (4.5.2) ----------
-async function loadReportTypes() {
-  const select = document.getElementById('reportType');
-  if (select.options.length > 0) return; // already loaded
-  try {
-    const res = await fetch('/admin/reports/types', { headers: { 'Authorization': authHeader } });
-    const types = await res.json();
-    select.innerHTML = types.map(t => `<option value="${t}">${t}</option>`).join('');
-  } catch (e) {
-    select.innerHTML = '<option>Unable to load report types</option>';
-  }
-}
-
-function showReportError(message) {
-  const box = document.getElementById('reportError');
-  box.innerText = message;
-  box.style.display = message ? 'block' : 'none';
-}
-
-async function generateReport() {
-  const type = document.getElementById('reportType').value;
-  const start = document.getElementById('reportStartDate').value;
-  const end = document.getElementById('reportEndDate').value;
-  const resultsBox = document.getElementById('reportResults');
-  const metaBox = document.getElementById('reportMeta');
-
-  if (!start || !end) {
-    showReportError('Please provide both a start and end date for the report');
-    metaBox.innerText = '';
-    resultsBox.innerHTML = '';
-    return;
-  }
-  if (start > end) {
-    showReportError('Invalid date range: start date must be on or before the end date');
-    metaBox.innerText = '';
-    resultsBox.innerHTML = '';
-    return;
-  }
-
-  try {
-    const res = await fetch(`/admin/reports?type=${encodeURIComponent(type)}&startDate=${start}&endDate=${end}`,
-      { headers: { 'Authorization': authHeader } });
-
-    if (!res.ok) {
-      const err = await res.json();
-      showReportError(err.message || 'Unable to generate report');
-      metaBox.innerText = '';
-      resultsBox.innerHTML = '';
-      return;
-    }
-
-    showReportError(null);
-    const report = await res.json();
-    metaBox.innerText = `${report.reportType} · ${report.dateRangeStart} to ${report.dateRangeEnd} · Generated ${new Date(report.generatedAt).toLocaleString()}`;
-    renderBars('reportResults', report.data, report.totalAppointments);
-  } catch (e) {
-    showReportError('Service temporarily unavailable');
-  }
-}
-
-// ---------- User Management (4.5.3) ----------
-function showUserMgmtError(message) {
-  const box = document.getElementById('userMgmtError');
-  box.innerText = message;
-  box.style.display = message ? 'block' : 'none';
-}
-
-async function loadUsers() {
-  try {
-    const res = await fetch('/admin/users', { headers: { 'Authorization': authHeader } });
-    if (!res.ok) {
-      const err = await res.json();
-      showUserMgmtError(err.message || 'Unable to load user accounts');
-      return;
-    }
-    showUserMgmtError(null);
-    const users = await res.json();
-    const body = document.getElementById('userTableBody');
-    body.innerHTML = users.map(u => `
-      <tr>
-        <td>${u.username}</td>
-        <td>${u.role}</td>
-        <td><span class="status-badge ${u.active ? 'active' : 'inactive'}">${u.active ? 'Active' : 'Inactive'}</span></td>
-        <td>
-          <button class="toggle-btn ${u.active ? 'deactivate' : ''}" onclick="toggleUser(${u.id}, false)">
-            ${u.active ? 'Deactivate' : 'Activate'}
-          </button>
-        </td>
-      </tr>
-    `).join('');
-  } catch (e) {
-    showUserMgmtError('Service temporarily unavailable');
-  }
-}
-
-async function toggleUser(id, confirmed) {
-  try {
-    const res = await fetch(`/admin/users/${id}/toggle`, {
-      method: 'POST',
-      headers: { 'Authorization': authHeader, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ confirm: confirmed })
-    });
-
-    if (!res.ok) {
-      const err = await res.json();
-      showUserMgmtError(err.message || 'Unable to update account');
-      return;
-    }
-
-    const result = await res.json();
-    if (result.requiresConfirmation) {
-      if (window.confirm(result.message)) {
-        toggleUser(id, true);
-      }
-      return;
-    }
-
-    showUserMgmtError(null);
-    loadUsers();
-  } catch (e) {
-    showUserMgmtError('Service temporarily unavailable');
-  }
-}
-
-function renderSummary(data) {
-  document.getElementById('statTotal').innerText = data.totalAppointments;
-  document.getElementById('statNoShow').innerText = data.noShowCount;
-  document.getElementById('statRate').innerText = data.noShowRate.toFixed(1) + '%';
-
-  renderBars('byReason', data.byVisitReason, data.totalAppointments);
-  renderBars('byDoctor', data.byDoctor, data.totalAppointments);
-}
-
-function renderBars(containerId, obj, total) {
-  const container = document.getElementById(containerId);
-  container.innerHTML = '';
-  if (!obj || Object.keys(obj).length === 0) {
-    container.innerHTML = '<p style="color:#9ca3af;font-size:13px;">No data available for the selected period.</p>';
-    return;
-  }
-  const max = Math.max(...Object.values(obj));
-  for (const [key, count] of Object.entries(obj)) {
-    const pct = max === 0 ? 0 : (count / max * 100);
-    const row = document.createElement('div');
-    row.className = 'bar-row';
-    row.innerHTML = `
-      <div class="bar-label">${key}</div>
-      <div class="bar-track"><div class="bar-fill" style="width:${pct}%"></div></div>
-      <div class="bar-count">${count}</div>
-    `;
-    container.appendChild(row);
-  }
-}
-
-// Allow pressing Enter in password field to log in
-document.getElementById('password')?.addEventListener('keyup', e => {
-  if (e.key === 'Enter') login();
-});
+  });
 </script>
 
 </body>

@@ -43,6 +43,11 @@
     padding: 5px 12px; border-radius: 5px; font-size: 12px; cursor: pointer;
   }
   .topbar button:hover { background: rgba(255,255,255,0.1); }
+    .topbar .home-link {
+    color: #fff; font-size: 13px; text-decoration: none;
+    opacity: 0.85; margin-right: 4px;
+  }
+  .topbar .home-link:hover { opacity: 1; text-decoration: underline; }
 
   #auth-screen { min-height: 100vh; display: flex; align-items: center; justify-content: center; }
   .auth-card {
@@ -91,6 +96,19 @@
     width: 100%; padding: 9px 10px; border: 1px solid var(--line); border-radius: 6px;
     font-size: 13px; background: #fff; font-family: inherit;
   }
+  .filter-pill {
+    display: none;
+    align-items: center;
+    justify-content: space-between;
+    background: var(--brand-soft);
+    border: 1px solid var(--brand);
+    border-radius: 7px;
+    padding: 7px 12px;
+    font-size: 12.5px;
+    margin-bottom: 12px;
+  }
+  .filter-pill.show { display: flex; }
+  .filter-pill button { background: none; border: none; color: var(--brand); font-weight: 700; cursor: pointer; font-size: 13px; }
   .slot-list { display: flex; flex-direction: column; gap: 7px; margin: 10px 0 16px; max-height: 220px; overflow-y: auto; }
   .slot-option {
     border: 1px solid var(--line); border-radius: 7px; padding: 9px 12px;
@@ -170,7 +188,8 @@
 </div>
 
 <div id="app-screen">
-  <div class="topbar">
+    <div class="topbar">
+    <a href="/" class="home-link">← Home</a>
     <h1>Student Portal</h1>
     <div class="who">
       <span id="who-label"></span>
@@ -182,6 +201,10 @@
     <div class="panel">
       <div class="panel-head"><h2>Book an Appointment</h2></div>
       <div class="panel-body">
+        <div class="filter-pill" id="doctor-filter-pill">
+          <span>Showing: <strong id="doctor-filter-name"></strong></span>
+          <button onclick="clearDoctorFilter()">Clear</button>
+        </div>
         <div class="field">
           <label for="date-input">Date</label>
           <input id="date-input" type="date" onchange="loadSlots()" />
@@ -222,6 +245,7 @@
   let authHeader = null;
   let currentStudentId = null;
   let selectedSlot = null;
+  let doctorFilter = new URLSearchParams(window.location.search).get('doctor');
 
   function switchTab(tab) {
     document.getElementById('tab-login-btn').classList.toggle('active', tab === 'login');
@@ -289,6 +313,12 @@
         document.getElementById('app-screen').style.display = 'block';
         document.getElementById('who-label').textContent = studentId;
         renderAppointments(appointments);
+
+        if (doctorFilter) {
+          document.getElementById('doctor-filter-pill').classList.add('show');
+          document.getElementById('doctor-filter-name').textContent = doctorFilter;
+        }
+
         const dateInput = document.getElementById('date-input');
         const tomorrow = new Date();
         tomorrow.setDate(tomorrow.getDate() + 1);
@@ -307,16 +337,34 @@
     document.getElementById('login-password').value = '';
   }
 
+  function clearDoctorFilter() {
+    doctorFilter = null;
+    document.getElementById('doctor-filter-pill').classList.remove('show');
+    loadSlots();
+  }
+
   function loadSlots() {
     const date = document.getElementById('date-input').value;
     if (!date) return;
     selectedSlot = null;
 
-    fetch('/schedule/available?date=' + date)
-      .then(res => res.json())
+    let url = '/schedule/available?date=' + date;
+    if (doctorFilter) {
+      url += '&doctorName=' + encodeURIComponent(doctorFilter);
+    }
+
+    const container = document.getElementById('slot-container');
+
+    fetch(url)
+      .then(res => {
+        if (res.status === 404) {
+          return [];
+        }
+        if (!res.ok) throw new Error();
+        return res.json();
+      })
       .then(slots => {
-        const container = document.getElementById('slot-container');
-        if (slots.length === 0) {
+        if (!Array.isArray(slots) || slots.length === 0) {
           container.innerHTML = '<div class="empty-state">No available appointments for the selected date.</div>';
           return;
         }
@@ -328,8 +376,7 @@
         `).join('') + '</div>';
       })
       .catch(() => {
-        document.getElementById('slot-container').innerHTML =
-          '<div class="empty-state">Unable to load availability.</div>';
+        container.innerHTML = '<div class="empty-state">Unable to load availability.</div>';
       });
   }
 

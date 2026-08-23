@@ -59,7 +59,12 @@
     cursor: pointer;
   }
   .topbar button:hover { background: rgba(255,255,255,0.1); }
-
+  
+    .topbar .home-link {
+    color: #fff; font-size: 13px; text-decoration: none;
+    opacity: 0.85; margin-right: 4px;
+  }
+  .topbar .home-link:hover { opacity: 1; text-decoration: underline; }
   /* Login screen */
   #login-screen {
     min-height: 100vh;
@@ -322,7 +327,8 @@
 
 <!-- App -->
 <div id="app-screen">
-  <div class="topbar">
+    <div class="topbar">
+    <a href="/" class="home-link">← Home</a>
     <h1>Doctor Dashboard</h1>
     <div class="who">
       <span id="who-label"></span>

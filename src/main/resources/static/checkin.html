@@ -18,6 +18,11 @@
     font-size: 20px;
     font-weight: 600;
   }
+  header a.home-link {
+    color: #fff; text-decoration: none; opacity: 0.85;
+    margin-right: 14px; font-size: 14px;
+  }
+  header a.home-link:hover { opacity: 1; text-decoration: underline; }
   .container { max-width: 900px; margin: 30px auto; padding: 0 20px; }
 
   #loginBox {
@@ -58,7 +63,6 @@
   .urgency-tag.Routine { background: #DCEBFA; color: #17324A; }
   .urgency-tag.Emergency { background: #FDEAEA; color: #B03A2E; }
 
-  /* Check-in form modal */
   #checkinForm {
     display: none; background: white; border-radius: 10px; padding: 20px;
     margin-bottom: 20px; box-shadow: 0 1px 4px rgba(0,0,0,0.06);
@@ -78,7 +82,7 @@
 </head>
 <body>
 
-<header>USP Online Appointment &amp; Medical Records System &mdash; Nurse Check-in</header>
+<header><a href="/" class="home-link">← Home</a>USP Online Appointment &amp; Medical Records System &mdash; Nurse Check-in</header>
 
 <div class="container">
 
