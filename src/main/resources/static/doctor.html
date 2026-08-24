@@ -4,13 +4,16 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Doctor Dashboard — USP Health Center</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <style>
   :root {
-    --bg: #F5F7F8;
+    --bg: #F8FAFC;
     --panel: #FFFFFF;
-    --ink: #1B2B33;
-    --ink-soft: #5C707A;
-    --line: #DCE3E6;
+    --ink: #0F172A;
+    --ink-soft: #64748B;
+    --line: #E2E8F0;
     --brand: #1F4E5F;
     --brand-soft: #E5EEF0;
     --emergency: #B23A2E;
@@ -24,7 +27,7 @@
   * { box-sizing: border-box; }
   body {
     margin: 0;
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+    font-family: 'Geist', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
     background: var(--bg);
     color: var(--ink);
   }
@@ -165,6 +168,26 @@
   .panel-head .count {
     font-size: 12px;
     color: var(--ink-soft);
+  }
+
+  .tab-filter-btn {
+    flex: 1;
+    padding: 7px 10px;
+    border: none;
+    background: transparent;
+    border-radius: 6px;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--ink-soft);
+    cursor: pointer;
+    font-family: inherit;
+    transition: all 0.15s;
+  }
+  .tab-filter-btn:hover { background: #DCE5EB; color: var(--ink); }
+  .tab-filter-btn.active {
+    background: #FFFFFF;
+    color: var(--brand);
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
   }
 
   /* Queue rows — triage board styling */
@@ -333,8 +356,16 @@
   <div class="layout">
     <div class="panel" id="queue-panel">
       <div class="panel-head">
-        <h2>Patient Queue</h2>
+        <h2>Patient Queue &amp; Appointments</h2>
         <span class="count" id="queue-count"></span>
+      </div>
+      <div style="display:flex;gap:4px;background:#EBF1F5;padding:4px 8px;border-bottom:1px solid var(--line);">
+        <button id="tab-btn-queue" class="tab-filter-btn active" onclick="switchDoctorTab('queue')">Active Triage (Checked In)</button>
+        <button id="tab-btn-booked" class="tab-filter-btn" onclick="switchDoctorTab('booked')">Scheduled Bookings</button>
+        <button id="tab-btn-all" class="tab-filter-btn" onclick="switchDoctorTab('all')">All Records</button>
+      </div>
+      <div id="workflow-hint" style="background:#F0F7FA;padding:8px 14px;font-size:12px;color:var(--ink-soft);border-bottom:1px solid var(--line);">
+        💡 <strong>Workflow:</strong> When a student books an appointment, it appears in <em>Scheduled Bookings</em> and the <em>Nurse Check-in queue</em> (<a href="/checkin.html" style="color:var(--brand)">/checkin.html</a>). Once checked in, patients advance to <em>Active Triage</em>. You can also consult directly from either tab.
       </div>
       <div id="queue-list"></div>
     </div>
@@ -344,7 +375,7 @@
         <h2>Consultation</h2>
       </div>
       <div class="panel-body" id="detail-body">
-        <div class="detail-placeholder">Select a patient from the queue to view their details and record a consultation.</div>
+        <div class="detail-placeholder">Select a patient from the queue or scheduled list to view details and record a consultation.</div>
       </div>
     </div>
   </div>
@@ -354,6 +385,30 @@
   let authHeader = null;
   let currentUsername = null;
   let selectedAppointment = null;
+  let currentDoctorTab = 'queue'; // 'queue', 'booked', 'all'
+
+  window.addEventListener('DOMContentLoaded', () => {
+    const storedAuth = sessionStorage.getItem('authHeader');
+    const storedUser = sessionStorage.getItem('currentUser');
+    const storedRole = sessionStorage.getItem('userRole');
+
+    if (storedAuth && storedUser && storedRole === 'DOCTOR') {
+      authHeader = storedAuth;
+      currentUsername = storedUser;
+      document.getElementById('login-screen').style.display = 'none';
+      document.getElementById('app-screen').style.display = 'block';
+      document.getElementById('who-label').textContent = currentUsername;
+      refreshQueue();
+    }
+  });
+
+  function switchDoctorTab(tab) {
+    currentDoctorTab = tab;
+    document.getElementById('tab-btn-queue').classList.toggle('active', tab === 'queue');
+    document.getElementById('tab-btn-booked').classList.toggle('active', tab === 'booked');
+    document.getElementById('tab-btn-all').classList.toggle('active', tab === 'all');
+    refreshQueue();
+  }
 
   function login() {
     const username = document.getElementById('login-username').value.trim();
@@ -378,6 +433,9 @@
         }
         authHeader = 'Basic ' + btoa(username + ':' + password);
         currentUsername = username;
+        sessionStorage.setItem('authHeader', authHeader);
+        sessionStorage.setItem('currentUser', username);
+        sessionStorage.setItem('userRole', 'DOCTOR');
         return fetch('/doctor/queue', { headers: { 'Authorization': authHeader } });
       })
       .then(res => {
@@ -398,6 +456,7 @@
   }
 
   function logout() {
+    sessionStorage.clear();
     authHeader = null;
     currentUsername = null;
     selectedAppointment = null;
@@ -406,25 +465,33 @@
     document.getElementById('login-password').value = '';
     document.getElementById('detail-body').innerHTML =
       '<div class="detail-placeholder">Select a patient from the queue to view their details and record a consultation.</div>';
+    window.location.href = '/login.html';
   }
 
   function refreshQueue() {
-    fetch('/doctor/queue', { headers: { 'Authorization': authHeader } })
+    let endpoint = '/doctor/queue';
+    if (currentDoctorTab === 'booked') endpoint = '/doctor/booked';
+    else if (currentDoctorTab === 'all') endpoint = '/doctor/all';
+
+    fetch(endpoint, { headers: { 'Authorization': authHeader } })
       .then(res => res.json())
       .then(renderQueue)
       .catch(() => {
         document.getElementById('queue-list').innerHTML =
-          '<div class="empty-state">Unable to load patient queue.</div>';
+          '<div class="empty-state">Unable to load appointments.</div>';
       });
   }
 
   function renderQueue(queue) {
     const listEl = document.getElementById('queue-list');
     const countEl = document.getElementById('queue-count');
-    countEl.textContent = queue.length + (queue.length === 1 ? ' patient' : ' patients');
+    countEl.textContent = queue.length + (queue.length === 1 ? ' record' : ' records');
 
     if (queue.length === 0) {
-      listEl.innerHTML = '<div class="empty-state">No patients currently waiting.</div>';
+      let msg = 'No patients in active triage queue.';
+      if (currentDoctorTab === 'booked') msg = 'No un-checked-in booked appointments.';
+      else if (currentDoctorTab === 'all') msg = 'No appointment records found.';
+      listEl.innerHTML = `<div class="empty-state">${msg}</div>`;
       return;
     }
 
@@ -434,8 +501,8 @@
         <div class="flag ${appt.urgencyLevel}"></div>
         <div class="row-body">
           <div class="row-main">
-            <div class="name">${escapeHtml(appt.studentName)}</div>
-            <div class="reason">${escapeHtml(appt.visitReason)} · ${escapeHtml(appt.doctorName)}</div>
+            <div class="name">👤 ${escapeHtml(appt.studentName)}</div>
+            <div class="reason">${escapeHtml(appt.visitReason)} · ${escapeHtml(appt.doctorName)} · <em>${escapeHtml(appt.status)}</em></div>
           </div>
           <span class="badge ${appt.urgencyLevel}">${appt.urgencyLevel}</span>
         </div>
