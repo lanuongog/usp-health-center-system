@@ -78,68 +78,17 @@
   }
 
   .topbar button {
-    background: rgba(255,255,255,0.15);
-    border: 1px solid rgba(255,255,255,0.3);
-    color: #fff;
-    padding: 6px 14px;
-    border-radius: 6px;
-    font-size: 12px;
-    font-weight: 600;
-    cursor: pointer;
-    font-family: inherit;
-    transition: all 0.15s;
+    background: transparent; border: 1px solid rgba(255,255,255,0.4); color: #fff;
+    padding: 5px 12px; border-radius: 5px; font-size: 12px; cursor: pointer;
   }
-
-  .topbar button:hover {
-    background: rgba(255,255,255,0.25);
+  .topbar button:hover { background: rgba(255,255,255,0.1); }
+    .topbar .home-link {
+    color: #fff; font-size: 13px; text-decoration: none;
+    opacity: 0.85; margin-right: 4px;
   }
+  .topbar .home-link:hover { opacity: 1; text-decoration: underline; }
 
-  /* Sub-Navigation Menu */
-  .menu-nav {
-    max-width: 1200px;
-    margin: 20px auto 0;
-    padding: 0 24px;
-    display: flex;
-    gap: 8px;
-    border-bottom: 2px solid var(--line);
-  }
-
-  .menu-tab-btn {
-    background: transparent;
-    border: none;
-    padding: 10px 18px;
-    font-size: 14px;
-    font-weight: 600;
-    color: var(--ink-soft);
-    cursor: pointer;
-    font-family: inherit;
-    border-bottom: 2px solid transparent;
-    margin-bottom: -2px;
-    transition: all 0.15s ease;
-    display: flex;
-    align-items: center;
-    gap: 6px;
-  }
-
-  .menu-tab-btn:hover {
-    color: var(--brand);
-  }
-
-  .menu-tab-btn.active {
-    color: var(--brand);
-    border-bottom-color: var(--brand);
-    font-weight: 700;
-  }
-
-  /* Auth screen */
-  #auth-screen {
-    min-height: 85vh;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    padding: 20px;
-  }
-
+  #auth-screen { min-height: 100vh; display: flex; align-items: center; justify-content: center; }
   .auth-card {
     background: var(--panel);
     border: 1px solid var(--line);
@@ -320,138 +269,36 @@
     padding: 20px;
   }
 
-  /* Filters */
-  .filter-bar {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 12px;
-    margin-bottom: 18px;
+  .field-row { display: flex; gap: 10px; margin-bottom: 12px; }
+  .field-row .field { flex: 1; margin-bottom: 0; }
+  select {
+    width: 100%; padding: 9px 10px; border: 1px solid var(--line); border-radius: 6px;
+    font-size: 13px; background: #fff; font-family: inherit;
   }
-
-  .quick-dates {
-    display: flex;
-    gap: 6px;
-    margin-bottom: 16px;
-  }
-
-  .quick-date-btn {
-    background: #F1F5F9;
-    border: 1px solid var(--line);
-    border-radius: 6px;
-    padding: 6px 12px;
-    font-size: 12px;
-    font-weight: 600;
-    color: var(--ink-soft);
-    cursor: pointer;
-    font-family: inherit;
-    transition: all 0.15s;
-  }
-
-  .quick-date-btn:hover {
-    background: #E2E8F0;
-  }
-
-  .quick-date-btn.active {
-    background: var(--brand);
-    color: #fff;
-    border-color: var(--brand);
-  }
-
-  /* Slot Grid */
-  .slots-header {
-    font-size: 13px;
-    font-weight: 600;
-    color: var(--ink-soft);
-    margin-bottom: 10px;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-  }
-
-  .slot-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-    gap: 10px;
-    margin-bottom: 20px;
-    max-height: 260px;
-    overflow-y: auto;
-    padding: 2px;
-  }
-
-  .slot-card {
-    border: 1.5px solid var(--line);
-    border-radius: 9px;
-    padding: 12px;
-    cursor: pointer;
-    transition: all 0.15s ease;
-    background: #fff;
-    display: flex;
-    flex-direction: column;
-    gap: 6px;
-  }
-
-  .slot-card:hover {
-    border-color: var(--brand-light, #2E7999);
-    background: var(--brand-soft);
-    transform: translateY(-1px);
-  }
-
-  .slot-card.selected {
-    border-color: var(--brand);
-    background: var(--brand-soft);
-    box-shadow: 0 0 0 2px var(--brand);
-  }
-
-  .slot-card .doc-name {
-    font-weight: 700;
-    font-size: 13.5px;
-    color: var(--ink);
-  }
-
-  .slot-card .time-tag {
-    font-size: 12px;
-    color: var(--ink-soft);
-    display: flex;
-    align-items: center;
-    gap: 4px;
-  }
-
-  .empty-state {
-    padding: 36px 20px;
-    text-align: center;
-    color: var(--ink-soft);
-    font-size: 13.5px;
-    background: #F8FAFC;
-    border-radius: 8px;
-    border: 1px dashed var(--line);
-  }
-
-  /* Booking Details Box */
-  .booking-section {
-    background: #F8FAFC;
-    border: 1px solid var(--line);
-    border-radius: 9px;
-    padding: 16px;
-    margin-top: 10px;
-  }
-
-  .selected-summary {
-    display: flex;
+  .filter-pill {
+    display: none;
     align-items: center;
     justify-content: space-between;
-    background: #fff;
-    padding: 10px 14px;
+    background: var(--brand-soft);
+    border: 1px solid var(--brand);
     border-radius: 7px;
-    border: 1px solid var(--line);
-    margin-bottom: 14px;
-    font-size: 13px;
+    padding: 7px 12px;
+    font-size: 12.5px;
+    margin-bottom: 12px;
   }
-
-  .selected-summary strong {
-    color: var(--brand);
+  .filter-pill.show { display: flex; }
+  .filter-pill button { background: none; border: none; color: var(--brand); font-weight: 700; cursor: pointer; font-size: 13px; }
+  .slot-list { display: flex; flex-direction: column; gap: 7px; margin: 10px 0 16px; max-height: 220px; overflow-y: auto; }
+  .slot-option {
+    border: 1px solid var(--line); border-radius: 7px; padding: 9px 12px;
+    font-size: 13px; cursor: pointer; display: flex; justify-content: space-between;
   }
+  .slot-option:hover { background: var(--brand-soft); }
+  .slot-option.selected { background: var(--brand-soft); border-color: var(--brand); }
+  .slot-option .doc { font-weight: 600; }
+  .slot-option .time { color: var(--ink-soft); }
+  .empty-state { padding: 30px 20px; text-align: center; color: var(--ink-soft); font-size: 13px; }
 
-  /* Appointments List */
   .appt-card {
     border: 1px solid var(--line);
     border-radius: 10px;
@@ -696,64 +543,34 @@
 
 <!-- MAIN STUDENT PORTAL -->
 <div id="app-screen">
-  <div class="topbar">
-    <div class="brand-info">
-      <h1>USP Health Center</h1>
-      <span class="portal-tag">Student Medical Portal</span>
-    </div>
+    <div class="topbar">
+    <a href="/" class="home-link">← Home</a>
+    <h1>Student Portal</h1>
     <div class="who">
       <span>Logged in: <strong id="who-label"></strong></span>
       <button onclick="logout()">Log out</button>
     </div>
   </div>
 
-  <!-- Sub Navigation Menu -->
-  <div class="menu-nav">
-    <button id="nav-btn-booking" class="menu-tab-btn active" onclick="switchStudentView('booking')">
-      <span>📅</span> Book &amp; Active Appointments
-    </button>
-    <button id="nav-btn-history" class="menu-tab-btn" onclick="switchStudentView('history')">
-      <span>📋</span> Medical &amp; Consultation History
-    </button>
-  </div>
-
-  <!-- VIEW 1: BOOKING & UPCOMING APPOINTMENTS -->
-  <div id="view-booking" class="view-container">
-    <div class="layout">
-      <!-- LEFT PANEL: AVAILABLE SLOTS & BOOKING -->
-      <div class="panel">
-        <div class="panel-head">
-          <h2><span>📅</span> Book Doctor Appointment</h2>
+  <div class="layout">
+    <div class="panel">
+      <div class="panel-head"><h2>Book an Appointment</h2></div>
+      <div class="panel-body">
+        <div class="filter-pill" id="doctor-filter-pill">
+          <span>Showing: <strong id="doctor-filter-name"></strong></span>
+          <button onclick="clearDoctorFilter()">Clear</button>
         </div>
-        <div class="panel-body">
-          <!-- Date & Doctor Filters -->
-          <div class="filter-bar">
-            <div class="field" style="margin-bottom:0;">
-              <label for="date-input">Appointment Date</label>
-              <input id="date-input" type="date" onchange="onDateChanged()" />
-            </div>
-            <div class="field" style="margin-bottom:0;">
-              <label for="doctor-select">Filter by Doctor</label>
-              <select id="doctor-select" onchange="loadSlots()">
-                <option value="">All Available Doctors</option>
-              </select>
-            </div>
-          </div>
-
-          <!-- Quick Date Buttons -->
-          <div class="quick-dates">
-            <button type="button" class="quick-date-btn active" id="btn-today" onclick="selectQuickDate(0)">Today</button>
-            <button type="button" class="quick-date-btn" id="btn-tomorrow" onclick="selectQuickDate(1)">Tomorrow</button>
-            <button type="button" class="quick-date-btn" id="btn-dayafter" onclick="selectQuickDate(2)">In 2 Days</button>
-          </div>
-
-          <!-- Slots List -->
-          <div class="slots-header">
-            <span>Available Consultation Slots</span>
-            <span id="slots-count" style="font-weight:normal;"></span>
-          </div>
-          <div id="slot-container">
-            <div class="empty-state">Loading appointment slots...</div>
+        <div class="field">
+          <label for="date-input">Date</label>
+          <input id="date-input" type="date" onchange="loadSlots()" />
+        </div>
+        <div id="slot-container">
+          <div class="empty-state">Pick a date to see open slots.</div>
+        </div>
+        <div class="field-row">
+          <div class="field">
+            <label for="reason-input">Reason for visit</label>
+            <input id="reason-input" type="text" placeholder="e.g. Fever" />
           </div>
 
           <!-- Booking Form Inputs (Shown when slot is selected) -->
@@ -822,38 +639,8 @@
 <script>
   let authHeader = null;
   let currentStudentId = null;
-  let selectedSlotObj = null;
-  let availableDoctors = [];
-  let currentStudentView = 'booking'; // 'booking' or 'history'
-
-  // Check if already authenticated via universal login.html
-  window.addEventListener('DOMContentLoaded', () => {
-    const storedAuth = sessionStorage.getItem('authHeader');
-    const storedUser = sessionStorage.getItem('currentUser');
-
-    if (storedAuth && storedUser) {
-      authHeader = storedAuth;
-      currentStudentId = storedUser;
-      initStudentPortal();
-    } else {
-      document.getElementById('login-id').focus();
-    }
-  });
-
-  function switchStudentView(view) {
-    currentStudentView = view;
-    document.getElementById('nav-btn-booking').classList.toggle('active', view === 'booking');
-    document.getElementById('nav-btn-history').classList.toggle('active', view === 'history');
-    document.getElementById('view-booking').style.display = view === 'booking' ? 'block' : 'none';
-    document.getElementById('view-history').style.display = view === 'history' ? 'block' : 'none';
-
-    if (view === 'history') {
-      loadHistory();
-    } else {
-      refreshAppointments();
-      loadSlots();
-    }
-  }
+  let selectedSlot = null;
+  let doctorFilter = new URLSearchParams(window.location.search).get('doctor');
 
   function switchTab(tab) {
     document.getElementById('tab-login-btn').classList.toggle('active', tab === 'login');
@@ -921,10 +708,21 @@
       .then(appointments => {
         authHeader = candidate;
         currentStudentId = studentId;
-        sessionStorage.setItem('authHeader', authHeader);
-        sessionStorage.setItem('currentUser', studentId);
-        sessionStorage.setItem('userRole', 'STUDENT');
-        initStudentPortal(appointments);
+        document.getElementById('auth-screen').style.display = 'none';
+        document.getElementById('app-screen').style.display = 'block';
+        document.getElementById('who-label').textContent = studentId;
+        renderAppointments(appointments);
+
+        if (doctorFilter) {
+          document.getElementById('doctor-filter-pill').classList.add('show');
+          document.getElementById('doctor-filter-name').textContent = doctorFilter;
+        }
+
+        const dateInput = document.getElementById('date-input');
+        const tomorrow = new Date();
+        tomorrow.setDate(tomorrow.getDate() + 1);
+        dateInput.value = tomorrow.toISOString().split('T')[0];
+        loadSlots();
       })
       .catch(err => { errorEl.textContent = err.message; });
   }
@@ -952,67 +750,37 @@
     document.getElementById('app-screen').style.display = 'none';
     document.getElementById('auth-screen').style.display = 'flex';
     document.getElementById('login-password').value = '';
-    window.location.href = '/login.html';
   }
 
-  function selectQuickDate(offsetDays) {
-    const d = new Date();
-    d.setDate(d.getDate() + offsetDays);
-    const dateStr = d.toISOString().split('T')[0];
-    document.getElementById('date-input').value = dateStr;
-
-    document.querySelectorAll('.quick-date-btn').forEach((btn, idx) => {
-      btn.classList.toggle('active', idx === offsetDays);
-    });
-
+  function clearDoctorFilter() {
+    doctorFilter = null;
+    document.getElementById('doctor-filter-pill').classList.remove('show');
     loadSlots();
-  }
-
-  function onDateChanged() {
-    document.querySelectorAll('.quick-date-btn').forEach(btn => btn.classList.remove('active'));
-    loadSlots();
-  }
-
-  function loadDoctorList() {
-    fetch('/schedule/doctors')
-      .then(res => res.json())
-      .then(doctors => {
-        availableDoctors = doctors || [];
-        const select = document.getElementById('doctor-select');
-        select.innerHTML = '<option value="">All Available Doctors</option>' +
-          availableDoctors.map(d => `<option value="${escapeHtml(d)}">${escapeHtml(d)}</option>`).join('');
-      })
-      .catch(() => {});
   }
 
   function loadSlots() {
     const date = document.getElementById('date-input').value;
-    const doctor = document.getElementById('doctor-select').value;
+    if (!date) return;
+    selectedSlot = null;
+
+    let url = '/schedule/available?date=' + date;
+    if (doctorFilter) {
+      url += '&doctorName=' + encodeURIComponent(doctorFilter);
+    }
+
     const container = document.getElementById('slot-container');
-    const countEl = document.getElementById('slots-count');
-    clearSelectedSlot();
-
-    if (!date) {
-      container.innerHTML = '<div class="empty-state">Please pick a date to see open slots.</div>';
-      countEl.textContent = '';
-      return;
-    }
-
-    let url = '/schedule/available?date=' + encodeURIComponent(date);
-    if (doctor) {
-      url += '&doctorName=' + encodeURIComponent(doctor);
-    }
 
     fetch(url)
       .then(res => {
-        if (res.status === 404) return [];
-        if (!res.ok) throw new Error('Failed to load slots');
+        if (res.status === 404) {
+          return [];
+        }
+        if (!res.ok) throw new Error();
         return res.json();
       })
       .then(slots => {
         if (!Array.isArray(slots) || slots.length === 0) {
-          container.innerHTML = '<div class="empty-state">No open consultation slots for this date. Try another date or doctor.</div>';
-          countEl.textContent = '0 slots found';
+          container.innerHTML = '<div class="empty-state">No available appointments for the selected date.</div>';
           return;
         }
 
@@ -1025,8 +793,7 @@
         `).join('') + '</div>';
       })
       .catch(() => {
-        container.innerHTML = '<div class="empty-state">Unable to load availability. Please try again.</div>';
-        countEl.textContent = '';
+        container.innerHTML = '<div class="empty-state">Unable to load availability.</div>';
       });
   }
 
