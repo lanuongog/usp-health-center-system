@@ -30,22 +30,24 @@ public class ScheduleController {
     @Autowired
     private AppointmentRepository appointmentRepository;
 
+    // Endpoint to get list of distinct doctor names for dropdown filters
+    @GetMapping("/doctors")
+    public List<String> getDoctors() {
+        return scheduleRepository.findDistinctDoctorNames();
+    }
+
     // FR-02-20 to 23: students view open (unbooked) slots for a date, optionally filtered by doctor
     @GetMapping("/available")
     public List<DoctorSchedule> getAvailable(
             @RequestParam(required = false) String doctorName,
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date) {
 
-        List<DoctorSchedule> slots = (doctorName != null)
-                ? scheduleRepository.findByDoctorNameAndScheduleDate(doctorName, date)
+        List<DoctorSchedule> slots = (doctorName != null && !doctorName.isBlank())
+                ? scheduleRepository.findByDoctorNameAndScheduleDate(doctorName.trim(), date)
                 : scheduleRepository.findByScheduleDate(date);
 
         List<DoctorSchedule> open = slots.stream().filter(s -> !s.isBooked()).collect(Collectors.toList());
 
-        // 4.2.1.4: no appointment slots available for the selected date
-        if (open.isEmpty()) {
-            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "No available appointments for the selected date");
-        }
         return open;
     }
 

@@ -42,17 +42,21 @@ public class DashboardController {
     }
 
     private DashboardSummary buildSummary(List<Appointment> appointments) {
-        long total = appointments.size();
-        long noShows = appointments.stream().filter(a -> "NO_SHOW".equals(a.getStatus())).count();
+        List<Appointment> active = appointments.stream()
+                .filter(a -> !"CANCELLED".equalsIgnoreCase(a.getStatus()))
+                .toList();
+
+        long total = active.size();
+        long noShows = active.stream().filter(a -> "NO_SHOW".equals(a.getStatus())).count();
         double noShowRate = total == 0 ? 0 : (double) noShows / total * 100;
 
         Map<String, Long> byReason = new LinkedHashMap<>();
-        for (Appointment a : appointments) {
+        for (Appointment a : active) {
             byReason.merge(a.getVisitReason(), 1L, Long::sum);
         }
 
         Map<String, Long> byDoctor = new LinkedHashMap<>();
-        for (Appointment a : appointments) {
+        for (Appointment a : active) {
             byDoctor.merge(a.getDoctorName(), 1L, Long::sum);
         }
 
