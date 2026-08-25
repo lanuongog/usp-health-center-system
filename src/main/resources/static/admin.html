@@ -4,106 +4,92 @@
 <meta charset="UTF-8">
 <title>USP Health Center - Admin Reporting Dashboard</title>
 <style>
-  * { box-sizing: border-box; }
-  body {
-    font-family: -apple-system, Segoe UI, Roboto, Arial, sans-serif;
-    background: #f2f4f7;
-    margin: 0;
-    color: #1f2937;
-  }
-  header {
-    background: #17324A;
-    color: white;
-    padding: 18px 30px;
-    font-size: 20px;
-    font-weight: 600;
-  }
-  header a.home-link {
-    color: #fff; text-decoration: none; opacity: 0.85;
-    margin-right: 14px; font-size: 14px;
-  }
-  header a.home-link:hover { opacity: 1; text-decoration: underline; }
-  .container { max-width: 1000px; margin: 30px auto; padding: 0 20px; }
+* { box-sizing: border-box; }
+body {
+font-family: -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+background: #f2f4f7;
+margin: 0;
+color: #1f2937;
+}
+header {
+background: #17324A;
+color: white;
+padding: 18px 30px;
+font-size: 20px;
+font-weight: 600;
+}
+header a.home-link {
+color: #fff; text-decoration: none; opacity: 0.85;
+margin-right: 14px; font-size: 14px;
+}
+header a.home-link:hover { opacity: 1; text-decoration: underline; }
+.container { max-width: 1000px; margin: 30px auto; padding: 0 20px; }
 
-  #loginBox {
-    background: white;
-    border-radius: 10px;
-    padding: 40px;
-    max-width: 380px;
-    margin: 80px auto;
-    box-shadow: 0 2px 10px rgba(0,0,0,0.08);
-  }
-  #loginBox h2 { margin-top: 0; color: #17324A; }
-  #loginBox input {
-    width: 100%; padding: 10px; margin: 8px 0 16px 0;
-    border: 1px solid #d1d5db; border-radius: 6px; font-size: 14px;
-  }
-  #loginBox button, .filterBar button, #logoutBtn {
-    background: #2C5F8A; color: white; border: none;
-    padding: 10px 18px; border-radius: 6px; cursor: pointer; font-size: 14px;
-  }
-  #loginBox button:hover, .filterBar button:hover, #logoutBtn:hover { background: #1F4666; }
-  #loginError { color: #B03A2E; font-size: 13px; margin-top: -8px; margin-bottom: 10px; display: none; }
-  #pageError {
-    background: #FDEAEA; color: #B03A2E; border: 1px solid #f2b8b8;
-    border-radius: 6px; padding: 10px 14px; font-size: 13px; margin-bottom: 16px; display: none;
-  }
-  .filterBar input.invalid { border-color: #B03A2E; }
+button, .filterBar button, #logoutBtn {
+background: #2C5F8A; color: white; border: none;
+padding: 10px 18px; border-radius: 6px; cursor: pointer; font-size: 14px;
+}
+button:hover, .filterBar button:hover, #logoutBtn:hover { background: #1F4666; }
+#pageError {
+background: #FDEAEA; color: #B03A2E; border: 1px solid #f2b8b8;
+border-radius: 6px; padding: 10px 14px; font-size: 13px; margin-bottom: 16px; display: none;
+}
+.filterBar input.invalid { border-color: #B03A2E; }
 
-  #dashboard { display: none; }
-  .topbar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+#dashboard { display: block; }
+.topbar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
 
-  .cards { display: flex; gap: 16px; margin-bottom: 24px; flex-wrap: wrap; }
-  .card {
-    background: white; border-radius: 10px; padding: 20px; flex: 1; min-width: 150px;
-    box-shadow: 0 1px 4px rgba(0,0,0,0.06);
-  }
-  .card .label { font-size: 13px; color: #6b7280; margin-bottom: 6px; }
-  .card .value { font-size: 28px; font-weight: 700; color: #17324A; }
-  .card.warn .value { color: #B03A2E; }
+.cards { display: flex; gap: 16px; margin-bottom: 24px; flex-wrap: wrap; }
+.card {
+background: white; border-radius: 10px; padding: 20px; flex: 1; min-width: 150px;
+box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+}
+.card .label { font-size: 13px; color: #6b7280; margin-bottom: 6px; }
+.card .value { font-size: 28px; font-weight: 700; color: #17324A; }
+.card.warn .value { color: #B03A2E; }
 
-  .panel {
-    background: white; border-radius: 10px; padding: 20px; margin-bottom: 20px;
-    box-shadow: 0 1px 4px rgba(0,0,0,0.06);
-  }
-  .panel h3 { margin-top: 0; color: #17324A; font-size: 15px; }
+.panel {
+background: white; border-radius: 10px; padding: 20px; margin-bottom: 20px;
+box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+}
+.panel h3 { margin-top: 0; color: #17324A; font-size: 15px; }
 
-  .bar-row { display: flex; align-items: center; margin-bottom: 10px; font-size: 13px; }
-  .bar-label { width: 160px; flex-shrink: 0; color: #374151; }
-  .bar-track { flex: 1; background: #e5e7eb; border-radius: 4px; height: 18px; margin: 0 10px; overflow: hidden; }
-  .bar-fill { background: #5B9BD5; height: 100%; border-radius: 4px; }
-  .bar-count { width: 30px; text-align: right; font-weight: 600; color: #17324A; }
+.bar-row { display: flex; align-items: center; margin-bottom: 10px; font-size: 13px; }
+.bar-label { width: 160px; flex-shrink: 0; color: #374151; }
+.bar-track { flex: 1; background: #e5e7eb; border-radius: 4px; height: 18px; margin: 0 10px; overflow: hidden; }
+.bar-fill { background: #5B9BD5; height: 100%; border-radius: 4px; }
+.bar-count { width: 30px; text-align: right; font-weight: 600; color: #17324A; }
 
-  .filterBar { display: flex; gap: 10px; align-items: center; margin-bottom: 20px; flex-wrap: wrap; }
-  .filterBar label { font-size: 13px; color: #374151; }
-  .filterBar input { padding: 7px; border: 1px solid #d1d5db; border-radius: 6px; }
-  .filterBar .clearBtn { background: #9ca3af; }
-  .filterBar .clearBtn:hover { background: #6b7280; }
+.filterBar { display: flex; gap: 10px; align-items: center; margin-bottom: 20px; flex-wrap: wrap; }
+.filterBar label { font-size: 13px; color: #374151; }
+.filterBar input { padding: 7px; border: 1px solid #d1d5db; border-radius: 6px; }
+.filterBar .clearBtn { background: #9ca3af; }
+.filterBar .clearBtn:hover { background: #6b7280; }
 
-  .tabs { display: flex; gap: 4px; margin-bottom: 20px; border-bottom: 2px solid #e5e7eb; }
-  .tab-btn {
-    background: none; border: none; padding: 10px 18px; cursor: pointer; font-size: 14px;
-    color: #6b7280; border-bottom: 2px solid transparent; margin-bottom: -2px;
-  }
-  .tab-btn.active { color: #17324A; border-bottom-color: #17324A; font-weight: 600; }
-  .tab-panel { display: none; }
-  .tab-panel.active { display: block; }
+.tabs { display: flex; gap: 4px; margin-bottom: 20px; border-bottom: 2px solid #e5e7eb; }
+.tab-btn {
+background: none; border: none; padding: 10px 18px; cursor: pointer; font-size: 14px;
+color: #6b7280; border-bottom: 2px solid transparent; margin-bottom: -2px;
+}
+.tab-btn.active { color: #17324A; border-bottom-color: #17324A; font-weight: 600; }
+.tab-panel { display: none; }
+.tab-panel.active { display: block; }
 
-  .reportBar { display: flex; gap: 10px; align-items: center; margin-bottom: 20px; flex-wrap: wrap; }
-  .reportBar select { padding: 7px; border: 1px solid #d1d5db; border-radius: 6px; }
-  .report-meta { font-size: 12px; color: #6b7280; margin-bottom: 16px; }
+.reportBar { display: flex; gap: 10px; align-items: center; margin-bottom: 20px; flex-wrap: wrap; }
+.reportBar select { padding: 7px; border: 1px solid #d1d5db; border-radius: 6px; }
+.report-meta { font-size: 12px; color: #6b7280; margin-bottom: 16px; }
 
-  .user-table { width: 100%; border-collapse: collapse; font-size: 13px; }
-  .user-table th, .user-table td { text-align: left; padding: 10px; border-bottom: 1px solid #eee; }
-  .user-table th { color: #6b7280; font-weight: 600; }
-  .status-badge { padding: 2px 10px; border-radius: 10px; font-size: 11px; font-weight: 600; }
-  .status-badge.active { background: #DCEBFA; color: #17324A; }
-  .status-badge.inactive { background: #eee; color: #666; }
-  .toggle-btn {
-    background: #2C5F8A; color: white; border: none; padding: 6px 12px;
-    border-radius: 6px; cursor: pointer; font-size: 12px;
-  }
-  .toggle-btn.deactivate { background: #B03A2E; }
+.user-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+.user-table th, .user-table td { text-align: left; padding: 10px; border-bottom: 1px solid #eee; }
+.user-table th { color: #6b7280; font-weight: 600; }
+.status-badge { padding: 2px 10px; border-radius: 10px; font-size: 11px; font-weight: 600; }
+.status-badge.active { background: #DCEBFA; color: #17324A; }
+.status-badge.inactive { background: #eee; color: #666; }
+.toggle-btn {
+background: #2C5F8A; color: white; border: none; padding: 6px 12px;
+border-radius: 6px; cursor: pointer; font-size: 12px;
+}
+.toggle-btn.deactivate { background: #B03A2E; }
 </style>
 </head>
 <body>
@@ -112,143 +98,111 @@
 
 <div class="container">
 
-  <!-- LOGIN -->
-  <div id="loginBox">
-    <h2>Admin Login</h2>
-    <label>Username</label>
-    <input type="text" id="username" placeholder="admin" />
-    <label>Password</label>
-    <input type="password" id="password" placeholder="••••••••" />
-    <div id="loginError">Invalid username or password.</div>
-    <button onclick="login()">Log In</button>
-  </div>
+<div id="dashboard">
+<div class="topbar">
+<h2 style="color:#17324A;margin:0;">Reporting &amp; Analytics Dashboard</h2>
+<button id="logoutBtn" onclick="logout()">Log Out</button>
+</div>
 
-  <!-- DASHBOARD -->
-  <div id="dashboard">
-    <div class="topbar">
-      <h2 style="color:#17324A;margin:0;">Reporting &amp; Analytics Dashboard</h2>
-      <button id="logoutBtn" onclick="logout()">Log Out</button>
-    </div>
+<div id="pageError"></div>
 
-    <div id="pageError"></div>
+<div class="tabs">
+<button class="tab-btn active" id="tab-btn-dashboard" onclick="switchTab('dashboard')">Dashboard</button>
+<button class="tab-btn" id="tab-btn-reports" onclick="switchTab('reports')">Reports</button>
+<button class="tab-btn" id="tab-btn-users" onclick="switchTab('users')">User Management</button>
+</div>
 
-    <div class="tabs">
-      <button class="tab-btn active" id="tab-btn-dashboard" onclick="switchTab('dashboard')">Dashboard</button>
-      <button class="tab-btn" id="tab-btn-reports" onclick="switchTab('reports')">Reports</button>
-      <button class="tab-btn" id="tab-btn-users" onclick="switchTab('users')">User Management</button>
-    </div>
+<div id="tab-dashboard" class="tab-panel active">
+<div class="filterBar">
+<label>From <input type="date" id="startDate"></label>
+<label>To <input type="date" id="endDate"></label>
+<button onclick="applyFilter()">Apply Filter</button>
+<button class="clearBtn" onclick="clearFilter()">Clear Filter</button>
+</div>
 
-    <div id="tab-dashboard" class="tab-panel active">
-    <div class="filterBar">
-      <label>From <input type="date" id="startDate"></label>
-      <label>To <input type="date" id="endDate"></label>
-      <button onclick="applyFilter()">Apply Filter</button>
-      <button class="clearBtn" onclick="clearFilter()">Clear Filter</button>
-    </div>
+<div class="cards">
+<div class="card">
+<div class="label">Total Appointments</div>
+<div class="value" id="statTotal">-</div>
+</div>
+<div class="card warn">
+<div class="label">No-Shows</div>
+<div class="value" id="statNoShow">-</div>
+</div>
+<div class="card warn">
+<div class="label">No-Show Rate</div>
+<div class="value" id="statRate">-</div>
+</div>
+</div>
 
-    <div class="cards">
-      <div class="card">
-        <div class="label">Total Appointments</div>
-        <div class="value" id="statTotal">-</div>
-      </div>
-      <div class="card warn">
-        <div class="label">No-Shows</div>
-        <div class="value" id="statNoShow">-</div>
-      </div>
-      <div class="card warn">
-        <div class="label">No-Show Rate</div>
-        <div class="value" id="statRate">-</div>
-      </div>
-    </div>
+<div class="panel">
+<h3>Appointments by Visit Reason</h3>
+<div id="byReason"></div>
+</div>
 
-    <div class="panel">
-      <h3>Appointments by Visit Reason</h3>
-      <div id="byReason"></div>
-    </div>
+<div class="panel">
+<h3>Appointments by Doctor (Caseload)</h3>
+<div id="byDoctor"></div>
+</div>
 
-    <div class="panel">
-      <h3>Appointments by Doctor (Caseload)</h3>
-      <div id="byDoctor"></div>
-    </div>
-
-    <p style="font-size:12px;color:#9ca3af;margin-top:20px;">
+<p style="font-size:12px;color:#9ca3af;margin-top:20px;">
       Per REQ 63, Admin has access to aggregate statistics only. Individual student names,
       visit reasons, and records are not shown here.
-    </p>
-    </div>
+</p>
+</div>
 
-    <div id="tab-reports" class="tab-panel">
-      <div class="panel">
-        <h3>Generate Report</h3>
-        <div class="reportBar">
-          <select id="reportType"></select>
-          <label>From <input type="date" id="reportStartDate"></label>
-          <label>To <input type="date" id="reportEndDate"></label>
-          <button onclick="generateReport()">Generate</button>
-        </div>
-        <div id="reportError" style="color:#B03A2E;font-size:13px;margin-bottom:12px;display:none;"></div>
-        <div id="reportMeta" class="report-meta"></div>
-        <div id="reportResults"></div>
-      </div>
-    </div>
+<div id="tab-reports" class="tab-panel">
+<div class="panel">
+<h3>Generate Report</h3>
+<div class="reportBar">
+<select id="reportType"></select>
+<label>From <input type="date" id="reportStartDate"></label>
+<label>To <input type="date" id="reportEndDate"></label>
+<button onclick="generateReport()">Generate</button>
+</div>
+<div id="reportError" style="color:#B03A2E;font-size:13px;margin-bottom:12px;display:none;"></div>
+<div id="reportMeta" class="report-meta"></div>
+<div id="reportResults"></div>
+</div>
+</div>
 
-    <div id="tab-users" class="tab-panel">
-      <div class="panel">
-        <h3>User Accounts</h3>
-        <div id="userMgmtError" style="color:#B03A2E;font-size:13px;margin-bottom:12px;display:none;"></div>
-        <table class="user-table">
-          <thead><tr><th>Username</th><th>Role</th><th>Status</th><th></th></tr></thead>
-          <tbody id="userTableBody"></tbody>
-        </table>
-        <p style="font-size:12px;color:#9ca3af;margin-top:16px;">
+<div id="tab-users" class="tab-panel">
+<div class="panel">
+<h3>User Accounts</h3>
+<div id="userMgmtError" style="color:#B03A2E;font-size:13px;margin-bottom:12px;display:none;"></div>
+<table class="user-table">
+<thead><tr><th>Username</th><th>Role</th><th>Status</th><th></th></tr></thead>
+<tbody id="userTableBody"></tbody>
+</table>
+<p style="font-size:12px;color:#9ca3af;margin-top:16px;">
           Per FR-05-73, account management shows account status only - never individual
           patient or medical record data.
-        </p>
-      </div>
-    </div>
-  </div>
+</p>
+</div>
+</div>
+</div>
 
 </div>
 
 <script>
 let authHeader = null;
 
-async function login() {
-  const user = document.getElementById('username').value;
-  const pass = document.getElementById('password').value;
-  const errorBox = document.getElementById('loginError');
+window.addEventListener('DOMContentLoaded', () => {
+  const storedAuth = sessionStorage.getItem('authHeader');
+  const storedRole = sessionStorage.getItem('userRole');
 
-  try {
-    const checkRes = await fetch('/api/check-login', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ username: user, password: pass, requiredRole: 'ADMIN' })
-    });
-    const checkData = await checkRes.json();
-
-    if (!checkData.ok) {
-      errorBox.innerText = checkData.message;
-      errorBox.style.display = 'block';
-      return;
-    }
-
-    authHeader = 'Basic ' + btoa(user + ':' + pass);
-    document.getElementById('loginBox').style.display = 'none';
-    document.getElementById('dashboard').style.display = 'block';
-    errorBox.style.display = 'none';
-    loadDashboard();
-  } catch (e) {
-    errorBox.innerText = 'Service temporarily unavailable';
-    errorBox.style.display = 'block';
+  if (!storedAuth || storedRole !== 'ADMIN') {
+    window.location.href = '/login.html';
+    return;
   }
-}
+
+  authHeader = storedAuth;
+  loadDashboard();
+});
 
 function logout() {
-  authHeader = null;
-  document.getElementById('dashboard').style.display = 'none';
-  document.getElementById('loginBox').style.display = 'block';
-  document.getElementById('username').value = '';
-  document.getElementById('password').value = '';
+  sessionStorage.clear();
+  window.location.href = '/login.html';
 }
 
 function showPageError(message) {
@@ -478,10 +432,6 @@ function renderBars(containerId, obj, total) {
     container.appendChild(row);
   }
 }
-
-document.getElementById('password')?.addEventListener('keyup', e => {
-  if (e.key === 'Enter') login();
-});
 </script>
 
 </body>

@@ -5,301 +5,270 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>USP Health & Wellness Center</title>
 <style>
-  :root {
-    --bg: #F4F8F8;
-    --panel: #FFFFFF;
-    --ink: #14213D;
-    --ink-soft: #5C7070;
-    --line: #D8E6E6;
-    --brand: #0D7377;
-    --brand-dark: #095558;
-    --brand-soft: #E3F1F1;
-    --footer-bg: #0F2B2E;
-    --footer-text: #C7DBDB;
-  }
-  * { box-sizing: border-box; }
-  html { scroll-behavior: smooth; }
-  body {
-    margin: 0;
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
-    background: var(--bg);
-    color: var(--ink);
-  }
+:root {
+--bg: #F4F8F8;
+--panel: #FFFFFF;
+--ink: #14213D;
+--ink-soft: #5C7070;
+--line: #D8E6E6;
+--brand: #0D7377;
+--brand-dark: #095558;
+--brand-soft: #E3F1F1;
+--footer-bg: #0F2B2E;
+--footer-text: #C7DBDB;
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+margin: 0;
+font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+background: var(--bg);
+color: var(--ink);
+}
 
-  header {
-    background: var(--brand);
-    padding: 12px 28px;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 16px;
-    flex-wrap: wrap;
-  }
-  header a.logo-link { display: flex; align-items: center; gap: 12px; text-decoration: none; }
-  header .logo-chip {
-    background: #fff;
-    border-radius: 8px;
-    padding: 4px 8px;
-    display: flex;
-    align-items: center;
-  }
-  header img.logo { height: 32px; display: block; }
-  header .site-name { font-size: 15px; font-weight: 700; color: #fff; }
+header {
+background: var(--brand);
+padding: 12px 28px;
+display: flex;
+align-items: center;
+justify-content: space-between;
+gap: 16px;
+flex-wrap: wrap;
+}
+header a.logo-link { display: flex; align-items: center; gap: 12px; text-decoration: none; }
+header .logo-chip {
+background: #fff;
+border-radius: 8px;
+padding: 4px 8px;
+display: flex;
+align-items: center;
+}
+header img.logo { height: 32px; display: block; }
+header .site-name { font-size: 15px; font-weight: 700; color: #fff; }
 
-  .header-search {
-    position: relative;
-    width: 100%;
-    max-width: 260px;
-  }
-  .header-search input {
-    width: 100%;
-    padding: 9px 12px;
-    border-radius: 7px;
-    border: none;
-    font-size: 13.5px;
-  }
-  .header-search input:focus { outline: 2px solid rgba(255,255,255,0.5); }
-  .header-search .search-suggestions {
-    position: absolute;
-    top: 100%;
-    left: 0;
-    right: 0;
-    background: #fff;
-    border-radius: 8px;
-    margin-top: 4px;
-    box-shadow: 0 4px 14px rgba(0,0,0,0.2);
-    overflow: hidden;
-    text-align: left;
-    display: none;
-    z-index: 10;
-  }
-  .header-search .search-suggestions.show { display: block; }
-  .header-search .search-suggestions a {
-    display: block;
-    padding: 10px 14px;
-    font-size: 13.5px;
-    color: var(--ink);
-    text-decoration: none;
-  }
-  .header-search .search-suggestions a:hover { background: var(--brand-soft); }
-  .header-search .search-suggestions .none { padding: 10px 14px; font-size: 13px; color: var(--ink-soft); }
+.header-search {
+position: relative;
+width: 100%;
+max-width: 260px;
+}
+.header-search input {
+width: 100%;
+padding: 9px 12px;
+border-radius: 7px;
+border: none;
+font-size: 13.5px;
+}
+.header-search input:focus { outline: 2px solid rgba(255,255,255,0.5); }
+.header-search .search-suggestions {
+position: absolute;
+top: 100%;
+left: 0;
+right: 0;
+background: #fff;
+border-radius: 8px;
+margin-top: 4px;
+box-shadow: 0 4px 14px rgba(0,0,0,0.2);
+overflow: hidden;
+text-align: left;
+display: none;
+z-index: 10;
+}
+.header-search .search-suggestions.show { display: block; }
+.header-search .search-suggestions a {
+display: block;
+padding: 10px 14px;
+font-size: 13.5px;
+color: var(--ink);
+text-decoration: none;
+}
+.header-search .search-suggestions a:hover { background: var(--brand-soft); }
+.header-search .search-suggestions .none { padding: 10px 14px; font-size: 13px; color: var(--ink-soft); }
 
-  .hero {
-    position: relative;
-    height: 220px;
-    overflow: hidden;
-  }
-  .hero img.banner {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-    display: block;
-  }
-  .hero .overlay {
-    position: absolute;
-    inset: 0;
-    background: linear-gradient(180deg, rgba(13,115,119,0.20), rgba(9,25,30,0.78));
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    text-align: center;
-    padding: 20px;
-  }
-  .hero h1 { color: #fff; font-size: 26px; margin: 0 0 6px; }
-  .hero p { color: #DCF0F0; font-size: 14px; margin: 0; max-width: 460px; }
+.hero {
+position: relative;
+height: 220px;
+overflow: hidden;
+}
+.hero img.banner {
+width: 100%;
+height: 100%;
+object-fit: cover;
+display: block;
+}
+.hero .overlay {
+position: absolute;
+inset: 0;
+background: linear-gradient(180deg, rgba(13,115,119,0.20), rgba(9,25,30,0.78));
+display: flex;
+flex-direction: column;
+align-items: center;
+justify-content: center;
+text-align: center;
+padding: 20px;
+}
+.hero h1 { color: #fff; font-size: 26px; margin: 0 0 6px; }
+.hero p { color: #DCF0F0; font-size: 14px; margin: 0; max-width: 460px; }
 
-  .eligibility-bar {
-    background: var(--brand-soft);
-    color: var(--brand-dark);
-    text-align: center;
-    font-size: 12.5px;
-    padding: 9px 16px;
-  }
+.eligibility-bar {
+background: var(--brand-soft);
+color: var(--brand-dark);
+text-align: center;
+font-size: 12.5px;
+padding: 9px 16px;
+}
 
-  main { max-width: 900px; margin: 0 auto; padding: 34px 24px 10px; }
+main { max-width: 900px; margin: 0 auto; padding: 34px 24px 10px; }
 
-  .student-block {
-    background: var(--panel);
-    border: 1px solid var(--line);
-    border-radius: 12px;
-    padding: 26px;
-    display: flex;
-    align-items: center;
-    gap: 18px;
-    margin-bottom: 36px;
-  }
-  .student-block .icon-lg {
-    width: 56px;
-    height: 56px;
-    flex-shrink: 0;
-    border-radius: 12px;
-    background: var(--brand-soft);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-  }
-  .student-block .icon-lg svg { width: 28px; height: 28px; stroke: var(--brand); }
-  .student-block .content { flex: 1; }
-  .student-block h2 { margin: 0 0 4px; font-size: 18px; }
-  .student-block p { margin: 0; font-size: 13.5px; color: var(--ink-soft); }
-  .student-block .cta-link {
-    flex-shrink: 0;
-    background: var(--brand);
-    color: #fff;
-    font-weight: 700;
-    font-size: 13.5px;
-    padding: 10px 18px;
-    border-radius: 7px;
-    text-decoration: none;
-    white-space: nowrap;
-  }
-  .student-block .cta-link:hover { background: var(--brand-dark); }
-  @media (max-width: 620px) {
-    .student-block { flex-direction: column; text-align: center; }
-  }
+.section-title {
+text-align: center;
+font-size: 18px;
+font-weight: 700;
+margin: 0 0 4px;
+}
+.section-sub {
+text-align: center;
+color: var(--ink-soft);
+font-size: 13px;
+margin: 0 0 20px;
+}
 
-  .section-title {
-    text-align: center;
-    font-size: 18px;
-    font-weight: 700;
-    margin: 0 0 4px;
-  }
-  .section-sub {
-    text-align: center;
-    color: var(--ink-soft);
-    font-size: 13px;
-    margin: 0 0 20px;
-  }
+.services {
+display: grid;
+grid-template-columns: repeat(4, 1fr);
+gap: 14px;
+margin-bottom: 48px;
+}
+@media (max-width: 760px) { .services { grid-template-columns: repeat(2, 1fr); } }
 
-  .services {
-    display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    gap: 14px;
-    margin-bottom: 40px;
-  }
-  @media (max-width: 760px) { .services { grid-template-columns: repeat(2, 1fr); } }
+.service-card {
+background: var(--panel);
+border: 1px solid var(--line);
+border-radius: 10px;
+padding: 18px 14px;
+text-align: center;
+}
+.service-card .icon-md {
+width: 40px;
+height: 40px;
+margin: 0 auto 10px;
+border-radius: 9px;
+background: var(--brand-soft);
+display: flex;
+align-items: center;
+justify-content: center;
+}
+.service-card .icon-md svg { width: 20px; height: 20px; stroke: var(--brand); }
+.service-card .title { font-weight: 700; font-size: 13.5px; margin-bottom: 4px; }
+.service-card .desc { font-size: 12px; color: var(--ink-soft); line-height: 1.4; }
 
-  .service-card {
-    background: var(--panel);
-    border: 1px solid var(--line);
-    border-radius: 10px;
-    padding: 18px 14px;
-    text-align: center;
-  }
-  .service-card .icon-md {
-    width: 40px;
-    height: 40px;
-    margin: 0 auto 10px;
-    border-radius: 9px;
-    background: var(--brand-soft);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-  }
-  .service-card .icon-md svg { width: 20px; height: 20px; stroke: var(--brand); }
-  .service-card .title { font-weight: 700; font-size: 13.5px; margin-bottom: 4px; }
-  .service-card .desc { font-size: 12px; color: var(--ink-soft); line-height: 1.4; }
+/* ===== ACCESS / LOGIN PROMPT ===== */
+.access-section {
+background: var(--panel);
+border: 1px solid var(--line);
+border-radius: 14px;
+padding: 36px 32px;
+text-align: center;
+margin-bottom: 48px;
+box-shadow: 0 4px 18px rgba(0,0,0,0.05);
+}
+.access-section .emblem {
+display: inline-flex;
+align-items: center;
+justify-content: center;
+width: 52px;
+height: 52px;
+background: var(--brand-soft);
+border-radius: 14px;
+margin-bottom: 14px;
+font-size: 24px;
+}
+.access-section h2 {
+font-size: 22px;
+font-weight: 700;
+margin: 0 0 4px;
+color: var(--ink);
+}
+.access-section .subtitle {
+font-size: 13.5px;
+color: var(--ink-soft);
+margin: 0 0 18px;
+}
+.access-section p {
+font-size: 14.5px;
+line-height: 1.6;
+color: var(--ink);
+max-width: 520px;
+margin: 0 auto 22px;
+}
+.access-section .cta-btn {
+display: inline-block;
+background: var(--brand);
+color: #fff;
+font-weight: 700;
+font-size: 14.5px;
+padding: 12px 28px;
+border-radius: 8px;
+text-decoration: none;
+transition: background 0.15s;
+}
+.access-section .cta-btn:hover {
+background: var(--brand-dark);
+}
 
-  .staff-label {
-    text-align: center;
-    color: var(--ink-soft);
-    font-size: 12.5px;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 0.6px;
-    margin: 0 0 14px;
-  }
+.map-wrap {
+border: 1px solid var(--line);
+border-radius: 12px;
+overflow: hidden;
+margin-bottom: 10px;
+}
+.map-wrap iframe {
+width: 100%;
+height: 260px;
+border: 0;
+display: block;
+}
 
-  .staff-row {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 12px;
-    margin-bottom: 40px;
-  }
-  @media (max-width: 620px) { .staff-row { grid-template-columns: 1fr; } }
-
-  a.staff-card {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    background: var(--panel);
-    border: 1px solid var(--line);
-    border-radius: 9px;
-    padding: 13px 14px;
-    text-decoration: none;
-    color: var(--ink);
-    font-size: 13.5px;
-    font-weight: 600;
-    transition: border-color 0.12s, background 0.12s;
-  }
-  a.staff-card:hover { border-color: var(--brand); background: var(--brand-soft); }
-  .staff-card .icon-sm {
-    width: 30px;
-    height: 30px;
-    flex-shrink: 0;
-    border-radius: 7px;
-    background: var(--brand-soft);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-  }
-  .staff-card .icon-sm svg { width: 15px; height: 15px; stroke: var(--brand); }
-
-  .map-wrap {
-    border: 1px solid var(--line);
-    border-radius: 12px;
-    overflow: hidden;
-    margin-bottom: 10px;
-  }
-  .map-wrap iframe {
-    width: 100%;
-    height: 260px;
-    border: 0;
-    display: block;
-  }
-
-  footer {
-    margin-top: 36px;
-    background: var(--footer-bg);
-    padding: 24px 24px 20px;
-    text-align: center;
-    font-size: 12.5px;
-    color: var(--footer-text);
-  }
-  footer .line { margin-bottom: 4px; }
-  footer .line strong { color: #fff; }
-  footer .back-to-top {
-    display: inline-block;
-    margin-top: 14px;
-    color: var(--footer-text);
-    font-size: 12px;
-    text-decoration: none;
-    border-top: 1px solid rgba(255,255,255,0.15);
-    padding-top: 14px;
-  }
-  footer .back-to-top:hover { color: #fff; text-decoration: underline; }
+footer {
+margin-top: 36px;
+background: var(--footer-bg);
+padding: 24px 24px 20px;
+text-align: center;
+font-size: 12.5px;
+color: var(--footer-text);
+}
+footer .line { margin-bottom: 4px; }
+footer .line strong { color: #fff; }
+footer .back-to-top {
+display: inline-block;
+margin-top: 14px;
+color: var(--footer-text);
+font-size: 12px;
+text-decoration: none;
+border-top: 1px solid rgba(255,255,255,0.15);
+padding-top: 14px;
+}
+footer .back-to-top:hover { color: #fff; text-decoration: underline; }
 </style>
 </head>
 <body>
 
 <header id="top">
-  <a class="logo-link" href="https://www.usp.ac.fj" target="_blank" rel="noopener">
-    <span class="logo-chip"><img class="logo" src="/images/usp-logo.png" alt="USP logo" /></span>
-    <span class="site-name">USP Health & Wellness Center</span>
-  </a>
-  <div class="header-search">
-    <input id="doctor-search" type="text" placeholder="Search for a doctor..." autocomplete="off" />
-    <div class="search-suggestions" id="search-suggestions"></div>
-  </div>
+<a class="logo-link" href="https://www.usp.ac.fj" target="_blank" rel="noopener">
+<span class="logo-chip"><img class="logo" src="/images/usp-logo.png" alt="USP logo" /></span>
+<span class="site-name">USP Health & Wellness Center</span>
+</a>
+<div class="header-search">
+<input id="doctor-search" type="text" placeholder="Search for a doctor..." autocomplete="off" />
+<div class="search-suggestions" id="search-suggestions"></div>
+</div>
 </header>
 
 <div class="hero">
-  <img class="banner" src="/images/healthcenter.jpg" alt="USP Health Center" />
-  <div class="overlay">
-    <h1>Book your visit online</h1>
-    <p>Check availability, book, or manage your visit — all in one place.</p>
-  </div>
+<img class="banner" src="/images/healthcenter.jpg" alt="USP Health Center" />
+<div class="overlay">
+<h1>Book your visit online</h1>
+<p>Check availability, book, or manage your visit — all in one place.</p>
+</div>
 </div>
 
 <div class="eligibility-bar">
@@ -307,138 +276,113 @@
 </div>
 
 <main>
-  <div class="student-block">
-    <div class="icon-lg">
-      <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-        <path d="M22 10L12 5 2 10l10 5 10-5z"/><path d="M6 12v5c0 1.5 3 3 6 3s6-1.5 6-3v-5"/>
-      </svg>
-    </div>
-    <div class="content">
-      <h2>Are you a student?</h2>
-      <p>Register or log in to book, reschedule, or cancel your appointments, and check doctor availability before you visit.</p>
-    </div>
-    <a class="cta-link" href="/student.html">Go to Student Portal</a>
-  </div>
 
-  <p class="section-title">Our Services</p>
-  <p class="section-sub">What the Health & Wellness Center provides on Laucala Campus</p>
-  <div class="services">
-    <div class="service-card">
-      <div class="icon-md">
-        <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0016.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 002 8.5c0 2.29 1.51 4.04 3 5.5l7 7z"/>
-        </svg>
-      </div>
-      <div class="title">Medical Consultations</div>
-      <div class="desc">Illness and injury consultations with University Medical Officers</div>
-    </div>
-    <div class="service-card">
-      <div class="icon-md">
-        <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M9 12l2 2 4-4"/><circle cx="12" cy="12" r="10"/>
-        </svg>
-      </div>
-      <div class="title">Preventative Care</div>
-      <div class="desc">Wound dressing and basic health screenings</div>
-    </div>
-    <div class="service-card">
-      <div class="icon-md">
-        <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M13 2L3 14h7l-1 8 11-14h-7l1-6z"/>
-        </svg>
-      </div>
-      <div class="title">Emergency Assistance</div>
-      <div class="desc">First response and immediate treatment for injuries</div>
-    </div>
-    <div class="service-card">
-      <div class="icon-md">
-        <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M9 18l6-6-6-6"/>
-        </svg>
-      </div>
-      <div class="title">Specialist Referrals</div>
-      <div class="desc">Referrals to the National Hospital for further care</div>
-    </div>
-  </div>
+<p class="section-title">Our Services</p>
+<p class="section-sub">What the Health & Wellness Center provides on Laucala Campus</p>
+<div class="services">
+<div class="service-card">
+<div class="icon-md">
+<svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+<path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0016.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 002 8.5c0 2.29 1.51 4.04 3 5.5l7 7z"/>
+</svg>
+</div>
+<div class="title">Medical Consultations</div>
+<div class="desc">Illness and injury consultations with University Medical Officers</div>
+</div>
+<div class="service-card">
+<div class="icon-md">
+<svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+<path d="M9 12l2 2 4-4"/><circle cx="12" cy="12" r="10"/>
+</svg>
+</div>
+<div class="title">Preventative Care</div>
+<div class="desc">Wound dressing and basic health screenings</div>
+</div>
+<div class="service-card">
+<div class="icon-md">
+<svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+<path d="M13 2L3 14h7l-1 8 11-14h-7l1-6z"/>
+</svg>
+</div>
+<div class="title">Emergency Assistance</div>
+<div class="desc">First response and immediate treatment for injuries</div>
+</div>
+<div class="service-card">
+<div class="icon-md">
+<svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+<path d="M9 18l6-6-6-6"/>
+</svg>
+</div>
+<div class="title">Specialist Referrals</div>
+<div class="desc">Referrals to the National Hospital for further care</div>
+</div>
+</div>
 
-  <p class="staff-label">Staff Access</p>
-  <div class="staff-row">
-    <a class="staff-card" href="/checkin.html">
-      <span class="icon-sm">
-        <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M9 12l2 2 4-4"/><circle cx="12" cy="12" r="10"/>
-        </svg>
-      </span>
-      Nurse
-    </a>
-    <a class="staff-card" href="/doctor.html">
-      <span class="icon-sm">
-        <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0016.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 002 8.5c0 2.29 1.51 4.04 3 5.5l7 7z"/>
-        </svg>
-      </span>
-      Doctor
-    </a>
-    <a class="staff-card" href="/admin.html">
-      <span class="icon-sm">
-        <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <circle cx="12" cy="8" r="4"/><path d="M4 21v-1a8 8 0 0116 0v1"/>
-        </svg>
-      </span>
-      Admin
-    </a>
-  </div>
+<!-- ===== ACCESS SECTION ===== -->
+<div class="access-section">
+<div class="emblem">🏥</div>
+<h2>USP Health Center</h2>
 
-  <p class="section-title">Find Us</p>
-  <p class="section-sub">Laucala Campus, Suva</p>
-  <div class="map-wrap">
-    <iframe
-      src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d947.8256446631589!2d178.44378066812286!3d-18.14997014420256!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x6e1bddcdbdbb5761%3A0xb5677e95ee8c0da7!2sUSP%20Health%20%26%20Wellness%20Center!5e0!3m2!1sen!2sfj!4v1779332384433!5m2!1sen!2sfj"
-      loading="lazy"
-      referrerpolicy="no-referrer-when-downgrade">
-    </iframe>
-  </div>
+
+<p>
+  USP Health Services provide student-focused primary healthcare at the Laucala Campus clinic. 
+  Registered students, spouses and children under 18 can book appointments, view their queue status, 
+  and access medical records online through the Health Portal.
+</p>
+
+<a class="cta-btn" href="/login.html">Log in to Health Portal →</a>
+</div>
+
+<p class="section-title">Find Us</p>
+<p class="section-sub">Laucala Campus, Suva</p>
+<div class="map-wrap">
+<iframe
+src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d947.8256446631589!2d178.44378066812286!3d-18.14997014420256!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x6e1bddcdbdbb5761%3A0xb5677e95ee8c0da7!2sUSP%20Health%20%26%20Wellness%20Center!5e0!3m2!1sen!2sfj!4v1779332384433!5m2!1sen!2sfj"
+loading="lazy"
+referrerpolicy="no-referrer-when-downgrade">
+</iframe>
+</div>
 </main>
 
 <footer>
-  <div class="line"><strong>USP Health & Wellness Center</strong> — Laucala Campus</div>
-  <div class="line">Semester hours: Mon–Fri, 7:30 AM – 6:30 PM (closed 1–2 PM)</div>
-  <div class="line">Phone: 3231618</div>
-  <a class="back-to-top" href="#top">↑ Back to Top</a>
+<div class="line"><strong>USP Health & Wellness Center</strong> — Laucala Campus</div>
+<div class="line">Semester hours: Mon–Fri, 7:30 AM – 6:30 PM (closed 1–2 PM)</div>
+<div class="line">Phone: 3231618</div>
+<a class="back-to-top" href="#top">↑ Back to Top</a>
 </footer>
 
 <script>
-  const searchInput = document.getElementById('doctor-search');
-  const suggestionsBox = document.getElementById('search-suggestions');
-  let allDoctors = [];
+const searchInput = document.getElementById('doctor-search');
+const suggestionsBox = document.getElementById('search-suggestions');
+let allDoctors = [];
 
-  fetch('/schedule/doctors')
-    .then(res => res.json())
-    .then(doctors => { allDoctors = doctors; })
-    .catch(() => { allDoctors = []; });
+fetch('/schedule/doctors')
+  .then(res => res.json())
+  .then(doctors => { allDoctors = doctors; })
+  .catch(() => { allDoctors = []; });
 
-  searchInput.addEventListener('input', () => {
-    const term = searchInput.value.trim().toLowerCase();
-    if (!term) {
-      suggestionsBox.classList.remove('show');
-      return;
-    }
-    const matches = allDoctors.filter(d => d.toLowerCase().includes(term));
-    if (matches.length === 0) {
-      suggestionsBox.innerHTML = '<div class="none">No doctors found.</div>';
-    } else {
-      suggestionsBox.innerHTML = matches.map(d =>
-        `<a href="/student.html?doctor=${encodeURIComponent(d)}">${d}</a>`
-      ).join('');
-    }
-    suggestionsBox.classList.add('show');
-  });
+searchInput.addEventListener('input', () => {
+  const term = searchInput.value.trim().toLowerCase();
+  if (!term) {
+    suggestionsBox.classList.remove('show');
+    return;
+  }
+  const matches = allDoctors.filter(d => d.toLowerCase().includes(term));
+  if (matches.length === 0) {
+    suggestionsBox.innerHTML = '<div class="none">No doctors found.</div>';
+  } else {
+    suggestionsBox.innerHTML = matches.map(d =>
+      `<a href="/student.html?doctor=${encodeURIComponent(d)}">${d}</a>`
+    ).join('');
+  }
+  suggestionsBox.classList.add('show');
+});
 
-  document.addEventListener('click', e => {
-    if (!e.target.closest('.header-search')) {
-      suggestionsBox.classList.remove('show');
-    }
-  });
+document.addEventListener('click', e => {
+  if (!e.target.closest('.header-search')) {
+    suggestionsBox.classList.remove('show');
+  }
+});
 </script>
 
 </body>
