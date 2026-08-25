@@ -3,56 +3,99 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Nurse Pre-Consultation Check-In</title>
+    <title>USP Health Center - Nurse Check-in</title>
     <style>
-        body { font-family: Arial, sans-serif; margin: 30px; background-color: #f4f6f9; }
-        .container { max-width: 600px; margin: 0 auto; background: #fff; padding: 25px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
-        h2 { color: #333; margin-top: 0; }
-        .form-group { margin-bottom: 15px; }
-        label { display: block; font-weight: bold; margin-bottom: 5px; color: #555; }
-        input, select, textarea { width: 100%; padding: 10px; box-sizing: border-box; border: 1px solid #ccc; border-radius: 4px; font-size: 14px; }
-        button { background-color: #0284c7; color: white; padding: 12px; border: none; border-radius: 4px; width: 100%; font-size: 16px; font-weight: bold; cursor: pointer; }
-        button:hover { background-color: #0369a1; }
-        .message { padding: 10px; border-radius: 4px; margin-bottom: 15px; display: none; }
-        .success { background-color: #d1fae5; color: #065f46; border: 1px solid #a7f3d0; }
-        .error { background-color: #fee2e2; color: #991b1b; border: 1px solid #fca5a5; }
+        body { font-family: Arial, sans-serif; margin: 0; padding: 0; background-color: #f4f6f9; }
+        .header { background-color: #2e7d32; color: white; padding: 15px 20px; font-size: 18px; font-weight: bold; }
+        .container { max-width: 1000px; margin: 20px auto; padding: 0 20px; }
+        .card { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); margin-bottom: 20px; }
+        .card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; }
+        .card-title { color: #2e7d32; font-size: 18px; font-weight: bold; margin: 0; }
+        .btn { padding: 8px 16px; border: none; border-radius: 4px; font-weight: bold; cursor: pointer; }
+        .btn-logout { background-color: #94a3b8; color: white; }
+        .btn-primary { background-color: #0284c7; color: white; }
+        .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-top: 15px; }
+        .form-group { margin-bottom: 10px; }
+        .form-group.full { grid-column: span 2; }
+        label { display: block; font-weight: bold; margin-bottom: 5px; color: #333; }
+        input, select, textarea { width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; }
+        table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+        th, td { text-align: left; padding: 10px; border-bottom: 1px solid #eee; }
+        th { color: #666; font-size: 14px; }
+        .empty-msg { color: #aaa; padding: 10px 0; }
+        .alert { padding: 10px; border-radius: 4px; margin-bottom: 15px; display: none; }
+        .alert-success { background-color: #d1fae5; color: #065f46; }
+        .alert-error { background-color: #fee2e2; color: #991b1b; }
     </style>
 </head>
 <body>
 
+<div class="header">
+    USP Online Appointment & Medical Records System — Nurse Check-in
+</div>
+
 <div class="container">
-    <h2>Nurse Pre-Consultation Check-In</h2>
+    <div class="card-header" style="margin-top: 20px;">
+        <h2 style="color: #2e7d32; margin: 0;">Check-in Queue</h2>
+        <button class="btn btn-logout" onclick="window.location.href='/login.html'">Log Out</button>
+    </div>
 
-    <div id="statusMessage" class="message"></div>
+    <div id="statusMessage" class="alert"></div>
 
-    <form id="checkInForm">
-        <div class="form-group">
-            <label for="appointmentId">Appointment ID (Optional for Walk-Ins):</label>
-            <input type="number" id="appointmentId" placeholder="e.g. 101">
-        </div>
+    <!-- Active Check-In Form Card -->
+    <div class="card">
+        <h3 class="card-title">New Patient Pre-Consultation Check-In</h3>
+        <form id="checkInForm">
+            <div class="form-grid">
+                <div class="form-group">
+                    <label for="appointmentId">Appointment ID (Optional for Walk-Ins):</label>
+                    <input type="number" id="appointmentId" placeholder="e.g. 101">
+                </div>
+                <div class="form-group">
+                    <label for="studentId">Student ID:</label>
+                    <input type="text" id="studentId" placeholder="e.g. S11122334" required>
+                </div>
+                <div class="form-group">
+                    <label for="bloodPressure">Blood Pressure (BP):</label>
+                    <input type="text" id="bloodPressure" placeholder="120/80" required>
+                </div>
+                <div class="form-group">
+                    <label for="temperature">Temperature (°C):</label>
+                    <input type="text" id="temperature" placeholder="37.0" required>
+                </div>
+                <div class="form-group full">
+                    <label for="presentingComplaint">Presenting Complaint:</label>
+                    <textarea id="presentingComplaint" rows="3" placeholder="Describe symptoms..." required></textarea>
+                </div>
+            </div>
+            <button type="submit" class="btn btn-primary" style="margin-top: 10px;">Complete Check-In & Queue for Doctor</button>
+        </form>
+    </div>
 
-        <div class="form-group">
-            <label for="studentId">Student ID:</label>
-            <input type="text" id="studentId" placeholder="e.g. S11122334">
-        </div>
+    <!-- Students Waiting Card -->
+    <div class="card">
+        <h3 class="card-title">Students Waiting to be Checked In</h3>
+        <p class="empty-msg">No students currently waiting.</p>
+    </div>
 
-        <div class="form-group">
-            <label for="bloodPressure">Blood Pressure (Systolic/Diastolic):</label>
-            <input type="text" id="bloodPressure" placeholder="120/80" required>
-        </div>
-
-        <div class="form-group">
-            <label for="temperature">Temperature (°C):</label>
-            <input type="text" id="temperature" placeholder="37.0" required>
-        </div>
-
-        <div class="form-group">
-            <label for="presentingComplaint">Presenting Complaint:</label>
-            <textarea id="presentingComplaint" rows="4" placeholder="Describe patient symptoms..." required></textarea>
-        </div>
-
-        <button type="submit">Complete Check-In</button>
-    </form>
+    <!-- Completed Check-ins Card -->
+    <div class="card">
+        <h3 class="card-title">Completed Check-ins Today</h3>
+        <table>
+            <thead>
+                <tr>
+                    <th>Student ID</th>
+                    <th>Temp (°C)</th>
+                    <th>BP</th>
+                    <th>Complaint</th>
+                    <th>Time</th>
+                </tr>
+            </thead>
+            <tbody id="completedTableBody">
+                <tr id="emptyRow"><td colspan="5" class="empty-msg">No check-ins completed yet.</td></tr>
+            </tbody>
+        </table>
+    </div>
 </div>
 
 <script>
@@ -83,18 +126,29 @@
             });
 
             if (response.ok) {
-                messageDiv.className = 'message success';
-                messageDiv.textContent = 'Check-in processed successfully! Patient marked ready for doctor.';
+                messageDiv.className = 'alert alert-success';
+                messageDiv.textContent = 'Check-in processed! Patient added to doctor queue.';
                 messageDiv.style.display = 'block';
+
+                // Add entry to "Completed Check-ins Today" table dynamically
+                const emptyRow = document.getElementById('emptyRow');
+                if (emptyRow) emptyRow.remove();
+
+                const tableBody = document.getElementById('completedTableBody');
+                const row = document.createElement('tr');
+                const now = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                row.innerHTML = `<td><b>${studentId}</b></td><td>${temperature}</td><td>${bloodPressure}</td><td>${presentingComplaint}</td><td>${now}</td>`;
+                tableBody.prepend(row);
+
                 document.getElementById('checkInForm').reset();
             } else {
                 const errText = await response.text();
-                messageDiv.className = 'message error';
+                messageDiv.className = 'alert alert-error';
                 messageDiv.textContent = errText || 'Failed to check in student.';
                 messageDiv.style.display = 'block';
             }
         } catch (err) {
-            messageDiv.className = 'message error';
+            messageDiv.className = 'alert alert-error';
             messageDiv.textContent = 'Network error connecting to backend server.';
             messageDiv.style.display = 'block';
         }
