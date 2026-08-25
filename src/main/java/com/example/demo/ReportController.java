@@ -61,26 +61,33 @@ public class ReportController {
         }
 
         Map<String, Long> data = new LinkedHashMap<>();
-        switch (type) {
-            case "Visit Reason Breakdown":
-                for (Appointment a : appointments) {
-                    data.merge(a.getVisitReason(), 1L, Long::sum);
-                }
-                break;
-            case "Doctor Workload":
-                for (Appointment a : appointments) {
-                    data.merge(a.getDoctorName(), 1L, Long::sum);
-                }
-                break;
-            case "Appointment Summary":
-                data.put("Total Appointments", (long) appointments.size());
-                data.put("Completed", appointments.stream().filter(a -> "COMPLETED".equals(a.getStatus())).count());
-                data.put("No-Shows", appointments.stream().filter(a -> "NO_SHOW".equals(a.getStatus())).count());
-                data.put("Checked In (in progress)", appointments.stream().filter(a -> "CHECKED_IN".equals(a.getStatus())).count());
-                data.put("Booked (awaiting check-in)", appointments.stream().filter(a -> "BOOKED".equals(a.getStatus())).count());
-                break;
-            default:
-                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Unknown report type");
+        try {
+            switch (type) {
+                case "Visit Reason Breakdown":
+                    for (Appointment a : appointments) {
+                        data.merge(a.getVisitReason(), 1L, Long::sum);
+                    }
+                    break;
+                case "Doctor Workload":
+                    for (Appointment a : appointments) {
+                        data.merge(a.getDoctorName(), 1L, Long::sum);
+                    }
+                    break;
+                case "Appointment Summary":
+                    data.put("Total Appointments", (long) appointments.size());
+                    data.put("Completed", appointments.stream().filter(a -> "COMPLETED".equals(a.getStatus())).count());
+                    data.put("No-Shows", appointments.stream().filter(a -> "NO_SHOW".equals(a.getStatus())).count());
+                    data.put("Checked In (in progress)", appointments.stream().filter(a -> "CHECKED_IN".equals(a.getStatus())).count());
+                    data.put("Booked (awaiting check-in)", appointments.stream().filter(a -> "BOOKED".equals(a.getStatus())).count());
+                    break;
+                default:
+                    throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Unknown report type");
+            }
+        } catch (ResponseStatusException e) {
+            throw e; // preserve intended 400 "Unknown report type"
+        } catch (Exception e) {
+            // 4.5.2.4: a genuine failure while building the report itself
+            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Unable to generate report");
         }
 
         GeneratedReport report = new GeneratedReport();
