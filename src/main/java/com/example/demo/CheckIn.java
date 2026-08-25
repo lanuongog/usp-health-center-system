@@ -11,23 +11,31 @@ public class CheckIn {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @OneToOne
-    @JoinColumn(name = "appointment_id", unique = true)
+    @ManyToOne
+    @JoinColumn(name = "appointment_id", nullable = true)
     private Appointment appointment;
 
+    private String studentId;
     private String temperature;
     private String bloodPressure;
+
+    @Column(columnDefinition = "TEXT")
     private String presentingComplaint;
+
     private LocalDateTime checkInTime;
-    private String checkedInBy; // nurse username
+    private String checkedInBy;
 
     public CheckIn() {}
 
+    // Getters and Setters
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
 
     public Appointment getAppointment() { return appointment; }
     public void setAppointment(Appointment appointment) { this.appointment = appointment; }
+
+    public String getStudentId() { return studentId; }
+    public void setStudentId(String studentId) { this.studentId = studentId; }
 
     public String getTemperature() { return temperature; }
     public void setTemperature(String temperature) { this.temperature = temperature; }
