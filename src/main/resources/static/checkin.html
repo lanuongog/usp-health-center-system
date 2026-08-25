@@ -4,174 +4,138 @@
 <meta charset="UTF-8">
 <title>USP Health Center - Nurse Check-in</title>
 <style>
-  * { box-sizing: border-box; }
-  body {
-    font-family: -apple-system, Segoe UI, Roboto, Arial, sans-serif;
-    background: #f2f4f7;
-    margin: 0;
-    color: #1f2937;
-  }
-  header {
-    background: #3C7A4E;
-    color: white;
-    padding: 18px 30px;
-    font-size: 20px;
-    font-weight: 600;
-  }
-  .container { max-width: 900px; margin: 30px auto; padding: 0 20px; }
+* { box-sizing: border-box; }
+body {
+font-family: -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+background: #f2f4f7;
+margin: 0;
+color: #1f2937;
+}
+header {
+background: #3C7A4E;
+color: white;
+padding: 18px 30px;
+font-size: 20px;
+font-weight: 600;
+}
+header a.home-link {
+color: #fff; text-decoration: none; opacity: 0.85;
+margin-right: 14px; font-size: 14px;
+}
+header a.home-link:hover { opacity: 1; text-decoration: underline; }
+.container { max-width: 900px; margin: 30px auto; padding: 0 20px; }
 
-  #loginBox {
-    background: white; border-radius: 10px; padding: 40px; max-width: 380px;
-    margin: 80px auto; box-shadow: 0 2px 10px rgba(0,0,0,0.08);
-  }
-  #loginBox h2 { margin-top: 0; color: #3C7A4E; }
-  #loginBox input {
-    width: 100%; padding: 10px; margin: 8px 0 16px 0;
-    border: 1px solid #d1d5db; border-radius: 6px; font-size: 14px;
-  }
-  button {
-    background: #3C7A4E; color: white; border: none;
-    padding: 10px 18px; border-radius: 6px; cursor: pointer; font-size: 14px;
-  }
-  button:hover { background: #2E5F3B; }
-  button.secondary { background: #9ca3af; }
-  button.secondary:hover { background: #6b7280; }
-  #loginError { color: #B03A2E; font-size: 13px; margin-top: -8px; margin-bottom: 10px; display: none; }
+button {
+background: #3C7A4E; color: white; border: none;
+padding: 10px 18px; border-radius: 6px; cursor: pointer; font-size: 14px;
+}
+button:hover { background: #2E5F3B; }
+button.secondary { background: #9ca3af; }
+button.secondary:hover { background: #6b7280; }
 
-  #app { display: none; }
-  .topbar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+#app { display: block; }
+.topbar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
 
-  .panel {
-    background: white; border-radius: 10px; padding: 20px; margin-bottom: 20px;
-    box-shadow: 0 1px 4px rgba(0,0,0,0.06);
-  }
-  .panel h3 { margin-top: 0; color: #3C7A4E; font-size: 15px; }
+.panel {
+background: white; border-radius: 10px; padding: 20px; margin-bottom: 20px;
+box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+}
+.panel h3 { margin-top: 0; color: #3C7A4E; font-size: 15px; }
 
-  .queue-item {
-    display: flex; justify-content: space-between; align-items: center;
-    padding: 12px; border: 1px solid #e5e7eb; border-radius: 8px; margin-bottom: 10px;
-  }
-  .queue-item .info strong { color: #1f2937; }
-  .queue-item .info div { font-size: 13px; color: #6b7280; margin-top: 2px; }
-  .urgency-tag { padding: 2px 8px; border-radius: 10px; font-size: 11px; font-weight: 600; margin-left: 8px; }
-  .urgency-tag.Urgent { background: #FFF4E5; color: #8A4B12; }
-  .urgency-tag.Routine { background: #DCEBFA; color: #17324A; }
-  .urgency-tag.Emergency { background: #FDEAEA; color: #B03A2E; }
+.queue-item {
+display: flex; justify-content: space-between; align-items: center;
+padding: 12px; border: 1px solid #e5e7eb; border-radius: 8px; margin-bottom: 10px;
+}
+.queue-item .info strong { color: #1f2937; }
+.queue-item .info div { font-size: 13px; color: #6b7280; margin-top: 2px; }
+.urgency-tag { padding: 2px 8px; border-radius: 10px; font-size: 11px; font-weight: 600; margin-left: 8px; }
+.urgency-tag.Urgent { background: #FFF4E5; color: #8A4B12; }
+.urgency-tag.Routine { background: #DCEBFA; color: #17324A; }
+.urgency-tag.Emergency { background: #FDEAEA; color: #B03A2E; }
 
-  /* Check-in form modal */
-  #checkinForm {
-    display: none; background: white; border-radius: 10px; padding: 20px;
-    margin-bottom: 20px; box-shadow: 0 1px 4px rgba(0,0,0,0.06);
-  }
-  #checkinForm h3 { margin-top: 0; color: #3C7A4E; }
-  #checkinForm label { display: block; font-size: 13px; color: #374151; margin-top: 12px; margin-bottom: 4px; }
-  #checkinForm input, #checkinForm textarea {
-    width: 100%; padding: 8px; border: 1px solid #d1d5db; border-radius: 6px; font-size: 14px;
-  }
-  #checkinForm textarea { resize: vertical; min-height: 60px; }
-  .formActions { margin-top: 16px; display: flex; gap: 10px; }
+#checkinForm {
+display: none; background: white; border-radius: 10px; padding: 20px;
+margin-bottom: 20px; box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+}
+#checkinForm h3 { margin-top: 0; color: #3C7A4E; }
+#checkinForm label { display: block; font-size: 13px; color: #374151; margin-top: 12px; margin-bottom: 4px; }
+#checkinForm input, #checkinForm textarea {
+width: 100%; padding: 8px; border: 1px solid #d1d5db; border-radius: 6px; font-size: 14px;
+}
+#checkinForm textarea { resize: vertical; min-height: 60px; }
+.formActions { margin-top: 16px; display: flex; gap: 10px; }
 
-  table { width: 100%; border-collapse: collapse; font-size: 13px; }
-  th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid #eee; }
-  th { color: #6b7280; font-weight: 600; }
+table { width: 100%; border-collapse: collapse; font-size: 13px; }
+th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid #eee; }
+th { color: #6b7280; font-weight: 600; }
 </style>
 </head>
 <body>
 
-<header>USP Online Appointment &amp; Medical Records System &mdash; Nurse Check-in</header>
+<header><a href="/" class="home-link">← Home</a>USP Online Appointment &amp; Medical Records System &mdash; Nurse Check-in</header>
 
 <div class="container">
 
-  <div id="loginBox">
-    <h2>Nurse Login</h2>
-    <label style="font-size:13px;">Username</label>
-    <input type="text" id="username" placeholder="nurse" />
-    <label style="font-size:13px;">Password</label>
-    <input type="password" id="password" placeholder="••••••••" />
-    <div id="loginError">Invalid username or password.</div>
-    <button onclick="login()">Log In</button>
-  </div>
+<div id="app">
+<div class="topbar">
+<h2 style="color:#3C7A4E;margin:0;">Check-in Queue</h2>
+<button class="secondary" onclick="logout()">Log Out</button>
+</div>
 
-  <div id="app">
-    <div class="topbar">
-      <h2 style="color:#3C7A4E;margin:0;">Check-in Queue</h2>
-      <button class="secondary" onclick="logout()">Log Out</button>
-    </div>
+<div id="pageError" style="background:#FDEAEA;color:#B03A2E;border:1px solid #f2b8b8;border-radius:6px;padding:10px 14px;font-size:13px;margin-bottom:16px;display:none;"></div>
 
-    <div id="pageError" style="background:#FDEAEA;color:#B03A2E;border:1px solid #f2b8b8;border-radius:6px;padding:10px 14px;font-size:13px;margin-bottom:16px;display:none;"></div>
+<div class="panel">
+<h3>Students Waiting to be Checked In</h3>
+<div id="queueList"></div>
+</div>
 
-    <div class="panel">
-      <h3>Students Waiting to be Checked In</h3>
-      <div id="queueList"></div>
-    </div>
+<div id="checkinForm">
+<h3>Check In: <span id="checkinStudentName"></span></h3>
+<input type="hidden" id="checkinAppointmentId" />
+<label>Temperature (°C)</label>
+<input type="text" id="temperature" placeholder="e.g. 37.2" />
+<label>Blood Pressure</label>
+<input type="text" id="bloodPressure" placeholder="e.g. 120/80" />
+<label>Presenting Complaint</label>
+<textarea id="presentingComplaint" placeholder="What is the student here for, in their own words..."></textarea>
+<div id="formError" style="color:#B03A2E;font-size:13px;margin-top:10px;display:none;"></div>
+<div class="formActions">
+<button onclick="submitCheckIn()">Complete Check-in</button>
+<button class="secondary" onclick="cancelCheckIn()">Cancel</button>
+</div>
+</div>
 
-    <div id="checkinForm">
-      <h3>Check In: <span id="checkinStudentName"></span></h3>
-      <input type="hidden" id="checkinAppointmentId" />
-      <label>Temperature (°C)</label>
-      <input type="text" id="temperature" placeholder="e.g. 37.2" />
-      <label>Blood Pressure</label>
-      <input type="text" id="bloodPressure" placeholder="e.g. 120/80" />
-      <label>Presenting Complaint</label>
-      <textarea id="presentingComplaint" placeholder="What is the student here for, in their own words..."></textarea>
-      <div id="formError" style="color:#B03A2E;font-size:13px;margin-top:10px;display:none;"></div>
-      <div class="formActions">
-        <button onclick="submitCheckIn()">Complete Check-in</button>
-        <button class="secondary" onclick="cancelCheckIn()">Cancel</button>
-      </div>
-    </div>
-
-    <div class="panel">
-      <h3>Completed Check-ins Today</h3>
-      <table>
-        <thead><tr><th>Student</th><th>Temp</th><th>BP</th><th>Complaint</th><th>Time</th></tr></thead>
-        <tbody id="checkinTableBody"></tbody>
-      </table>
-    </div>
-  </div>
+<div class="panel">
+<h3>Completed Check-ins Today</h3>
+<table>
+<thead><tr><th>Student</th><th>Temp</th><th>BP</th><th>Complaint</th><th>Time</th></tr></thead>
+<tbody id="checkinTableBody"></tbody>
+</table>
+</div>
+</div>
 
 </div>
 
 <script>
 let authHeader = null;
 
-async function login() {
-  const user = document.getElementById('username').value;
-  const pass = document.getElementById('password').value;
-  const errorBox = document.getElementById('loginError');
+window.addEventListener('DOMContentLoaded', () => {
+  const storedAuth = sessionStorage.getItem('authHeader');
+  const storedRole = sessionStorage.getItem('userRole');
 
-  try {
-    const checkRes = await fetch('/api/check-login', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ username: user, password: pass, requiredRole: 'NURSE' })
-    });
-    const checkData = await checkRes.json();
-
-    if (!checkData.ok) {
-      errorBox.innerText = checkData.message;
-      errorBox.style.display = 'block';
-      return;
-    }
-
-    authHeader = 'Basic ' + btoa(user + ':' + pass);
-    document.getElementById('loginBox').style.display = 'none';
-    document.getElementById('app').style.display = 'block';
-    errorBox.style.display = 'none';
-    loadQueue();
-    loadCheckIns();
-  } catch (e) {
-    errorBox.innerText = 'Service temporarily unavailable';
-    errorBox.style.display = 'block';
+  if (!storedAuth || storedRole !== 'NURSE') {
+    window.location.href = '/login.html';
+    return;
   }
-}
+
+  authHeader = storedAuth;
+  loadQueue();
+  loadCheckIns();
+});
 
 function logout() {
-  authHeader = null;
-  document.getElementById('app').style.display = 'none';
-  document.getElementById('loginBox').style.display = 'block';
-  document.getElementById('username').value = '';
-  document.getElementById('password').value = '';
+  sessionStorage.clear();
+  window.location.href = '/login.html';
 }
 
 function showPageError(message) {
@@ -304,13 +268,9 @@ async function loadCheckIns() {
       body.appendChild(row);
     }
   } catch (e) {
-    // non-critical section; leave existing content on transient failure
+    // non-critical
   }
 }
-
-document.getElementById('password')?.addEventListener('keyup', e => {
-  if (e.key === 'Enter') login();
-});
 </script>
 
 </body>

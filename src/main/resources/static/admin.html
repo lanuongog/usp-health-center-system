@@ -1,0 +1,438 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>USP Health Center - Admin Reporting Dashboard</title>
+<style>
+* { box-sizing: border-box; }
+body {
+font-family: -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+background: #f2f4f7;
+margin: 0;
+color: #1f2937;
+}
+header {
+background: #17324A;
+color: white;
+padding: 18px 30px;
+font-size: 20px;
+font-weight: 600;
+}
+header a.home-link {
+color: #fff; text-decoration: none; opacity: 0.85;
+margin-right: 14px; font-size: 14px;
+}
+header a.home-link:hover { opacity: 1; text-decoration: underline; }
+.container { max-width: 1000px; margin: 30px auto; padding: 0 20px; }
+
+button, .filterBar button, #logoutBtn {
+background: #2C5F8A; color: white; border: none;
+padding: 10px 18px; border-radius: 6px; cursor: pointer; font-size: 14px;
+}
+button:hover, .filterBar button:hover, #logoutBtn:hover { background: #1F4666; }
+#pageError {
+background: #FDEAEA; color: #B03A2E; border: 1px solid #f2b8b8;
+border-radius: 6px; padding: 10px 14px; font-size: 13px; margin-bottom: 16px; display: none;
+}
+.filterBar input.invalid { border-color: #B03A2E; }
+
+#dashboard { display: block; }
+.topbar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+
+.cards { display: flex; gap: 16px; margin-bottom: 24px; flex-wrap: wrap; }
+.card {
+background: white; border-radius: 10px; padding: 20px; flex: 1; min-width: 150px;
+box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+}
+.card .label { font-size: 13px; color: #6b7280; margin-bottom: 6px; }
+.card .value { font-size: 28px; font-weight: 700; color: #17324A; }
+.card.warn .value { color: #B03A2E; }
+
+.panel {
+background: white; border-radius: 10px; padding: 20px; margin-bottom: 20px;
+box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+}
+.panel h3 { margin-top: 0; color: #17324A; font-size: 15px; }
+
+.bar-row { display: flex; align-items: center; margin-bottom: 10px; font-size: 13px; }
+.bar-label { width: 160px; flex-shrink: 0; color: #374151; }
+.bar-track { flex: 1; background: #e5e7eb; border-radius: 4px; height: 18px; margin: 0 10px; overflow: hidden; }
+.bar-fill { background: #5B9BD5; height: 100%; border-radius: 4px; }
+.bar-count { width: 30px; text-align: right; font-weight: 600; color: #17324A; }
+
+.filterBar { display: flex; gap: 10px; align-items: center; margin-bottom: 20px; flex-wrap: wrap; }
+.filterBar label { font-size: 13px; color: #374151; }
+.filterBar input { padding: 7px; border: 1px solid #d1d5db; border-radius: 6px; }
+.filterBar .clearBtn { background: #9ca3af; }
+.filterBar .clearBtn:hover { background: #6b7280; }
+
+.tabs { display: flex; gap: 4px; margin-bottom: 20px; border-bottom: 2px solid #e5e7eb; }
+.tab-btn {
+background: none; border: none; padding: 10px 18px; cursor: pointer; font-size: 14px;
+color: #6b7280; border-bottom: 2px solid transparent; margin-bottom: -2px;
+}
+.tab-btn.active { color: #17324A; border-bottom-color: #17324A; font-weight: 600; }
+.tab-panel { display: none; }
+.tab-panel.active { display: block; }
+
+.reportBar { display: flex; gap: 10px; align-items: center; margin-bottom: 20px; flex-wrap: wrap; }
+.reportBar select { padding: 7px; border: 1px solid #d1d5db; border-radius: 6px; }
+.report-meta { font-size: 12px; color: #6b7280; margin-bottom: 16px; }
+
+.user-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+.user-table th, .user-table td { text-align: left; padding: 10px; border-bottom: 1px solid #eee; }
+.user-table th { color: #6b7280; font-weight: 600; }
+.status-badge { padding: 2px 10px; border-radius: 10px; font-size: 11px; font-weight: 600; }
+.status-badge.active { background: #DCEBFA; color: #17324A; }
+.status-badge.inactive { background: #eee; color: #666; }
+.toggle-btn {
+background: #2C5F8A; color: white; border: none; padding: 6px 12px;
+border-radius: 6px; cursor: pointer; font-size: 12px;
+}
+.toggle-btn.deactivate { background: #B03A2E; }
+</style>
+</head>
+<body>
+
+<header><a href="/" class="home-link">← Home</a>USP Online Appointment &amp; Medical Records System &mdash; Admin Reporting</header>
+
+<div class="container">
+
+<div id="dashboard">
+<div class="topbar">
+<h2 style="color:#17324A;margin:0;">Reporting &amp; Analytics Dashboard</h2>
+<button id="logoutBtn" onclick="logout()">Log Out</button>
+</div>
+
+<div id="pageError"></div>
+
+<div class="tabs">
+<button class="tab-btn active" id="tab-btn-dashboard" onclick="switchTab('dashboard')">Dashboard</button>
+<button class="tab-btn" id="tab-btn-reports" onclick="switchTab('reports')">Reports</button>
+<button class="tab-btn" id="tab-btn-users" onclick="switchTab('users')">User Management</button>
+</div>
+
+<div id="tab-dashboard" class="tab-panel active">
+<div class="filterBar">
+<label>From <input type="date" id="startDate"></label>
+<label>To <input type="date" id="endDate"></label>
+<button onclick="applyFilter()">Apply Filter</button>
+<button class="clearBtn" onclick="clearFilter()">Clear Filter</button>
+</div>
+
+<div class="cards">
+<div class="card">
+<div class="label">Total Appointments</div>
+<div class="value" id="statTotal">-</div>
+</div>
+<div class="card warn">
+<div class="label">No-Shows</div>
+<div class="value" id="statNoShow">-</div>
+</div>
+<div class="card warn">
+<div class="label">No-Show Rate</div>
+<div class="value" id="statRate">-</div>
+</div>
+</div>
+
+<div class="panel">
+<h3>Appointments by Visit Reason</h3>
+<div id="byReason"></div>
+</div>
+
+<div class="panel">
+<h3>Appointments by Doctor (Caseload)</h3>
+<div id="byDoctor"></div>
+</div>
+
+<p style="font-size:12px;color:#9ca3af;margin-top:20px;">
+      Per REQ 63, Admin has access to aggregate statistics only. Individual student names,
+      visit reasons, and records are not shown here.
+</p>
+</div>
+
+<div id="tab-reports" class="tab-panel">
+<div class="panel">
+<h3>Generate Report</h3>
+<div class="reportBar">
+<select id="reportType"></select>
+<label>From <input type="date" id="reportStartDate"></label>
+<label>To <input type="date" id="reportEndDate"></label>
+<button onclick="generateReport()">Generate</button>
+</div>
+<div id="reportError" style="color:#B03A2E;font-size:13px;margin-bottom:12px;display:none;"></div>
+<div id="reportMeta" class="report-meta"></div>
+<div id="reportResults"></div>
+</div>
+</div>
+
+<div id="tab-users" class="tab-panel">
+<div class="panel">
+<h3>User Accounts</h3>
+<div id="userMgmtError" style="color:#B03A2E;font-size:13px;margin-bottom:12px;display:none;"></div>
+<table class="user-table">
+<thead><tr><th>Username</th><th>Role</th><th>Status</th><th></th></tr></thead>
+<tbody id="userTableBody"></tbody>
+</table>
+<p style="font-size:12px;color:#9ca3af;margin-top:16px;">
+          Per FR-05-73, account management shows account status only - never individual
+          patient or medical record data.
+</p>
+</div>
+</div>
+</div>
+
+</div>
+
+<script>
+let authHeader = null;
+
+window.addEventListener('DOMContentLoaded', () => {
+  const storedAuth = sessionStorage.getItem('authHeader');
+  const storedRole = sessionStorage.getItem('userRole');
+
+  if (!storedAuth || storedRole !== 'ADMIN') {
+    window.location.href = '/login.html';
+    return;
+  }
+
+  authHeader = storedAuth;
+  loadDashboard();
+});
+
+function logout() {
+  sessionStorage.clear();
+  window.location.href = '/login.html';
+}
+
+function showPageError(message) {
+  const box = document.getElementById('pageError');
+  box.innerText = message;
+  box.style.display = message ? 'block' : 'none';
+}
+
+async function loadDashboard() {
+  try {
+    const res = await fetch('/dashboard/summary', { headers: { 'Authorization': authHeader } });
+    if (!res.ok) {
+      const err = await res.json();
+      showPageError(err.message || 'Unable to load statistics');
+      return;
+    }
+    showPageError(null);
+    const data = await res.json();
+    renderSummary(data);
+  } catch (e) {
+    showPageError('Service temporarily unavailable');
+  }
+}
+
+async function applyFilter() {
+  const startInput = document.getElementById('startDate');
+  const endInput = document.getElementById('endDate');
+  const start = startInput.value;
+  const end = endInput.value;
+
+  startInput.classList.remove('invalid');
+  endInput.classList.remove('invalid');
+
+  if (!start || !end) {
+    showPageError('Please select both a start and end date.');
+    return;
+  }
+  if (start > end) {
+    startInput.classList.add('invalid');
+    endInput.classList.add('invalid');
+    showPageError('Invalid date range: start date must be on or before the end date.');
+    return;
+  }
+
+  try {
+    const res = await fetch(`/dashboard/summary/filter?startDate=${start}&endDate=${end}`, { headers: { 'Authorization': authHeader } });
+    if (!res.ok) {
+      const err = await res.json();
+      showPageError(err.message || 'Unable to load statistics');
+      return;
+    }
+    showPageError(null);
+    const data = await res.json();
+    renderSummary(data);
+  } catch (e) {
+    showPageError('Service temporarily unavailable');
+  }
+}
+
+function clearFilter() {
+  document.getElementById('startDate').value = '';
+  document.getElementById('endDate').value = '';
+  document.getElementById('startDate').classList.remove('invalid');
+  document.getElementById('endDate').classList.remove('invalid');
+  showPageError(null);
+  loadDashboard();
+}
+
+function switchTab(tab) {
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+  document.getElementById('tab-btn-' + tab).classList.add('active');
+  document.getElementById('tab-' + tab).classList.add('active');
+
+  if (tab === 'reports') loadReportTypes();
+  if (tab === 'users') loadUsers();
+}
+
+async function loadReportTypes() {
+  const select = document.getElementById('reportType');
+  if (select.options.length > 0) return;
+  try {
+    const res = await fetch('/admin/reports/types', { headers: { 'Authorization': authHeader } });
+    const types = await res.json();
+    select.innerHTML = types.map(t => `<option value="${t}">${t}</option>`).join('');
+  } catch (e) {
+    select.innerHTML = '<option>Unable to load report types</option>';
+  }
+}
+
+function showReportError(message) {
+  const box = document.getElementById('reportError');
+  box.innerText = message;
+  box.style.display = message ? 'block' : 'none';
+}
+
+async function generateReport() {
+  const type = document.getElementById('reportType').value;
+  const start = document.getElementById('reportStartDate').value;
+  const end = document.getElementById('reportEndDate').value;
+  const resultsBox = document.getElementById('reportResults');
+  const metaBox = document.getElementById('reportMeta');
+
+  if (!start || !end) {
+    showReportError('Please provide both a start and end date for the report');
+    metaBox.innerText = '';
+    resultsBox.innerHTML = '';
+    return;
+  }
+  if (start > end) {
+    showReportError('Invalid date range: start date must be on or before the end date');
+    metaBox.innerText = '';
+    resultsBox.innerHTML = '';
+    return;
+  }
+
+  try {
+    const res = await fetch(`/admin/reports?type=${encodeURIComponent(type)}&startDate=${start}&endDate=${end}`,
+      { headers: { 'Authorization': authHeader } });
+
+    if (!res.ok) {
+      const err = await res.json();
+      showReportError(err.message || 'Unable to generate report');
+      metaBox.innerText = '';
+      resultsBox.innerHTML = '';
+      return;
+    }
+
+    showReportError(null);
+    const report = await res.json();
+    metaBox.innerText = `${report.reportType} · ${report.dateRangeStart} to ${report.dateRangeEnd} · Generated ${new Date(report.generatedAt).toLocaleString()}`;
+    renderBars('reportResults', report.data, report.totalAppointments);
+  } catch (e) {
+    showReportError('Service temporarily unavailable');
+  }
+}
+
+function showUserMgmtError(message) {
+  const box = document.getElementById('userMgmtError');
+  box.innerText = message;
+  box.style.display = message ? 'block' : 'none';
+}
+
+async function loadUsers() {
+  try {
+    const res = await fetch('/admin/users', { headers: { 'Authorization': authHeader } });
+    if (!res.ok) {
+      const err = await res.json();
+      showUserMgmtError(err.message || 'Unable to load user accounts');
+      return;
+    }
+    showUserMgmtError(null);
+    const users = await res.json();
+    const body = document.getElementById('userTableBody');
+    body.innerHTML = users.map(u => `
+      <tr>
+        <td>${u.username}</td>
+        <td>${u.role}</td>
+        <td><span class="status-badge ${u.active ? 'active' : 'inactive'}">${u.active ? 'Active' : 'Inactive'}</span></td>
+        <td>
+          <button class="toggle-btn ${u.active ? 'deactivate' : ''}" onclick="toggleUser(${u.id}, false)">
+            ${u.active ? 'Deactivate' : 'Activate'}
+          </button>
+        </td>
+      </tr>
+    `).join('');
+  } catch (e) {
+    showUserMgmtError('Service temporarily unavailable');
+  }
+}
+
+async function toggleUser(id, confirmed) {
+  try {
+    const res = await fetch(`/admin/users/${id}/toggle`, {
+      method: 'POST',
+      headers: { 'Authorization': authHeader, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ confirm: confirmed })
+    });
+
+    if (!res.ok) {
+      const err = await res.json();
+      showUserMgmtError(err.message || 'Unable to update account');
+      return;
+    }
+
+    const result = await res.json();
+    if (result.requiresConfirmation) {
+      if (window.confirm(result.message)) {
+        toggleUser(id, true);
+      }
+      return;
+    }
+
+    showUserMgmtError(null);
+    loadUsers();
+  } catch (e) {
+    showUserMgmtError('Service temporarily unavailable');
+  }
+}
+
+function renderSummary(data) {
+  document.getElementById('statTotal').innerText = data.totalAppointments;
+  document.getElementById('statNoShow').innerText = data.noShowCount;
+  document.getElementById('statRate').innerText = data.noShowRate.toFixed(1) + '%';
+
+  renderBars('byReason', data.byVisitReason, data.totalAppointments);
+  renderBars('byDoctor', data.byDoctor, data.totalAppointments);
+}
+
+function renderBars(containerId, obj, total) {
+  const container = document.getElementById(containerId);
+  container.innerHTML = '';
+  if (!obj || Object.keys(obj).length === 0) {
+    container.innerHTML = '<p style="color:#9ca3af;font-size:13px;">No data available for the selected period.</p>';
+    return;
+  }
+  const max = Math.max(...Object.values(obj));
+  for (const [key, count] of Object.entries(obj)) {
+    const pct = max === 0 ? 0 : (count / max * 100);
+    const row = document.createElement('div');
+    row.className = 'bar-row';
+    row.innerHTML = `
+      <div class="bar-label">${key}</div>
+      <div class="bar-track"><div class="bar-fill" style="width:${pct}%"></div></div>
+      <div class="bar-count">${count}</div>
+    `;
+    container.appendChild(row);
+  }
+}
+</script>
+
+</body>
+</html>
