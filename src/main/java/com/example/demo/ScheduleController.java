@@ -1,15 +1,24 @@
 package com.example.demo;
 
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.format.annotation.DateTimeFormat;
-import org.springframework.http.HttpStatus;
-import org.springframework.security.core.Authentication;
-import org.springframework.web.bind.annotation.*;
-import org.springframework.web.server.ResponseStatusException;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.format.annotation.DateTimeFormat;
+import org.springframework.http.HttpStatus;
+import org.springframework.security.core.Authentication;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.server.ResponseStatusException;
 
 @RestController
 @RequestMapping("/schedule")
@@ -21,25 +30,32 @@ public class ScheduleController {
     @Autowired
     private AppointmentRepository appointmentRepository;
 
-    // Endpoint to get list of distinct doctor names for dropdown filters
-    @GetMapping("/doctors")
-    public List<String> getDoctors() {
-        return scheduleRepository.findDistinctDoctorNames();
-    }
-
     // FR-02-20 to 23: students view open (unbooked) slots for a date, optionally filtered by doctor
     @GetMapping("/available")
     public List<DoctorSchedule> getAvailable(
             @RequestParam(required = false) String doctorName,
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date) {
 
-        List<DoctorSchedule> slots = (doctorName != null && !doctorName.isBlank())
-                ? scheduleRepository.findByDoctorNameAndScheduleDate(doctorName.trim(), date)
+        List<DoctorSchedule> slots = (doctorName != null)
+                ? scheduleRepository.findByDoctorNameAndScheduleDate(doctorName, date)
                 : scheduleRepository.findByScheduleDate(date);
 
         List<DoctorSchedule> open = slots.stream().filter(s -> !s.isBooked()).collect(Collectors.toList());
 
+        // 4.2.1.4: no appointment slots available for the selected date
+        if (open.isEmpty()) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "No available appointments for the selected date");
+        }
         return open;
+    }
+
+    // Returns the distinct list of doctor names for the homepage search bar
+    @GetMapping("/doctors")
+    public List<String> getDoctorNames() {
+        return scheduleRepository.findAll().stream()
+                .map(DoctorSchedule::getDoctorName)
+                .distinct()
+                .collect(Collectors.toList());
     }
 
     // FR-02-24: doctor/admin creates a new consultation slot
