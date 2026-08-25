@@ -1,320 +1,158 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<title>USP Health Center - Nurse Check-in</title>
-<style>
-  * { box-sizing: border-box; }
-  body {
-    font-family: -apple-system, Segoe UI, Roboto, Arial, sans-serif;
-    background: #f2f4f7;
-    margin: 0;
-    color: #1f2937;
-  }
-  header {
-    background: #3C7A4E;
-    color: white;
-    padding: 18px 30px;
-    font-size: 20px;
-    font-weight: 600;
-  }
-  header a.home-link {
-    color: #fff; text-decoration: none; opacity: 0.85;
-    margin-right: 14px; font-size: 14px;
-  }
-  header a.home-link:hover { opacity: 1; text-decoration: underline; }
-  .container { max-width: 900px; margin: 30px auto; padding: 0 20px; }
-
-  #loginBox {
-    background: white; border-radius: 10px; padding: 40px; max-width: 380px;
-    margin: 80px auto; box-shadow: 0 2px 10px rgba(0,0,0,0.08);
-  }
-  #loginBox h2 { margin-top: 0; color: #3C7A4E; }
-  #loginBox input {
-    width: 100%; padding: 10px; margin: 8px 0 16px 0;
-    border: 1px solid #d1d5db; border-radius: 6px; font-size: 14px;
-  }
-  button {
-    background: #3C7A4E; color: white; border: none;
-    padding: 10px 18px; border-radius: 6px; cursor: pointer; font-size: 14px;
-  }
-  button:hover { background: #2E5F3B; }
-  button.secondary { background: #9ca3af; }
-  button.secondary:hover { background: #6b7280; }
-  #loginError { color: #B03A2E; font-size: 13px; margin-top: -8px; margin-bottom: 10px; display: none; }
-
-  #app { display: none; }
-  .topbar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
-
-  .panel {
-    background: white; border-radius: 10px; padding: 20px; margin-bottom: 20px;
-    box-shadow: 0 1px 4px rgba(0,0,0,0.06);
-  }
-  .panel h3 { margin-top: 0; color: #3C7A4E; font-size: 15px; }
-
-  .queue-item {
-    display: flex; justify-content: space-between; align-items: center;
-    padding: 12px; border: 1px solid #e5e7eb; border-radius: 8px; margin-bottom: 10px;
-  }
-  .queue-item .info strong { color: #1f2937; }
-  .queue-item .info div { font-size: 13px; color: #6b7280; margin-top: 2px; }
-  .urgency-tag { padding: 2px 8px; border-radius: 10px; font-size: 11px; font-weight: 600; margin-left: 8px; }
-  .urgency-tag.Urgent { background: #FFF4E5; color: #8A4B12; }
-  .urgency-tag.Routine { background: #DCEBFA; color: #17324A; }
-  .urgency-tag.Emergency { background: #FDEAEA; color: #B03A2E; }
-
-  #checkinForm {
-    display: none; background: white; border-radius: 10px; padding: 20px;
-    margin-bottom: 20px; box-shadow: 0 1px 4px rgba(0,0,0,0.06);
-  }
-  #checkinForm h3 { margin-top: 0; color: #3C7A4E; }
-  #checkinForm label { display: block; font-size: 13px; color: #374151; margin-top: 12px; margin-bottom: 4px; }
-  #checkinForm input, #checkinForm textarea {
-    width: 100%; padding: 8px; border: 1px solid #d1d5db; border-radius: 6px; font-size: 14px;
-  }
-  #checkinForm textarea { resize: vertical; min-height: 60px; }
-  .formActions { margin-top: 16px; display: flex; gap: 10px; }
-
-  table { width: 100%; border-collapse: collapse; font-size: 13px; }
-  th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid #eee; }
-  th { color: #6b7280; font-weight: 600; }
-</style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>USP Health Center - Nurse Check-in</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 0; padding: 0; background-color: #f4f6f9; }
+        .header { background-color: #2e7d32; color: white; padding: 15px 20px; font-size: 18px; font-weight: bold; }
+        .container { max-width: 1000px; margin: 20px auto; padding: 0 20px; }
+        .card { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); margin-bottom: 20px; }
+        .card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; }
+        .card-title { color: #2e7d32; font-size: 18px; font-weight: bold; margin: 0; }
+        .btn { padding: 8px 16px; border: none; border-radius: 4px; font-weight: bold; cursor: pointer; }
+        .btn-logout { background-color: #94a3b8; color: white; }
+        .btn-primary { background-color: #0284c7; color: white; }
+        .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-top: 15px; }
+        .form-group { margin-bottom: 10px; }
+        .form-group.full { grid-column: span 2; }
+        label { display: block; font-weight: bold; margin-bottom: 5px; color: #333; }
+        input, select, textarea { width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; }
+        table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+        th, td { text-align: left; padding: 10px; border-bottom: 1px solid #eee; }
+        th { color: #666; font-size: 14px; }
+        .empty-msg { color: #aaa; padding: 10px 0; }
+        .alert { padding: 10px; border-radius: 4px; margin-bottom: 15px; display: none; }
+        .alert-success { background-color: #d1fae5; color: #065f46; }
+        .alert-error { background-color: #fee2e2; color: #991b1b; }
+    </style>
 </head>
 <body>
 
-<header><a href="/" class="home-link">← Home</a>USP Online Appointment &amp; Medical Records System &mdash; Nurse Check-in</header>
+<div class="header">
+    USP Online Appointment & Medical Records System — Nurse Check-in
+</div>
 
 <div class="container">
-
-  <div id="loginBox">
-    <h2>Nurse Login</h2>
-    <label style="font-size:13px;">Username</label>
-    <input type="text" id="username" placeholder="nurse" />
-    <label style="font-size:13px;">Password</label>
-    <input type="password" id="password" placeholder="••••••••" />
-    <div id="loginError">Invalid username or password.</div>
-    <button onclick="login()">Log In</button>
-  </div>
-
-  <div id="app">
-    <div class="topbar">
-      <h2 style="color:#3C7A4E;margin:0;">Check-in Queue</h2>
-      <button class="secondary" onclick="logout()">Log Out</button>
+    <div class="card-header" style="margin-top: 20px;">
+        <h2 style="color: #2e7d32; margin: 0;">Check-in Queue</h2>
+        <button class="btn btn-logout" onclick="window.location.href='/login.html'">Log Out</button>
     </div>
 
-    <div id="pageError" style="background:#FDEAEA;color:#B03A2E;border:1px solid #f2b8b8;border-radius:6px;padding:10px 14px;font-size:13px;margin-bottom:16px;display:none;"></div>
+    <div id="statusMessage" class="alert"></div>
 
-    <div class="panel">
-      <h3>Students Waiting to be Checked In</h3>
-      <div id="queueList"></div>
+    <!-- Active Check-In Form Card -->
+    <div class="card">
+        <h3 class="card-title">New Patient Pre-Consultation Check-In</h3>
+        <form id="checkInForm">
+            <div class="form-grid">
+                <div class="form-group">
+                    <label for="appointmentId">Appointment ID (Optional for Walk-Ins):</label>
+                    <input type="number" id="appointmentId" placeholder="e.g. 101">
+                </div>
+                <div class="form-group">
+                    <label for="studentId">Student ID:</label>
+                    <input type="text" id="studentId" placeholder="e.g. S11122334" required>
+                </div>
+                <div class="form-group">
+                    <label for="bloodPressure">Blood Pressure (BP):</label>
+                    <input type="text" id="bloodPressure" placeholder="120/80" required>
+                </div>
+                <div class="form-group">
+                    <label for="temperature">Temperature (°C):</label>
+                    <input type="text" id="temperature" placeholder="37.0" required>
+                </div>
+                <div class="form-group full">
+                    <label for="presentingComplaint">Presenting Complaint:</label>
+                    <textarea id="presentingComplaint" rows="3" placeholder="Describe symptoms..." required></textarea>
+                </div>
+            </div>
+            <button type="submit" class="btn btn-primary" style="margin-top: 10px;">Complete Check-In & Queue for Doctor</button>
+        </form>
     </div>
 
-    <div id="checkinForm">
-      <h3>Check In: <span id="checkinStudentName"></span></h3>
-      <input type="hidden" id="checkinAppointmentId" />
-      <label>Temperature (°C)</label>
-      <input type="text" id="temperature" placeholder="e.g. 37.2" />
-      <label>Blood Pressure</label>
-      <input type="text" id="bloodPressure" placeholder="e.g. 120/80" />
-      <label>Presenting Complaint</label>
-      <textarea id="presentingComplaint" placeholder="What is the student here for, in their own words..."></textarea>
-      <div id="formError" style="color:#B03A2E;font-size:13px;margin-top:10px;display:none;"></div>
-      <div class="formActions">
-        <button onclick="submitCheckIn()">Complete Check-in</button>
-        <button class="secondary" onclick="cancelCheckIn()">Cancel</button>
-      </div>
+    <!-- Students Waiting Card -->
+    <div class="card">
+        <h3 class="card-title">Students Waiting to be Checked In</h3>
+        <p class="empty-msg">No students currently waiting.</p>
     </div>
 
-    <div class="panel">
-      <h3>Completed Check-ins Today</h3>
-      <table>
-        <thead><tr><th>Student</th><th>Temp</th><th>BP</th><th>Complaint</th><th>Time</th></tr></thead>
-        <tbody id="checkinTableBody"></tbody>
-      </table>
+    <!-- Completed Check-ins Card -->
+    <div class="card">
+        <h3 class="card-title">Completed Check-ins Today</h3>
+        <table>
+            <thead>
+                <tr>
+                    <th>Student ID</th>
+                    <th>Temp (°C)</th>
+                    <th>BP</th>
+                    <th>Complaint</th>
+                    <th>Time</th>
+                </tr>
+            </thead>
+            <tbody id="completedTableBody">
+                <tr id="emptyRow"><td colspan="5" class="empty-msg">No check-ins completed yet.</td></tr>
+            </tbody>
+        </table>
     </div>
-  </div>
-
 </div>
 
 <script>
-let authHeader = null;
+    document.getElementById('checkInForm').addEventListener('submit', async function(e) {
+        e.preventDefault();
+        
+        const messageDiv = document.getElementById('statusMessage');
+        const appointmentId = document.getElementById('appointmentId').value;
+        const studentId = document.getElementById('studentId').value;
+        const bloodPressure = document.getElementById('bloodPressure').value;
+        const temperature = document.getElementById('temperature').value;
+        const presentingComplaint = document.getElementById('presentingComplaint').value;
 
-async function login() {
-  const user = document.getElementById('username').value;
-  const pass = document.getElementById('password').value;
-  const errorBox = document.getElementById('loginError');
+        const endpoint = appointmentId ? '/nurse/checkin' : '/nurse/walkin';
+        const payload = {
+            appointmentId: appointmentId ? parseInt(appointmentId) : null,
+            studentId: studentId,
+            bloodPressure: bloodPressure,
+            temperature: temperature,
+            presentingComplaint: presentingComplaint
+        };
 
-  try {
-    const checkRes = await fetch('/api/check-login', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ username: user, password: pass, requiredRole: 'NURSE' })
+        try {
+            const response = await fetch(endpoint, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+
+            if (response.ok) {
+                messageDiv.className = 'alert alert-success';
+                messageDiv.textContent = 'Check-in processed! Patient added to doctor queue.';
+                messageDiv.style.display = 'block';
+
+                // Add entry to "Completed Check-ins Today" table dynamically
+                const emptyRow = document.getElementById('emptyRow');
+                if (emptyRow) emptyRow.remove();
+
+                const tableBody = document.getElementById('completedTableBody');
+                const row = document.createElement('tr');
+                const now = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                row.innerHTML = `<td><b>${studentId}</b></td><td>${temperature}</td><td>${bloodPressure}</td><td>${presentingComplaint}</td><td>${now}</td>`;
+                tableBody.prepend(row);
+
+                document.getElementById('checkInForm').reset();
+            } else {
+                const errText = await response.text();
+                messageDiv.className = 'alert alert-error';
+                messageDiv.textContent = errText || 'Failed to check in student.';
+                messageDiv.style.display = 'block';
+            }
+        } catch (err) {
+            messageDiv.className = 'alert alert-error';
+            messageDiv.textContent = 'Network error connecting to backend server.';
+            messageDiv.style.display = 'block';
+        }
     });
-    const checkData = await checkRes.json();
-
-    if (!checkData.ok) {
-      errorBox.innerText = checkData.message;
-      errorBox.style.display = 'block';
-      return;
-    }
-
-    authHeader = 'Basic ' + btoa(user + ':' + pass);
-    document.getElementById('loginBox').style.display = 'none';
-    document.getElementById('app').style.display = 'block';
-    errorBox.style.display = 'none';
-    loadQueue();
-    loadCheckIns();
-  } catch (e) {
-    errorBox.innerText = 'Service temporarily unavailable';
-    errorBox.style.display = 'block';
-  }
-}
-
-function logout() {
-  authHeader = null;
-  document.getElementById('app').style.display = 'none';
-  document.getElementById('loginBox').style.display = 'block';
-  document.getElementById('username').value = '';
-  document.getElementById('password').value = '';
-}
-
-function showPageError(message) {
-  const box = document.getElementById('pageError');
-  box.innerText = message;
-  box.style.display = message ? 'block' : 'none';
-}
-
-async function loadQueue() {
-  const list = document.getElementById('queueList');
-  try {
-    const res = await fetch('/nurse/queue', { headers: { 'Authorization': authHeader } });
-    if (!res.ok) {
-      const err = await res.json();
-      showPageError(err.message || 'Unable to load patient queue');
-      return;
-    }
-    showPageError(null);
-    const appts = await res.json();
-    list.innerHTML = '';
-
-    if (appts.length === 0) {
-      list.innerHTML = '<p style="color:#9ca3af;font-size:13px;">No students currently waiting.</p>';
-      return;
-    }
-
-    for (const a of appts) {
-      const item = document.createElement('div');
-      item.className = 'queue-item';
-      item.innerHTML = `
-        <div class="info">
-          <strong>${a.studentName}</strong>
-          <span class="urgency-tag ${a.urgencyLevel}">${a.urgencyLevel}</span>
-          <div>${a.doctorName} &middot; ${a.visitReason}</div>
-        </div>
-        <button onclick="startCheckIn(${a.id}, '${a.studentName.replace(/'/g, "\\'")}')">Check In</button>
-      `;
-      list.appendChild(item);
-    }
-  } catch (e) {
-    showPageError('Service temporarily unavailable');
-  }
-}
-
-function startCheckIn(appointmentId, studentName) {
-  document.getElementById('checkinAppointmentId').value = appointmentId;
-  document.getElementById('checkinStudentName').innerText = studentName;
-  document.getElementById('temperature').value = '';
-  document.getElementById('bloodPressure').value = '';
-  document.getElementById('presentingComplaint').value = '';
-  document.getElementById('formError').style.display = 'none';
-  document.getElementById('checkinForm').style.display = 'block';
-  document.getElementById('checkinForm').scrollIntoView({ behavior: 'smooth' });
-}
-
-function cancelCheckIn() {
-  document.getElementById('checkinForm').style.display = 'none';
-}
-
-function showFormError(message) {
-  const box = document.getElementById('formError');
-  box.innerText = message;
-  box.style.display = message ? 'block' : 'none';
-}
-
-async function submitCheckIn() {
-  const appointmentId = document.getElementById('checkinAppointmentId').value;
-  const temperature = document.getElementById('temperature').value;
-  const bloodPressure = document.getElementById('bloodPressure').value;
-  const presentingComplaint = document.getElementById('presentingComplaint').value;
-
-  if (!presentingComplaint) {
-    showFormError('Missing presenting complaint - this field is required.');
-    return;
-  }
-  if (!temperature || !bloodPressure) {
-    showFormError('Display validation messages for incomplete vital information.');
-    return;
-  }
-
-  try {
-    const res = await fetch('/nurse/checkin', {
-      method: 'POST',
-      headers: { 'Authorization': authHeader, 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        appointmentId: parseInt(appointmentId),
-        temperature, bloodPressure, presentingComplaint
-      })
-    });
-
-    if (!res.ok) {
-      const err = await res.json();
-      showFormError(err.message || 'Unable to save check-in.');
-      return;
-    }
-
-    showFormError(null);
-    document.getElementById('checkinForm').style.display = 'none';
-    loadQueue();
-    loadCheckIns();
-  } catch (e) {
-    showFormError('Service temporarily unavailable');
-  }
-}
-
-async function loadCheckIns() {
-  try {
-    const res = await fetch('/nurse/checkins', { headers: { 'Authorization': authHeader } });
-    if (!res.ok) return;
-    const checkins = await res.json();
-    const body = document.getElementById('checkinTableBody');
-    body.innerHTML = '';
-
-    if (checkins.length === 0) {
-      body.innerHTML = '<tr><td colspan="5" style="color:#9ca3af;">No check-ins completed yet.</td></tr>';
-      return;
-    }
-
-    for (const c of checkins) {
-      const row = document.createElement('tr');
-      const name = c.appointment ? c.appointment.studentName : 'Unknown';
-      const time = c.checkInTime ? new Date(c.checkInTime).toLocaleTimeString() : '';
-      row.innerHTML = `
-        <td>${name}</td>
-        <td>${c.temperature}</td>
-        <td>${c.bloodPressure}</td>
-        <td>${c.presentingComplaint}</td>
-        <td>${time}</td>
-      `;
-      body.appendChild(row);
-    }
-  } catch (e) {
-    // non-critical section; leave existing content on transient failure
-  }
-}
-
-document.getElementById('password')?.addEventListener('keyup', e => {
-  if (e.key === 'Enter') login();
-});
 </script>
 
 </body>
