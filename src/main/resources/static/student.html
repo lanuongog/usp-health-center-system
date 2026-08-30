@@ -131,14 +131,7 @@
     font-weight: 700;
   }
 
-  /* Auth screen */
-  #auth-screen {
-    min-height: 85vh;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    padding: 20px;
-  }
+  /* Auth screen removed - authentication handled by /login.html */
 
   .auth-card {
     background: var(--panel);
@@ -263,7 +256,7 @@
   }
 
   /* App Screen Layout */
-  #app-screen { display: none; }
+  #app-screen { display: block; }
 
   .view-container {
     max-width: 1200px;
@@ -645,54 +638,7 @@
 </head>
 <body>
 
-<!-- AUTH SCREEN (Direct Visit Fallback) -->
-<div id="auth-screen">
-  <div class="auth-card">
-    <div class="mark"></div>
-    <h2>Student Portal</h2>
-    <p class="sub">Sign in with your Student ID or register to book doctor appointments.</p>
 
-    <div class="tabs">
-      <button class="tab-btn active" id="tab-login-btn" onclick="switchTab('login')">Log In</button>
-      <button class="tab-btn" id="tab-register-btn" onclick="switchTab('register')">Register</button>
-    </div>
-
-    <!-- Login -->
-    <div id="login-form">
-      <div class="field">
-        <label for="login-id">Student ID</label>
-        <input id="login-id" type="text" placeholder="e.g. student1, S11234567" autocomplete="username" />
-      </div>
-      <div class="field">
-        <label for="login-password">Password</label>
-        <input id="login-password" type="password" placeholder="••••••••" autocomplete="current-password" />
-      </div>
-      <button class="btn-primary" onclick="login()">Sign In</button>
-      <div class="error-text" id="login-error"></div>
-      <p style="text-align:center;margin-top:16px;font-size:12px;color:var(--ink-soft);">
-        <a href="/login.html" style="color:var(--brand);text-decoration:none;font-weight:600;">&larr; Return to Universal Login Portal</a>
-      </p>
-    </div>
-
-    <!-- Register -->
-    <div id="register-form" style="display:none;">
-      <div class="field">
-        <label for="reg-id">Student ID</label>
-        <input id="reg-id" type="text" placeholder="e.g. S11234567" />
-      </div>
-      <div class="field">
-        <label for="reg-password">Password</label>
-        <input id="reg-password" type="password" placeholder="At least 6 characters" />
-      </div>
-      <button class="btn-primary" style="background:#16A34A;" onclick="register()">Create Student Account</button>
-      <div class="error-text" id="register-error"></div>
-      <div class="ok-text" id="register-success"></div>
-      <p style="text-align:center;margin-top:16px;font-size:12px;color:var(--ink-soft);">
-        <a href="/login.html" style="color:var(--brand);text-decoration:none;font-weight:600;">&larr; Return to Universal Login Portal</a>
-      </p>
-    </div>
-  </div>
-</div>
 
 <!-- MAIN STUDENT PORTAL -->
 <div id="app-screen">
@@ -831,13 +777,14 @@
     const storedAuth = sessionStorage.getItem('authHeader');
     const storedUser = sessionStorage.getItem('currentUser');
 
-    if (storedAuth && storedUser) {
-      authHeader = storedAuth;
-      currentStudentId = storedUser;
-      initStudentPortal();
-    } else {
-      document.getElementById('login-id').focus();
+    if (!storedAuth || !storedUser) {
+      window.location.href = '/login.html';
+      return;
     }
+
+    authHeader = storedAuth;
+    currentStudentId = storedUser;
+    initStudentPortal();
   });
 
   function switchStudentView(view) {
@@ -855,83 +802,7 @@
     }
   }
 
-  function switchTab(tab) {
-    document.getElementById('tab-login-btn').classList.toggle('active', tab === 'login');
-    document.getElementById('tab-register-btn').classList.toggle('active', tab === 'register');
-    document.getElementById('login-form').style.display = tab === 'login' ? 'block' : 'none';
-    document.getElementById('register-form').style.display = tab === 'register' ? 'block' : 'none';
-    document.getElementById('login-error').textContent = '';
-    document.getElementById('register-error').textContent = '';
-    document.getElementById('register-success').textContent = '';
-  }
-
-  function register() {
-    const studentId = document.getElementById('reg-id').value.trim();
-    const password = document.getElementById('reg-password').value;
-    const errorEl = document.getElementById('register-error');
-    const successEl = document.getElementById('register-success');
-    errorEl.textContent = '';
-    successEl.textContent = '';
-
-    if (!studentId || !password) {
-      errorEl.textContent = 'Enter both a Student ID and password.';
-      return;
-    }
-
-    fetch('/student/register', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ studentId, password })
-    })
-      .then(res => res.json())
-      .then(data => {
-        if (data.error) {
-          errorEl.textContent = data.error;
-        } else {
-          successEl.textContent = data.message + ' You can now sign in.';
-          document.getElementById('reg-id').value = '';
-          document.getElementById('reg-password').value = '';
-          setTimeout(() => switchTab('login'), 1200);
-        }
-      })
-      .catch(() => { errorEl.textContent = 'Unable to reach the server.'; });
-  }
-
-  function login() {
-    const studentId = document.getElementById('login-id').value.trim();
-    const password = document.getElementById('login-password').value;
-    const errorEl = document.getElementById('login-error');
-    errorEl.textContent = '';
-
-    if (!studentId || !password) {
-      errorEl.textContent = 'Enter both Student ID and password.';
-      return;
-    }
-
-    const candidate = 'Basic ' + btoa(studentId + ':' + password);
-
-    fetch('/student/my-appointments', { headers: { 'Authorization': candidate } })
-      .then(res => {
-        if (res.status === 401 || res.status === 403) {
-          throw new Error('Invalid Student ID or password.');
-        }
-        if (!res.ok) throw new Error('Unable to reach the server.');
-        return res.json();
-      })
-      .then(appointments => {
-        authHeader = candidate;
-        currentStudentId = studentId;
-        sessionStorage.setItem('authHeader', authHeader);
-        sessionStorage.setItem('currentUser', studentId);
-        sessionStorage.setItem('userRole', 'STUDENT');
-        initStudentPortal(appointments);
-      })
-      .catch(err => { errorEl.textContent = err.message; });
-  }
-
   function initStudentPortal(preloadedAppointments) {
-    document.getElementById('auth-screen').style.display = 'none';
-    document.getElementById('app-screen').style.display = 'block';
     document.getElementById('who-label').textContent = currentStudentId;
 
     loadDoctorList();
@@ -946,12 +817,6 @@
 
   function logout() {
     sessionStorage.clear();
-    authHeader = null;
-    currentStudentId = null;
-    selectedSlotObj = null;
-    document.getElementById('app-screen').style.display = 'none';
-    document.getElementById('auth-screen').style.display = 'flex';
-    document.getElementById('login-password').value = '';
     window.location.href = '/login.html';
   }
 

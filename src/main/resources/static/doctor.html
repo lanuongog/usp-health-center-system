@@ -60,79 +60,11 @@
   }
   .topbar button:hover { background: rgba(255,255,255,0.1); }
 
-  /* Login screen */
-  #login-screen {
-    min-height: 100vh;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-  }
-  .login-card {
-    background: var(--panel);
-    border: 1px solid var(--line);
-    border-radius: 10px;
-    padding: 36px 32px;
-    width: 320px;
-    box-shadow: 0 1px 3px rgba(20,40,50,0.06);
-  }
-  .login-card .mark {
-    width: 40px;
-    height: 4px;
-    background: var(--brand);
-    border-radius: 2px;
-    margin-bottom: 18px;
-  }
-  .login-card h2 {
-    margin: 0 0 4px;
-    font-size: 19px;
-  }
-  .login-card p.sub {
-    margin: 0 0 22px;
-    color: var(--ink-soft);
-    font-size: 13px;
-  }
-  .field { margin-bottom: 14px; }
-  .field label {
-    display: block;
-    font-size: 12px;
-    color: var(--ink-soft);
-    margin-bottom: 5px;
-  }
-  .field input {
-    width: 100%;
-    padding: 9px 10px;
-    border: 1px solid var(--line);
-    border-radius: 6px;
-    font-size: 14px;
-    background: #fff;
-  }
-  .field input:focus {
-    outline: 2px solid var(--brand);
-    outline-offset: 1px;
-    border-color: var(--brand);
-  }
-  .btn-primary {
-    width: 100%;
-    background: var(--brand);
-    color: #fff;
-    border: none;
-    padding: 10px;
-    border-radius: 6px;
-    font-size: 14px;
-    font-weight: 600;
-    cursor: pointer;
-    margin-top: 4px;
-  }
-  .btn-primary:hover { background: #173C49; }
-  .error-text {
-    color: var(--emergency);
-    font-size: 12.5px;
-    margin-top: 10px;
-    min-height: 16px;
-  }
+  /* Login screen removed - authentication handled by /login.html */
+
 
   /* App layout */
-  #app-screen { display: none; }
+  #app-screen { display: block; }
   .layout {
     display: grid;
     grid-template-columns: 1fr 380px;
@@ -301,24 +233,7 @@
 </head>
 <body>
 
-<!-- Login -->
-<div id="login-screen">
-  <div class="login-card">
-    <div class="mark"></div>
-    <h2>Doctor Dashboard</h2>
-    <p class="sub">USP Health Center — sign in to view your consultation queue.</p>
-    <div class="field">
-      <label for="login-username">Username</label>
-      <input id="login-username" type="text" autocomplete="username" />
-    </div>
-    <div class="field">
-      <label for="login-password">Password</label>
-      <input id="login-password" type="password" autocomplete="current-password" />
-    </div>
-    <button class="btn-primary" onclick="login()">Log in</button>
-    <div class="error-text" id="login-error"></div>
-  </div>
-</div>
+
 
 <!-- App -->
 <div id="app-screen">
@@ -326,6 +241,7 @@
     <h1>Doctor Dashboard</h1>
     <div class="who">
       <span id="who-label"></span>
+      <button onclick="window.location.href='/schedule.html'">Manage Schedule</button>
       <button onclick="logout()">Log out</button>
     </div>
   </div>
@@ -355,57 +271,24 @@
   let currentUsername = null;
   let selectedAppointment = null;
 
-  function login() {
-    const username = document.getElementById('login-username').value.trim();
-    const password = document.getElementById('login-password').value;
-    const errorEl = document.getElementById('login-error');
-    errorEl.textContent = '';
+  window.addEventListener('DOMContentLoaded', () => {
+    const storedAuth = sessionStorage.getItem('authHeader');
+    const storedUser = sessionStorage.getItem('currentUser');
 
-    if (!username || !password) {
-      errorEl.textContent = 'Enter both username and password.';
+    if (!storedAuth) {
+      window.location.href = '/login.html';
       return;
     }
 
-    fetch('/api/check-login', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ username, password, requiredRole: 'DOCTOR' })
-    })
-      .then(res => res.json())
-      .then(checkData => {
-        if (!checkData.ok) {
-          throw new Error(checkData.message);
-        }
-        authHeader = 'Basic ' + btoa(username + ':' + password);
-        currentUsername = username;
-        return fetch('/doctor/queue', { headers: { 'Authorization': authHeader } });
-      })
-      .then(res => {
-        if (!res) return; // already threw above
-        if (!res.ok) throw new Error('Unable to load patient queue');
-        return res.json();
-      })
-      .then(queue => {
-        if (!queue) return;
-        document.getElementById('login-screen').style.display = 'none';
-        document.getElementById('app-screen').style.display = 'block';
-        document.getElementById('who-label').textContent = currentUsername;
-        renderQueue(queue);
-      })
-      .catch(err => {
-        errorEl.textContent = err.message || 'Service temporarily unavailable';
-      });
-  }
+    authHeader = storedAuth;
+    currentUsername = storedUser || 'Doctor';
+    document.getElementById('who-label').textContent = currentUsername;
+    refreshQueue();
+  });
 
   function logout() {
-    authHeader = null;
-    currentUsername = null;
-    selectedAppointment = null;
-    document.getElementById('app-screen').style.display = 'none';
-    document.getElementById('login-screen').style.display = 'flex';
-    document.getElementById('login-password').value = '';
-    document.getElementById('detail-body').innerHTML =
-      '<div class="detail-placeholder">Select a patient from the queue to view their details and record a consultation.</div>';
+    sessionStorage.clear();
+    window.location.href = '/login.html';
   }
 
   function refreshQueue() {
@@ -539,9 +422,7 @@
       .replaceAll('"', '&quot;');
   }
 
-  document.getElementById('login-password').addEventListener('keydown', e => {
-    if (e.key === 'Enter') login();
-  });
+
 </script>
 
 </body>

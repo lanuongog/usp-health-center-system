@@ -20,26 +20,12 @@
   }
   .container { max-width: 1000px; margin: 30px auto; padding: 0 20px; }
 
-  /* Login box */
-  #loginBox {
-    background: white;
-    border-radius: 10px;
-    padding: 40px;
-    max-width: 380px;
-    margin: 80px auto;
-    box-shadow: 0 2px 10px rgba(0,0,0,0.08);
-  }
-  #loginBox h2 { margin-top: 0; color: #17324A; }
-  #loginBox input {
-    width: 100%; padding: 10px; margin: 8px 0 16px 0;
-    border: 1px solid #d1d5db; border-radius: 6px; font-size: 14px;
-  }
-  #loginBox button, .filterBar button, #logoutBtn {
+  /* Login box removed - authentication handled by /login.html */
+  .filterBar button, #logoutBtn {
     background: #2C5F8A; color: white; border: none;
     padding: 10px 18px; border-radius: 6px; cursor: pointer; font-size: 14px;
   }
-  #loginBox button:hover, .filterBar button:hover, #logoutBtn:hover { background: #1F4666; }
-  #loginError { color: #B03A2E; font-size: 13px; margin-top: -8px; margin-bottom: 10px; display: none; }
+  .filterBar button:hover, #logoutBtn:hover { background: #1F4666; }
   #pageError {
     background: #FDEAEA; color: #B03A2E; border: 1px solid #f2b8b8;
     border-radius: 6px; padding: 10px 14px; font-size: 13px; margin-bottom: 16px; display: none;
@@ -47,7 +33,7 @@
   .filterBar input.invalid { border-color: #B03A2E; }
 
   /* Dashboard */
-  #dashboard { display: none; }
+  #dashboard { display: block; }
   .topbar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
 
   .cards { display: flex; gap: 16px; margin-bottom: 24px; flex-wrap: wrap; }
@@ -112,22 +98,16 @@
 
 <div class="container">
 
-  <!-- LOGIN -->
-  <div id="loginBox">
-    <h2>Admin Login</h2>
-    <label>Username</label>
-    <input type="text" id="username" placeholder="admin" />
-    <label>Password</label>
-    <input type="password" id="password" placeholder="••••••••" />
-    <div id="loginError">Invalid username or password.</div>
-    <button onclick="login()">Log In</button>
-  </div>
+
 
   <!-- DASHBOARD -->
   <div id="dashboard">
     <div class="topbar">
       <h2 style="color:#17324A;margin:0;">Reporting &amp; Analytics Dashboard</h2>
-      <button id="logoutBtn" onclick="logout()">Log Out</button>
+      <div style="display:flex;gap:10px;align-items:center;">
+        <button style="background:#6B3FA0;" onclick="window.location.href='/schedule.html'">Manage Schedule</button>
+        <button id="logoutBtn" onclick="logout()">Log Out</button>
+      </div>
     </div>
 
     <div id="pageError"></div>
@@ -136,6 +116,7 @@
       <button class="tab-btn active" id="tab-btn-dashboard" onclick="switchTab('dashboard')">Dashboard</button>
       <button class="tab-btn" id="tab-btn-reports" onclick="switchTab('reports')">Reports</button>
       <button class="tab-btn" id="tab-btn-users" onclick="switchTab('users')">User Management</button>
+      <button class="tab-btn" id="tab-btn-schedule" onclick="window.location.href='/schedule.html'">Manage Schedule</button>
     </div>
 
     <div id="tab-dashboard" class="tab-panel active">
@@ -213,42 +194,21 @@
 <script>
 let authHeader = null;
 
-async function login() {
-  const user = document.getElementById('username').value;
-  const pass = document.getElementById('password').value;
-  const errorBox = document.getElementById('loginError');
+window.addEventListener('DOMContentLoaded', () => {
+  const storedAuth = sessionStorage.getItem('authHeader');
 
-  try {
-    const checkRes = await fetch('/api/check-login', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ username: user, password: pass, requiredRole: 'ADMIN' })
-    });
-    const checkData = await checkRes.json();
-
-    if (!checkData.ok) {
-      errorBox.innerText = checkData.message;
-      errorBox.style.display = 'block';
-      return;
-    }
-
-    authHeader = 'Basic ' + btoa(user + ':' + pass);
-    document.getElementById('loginBox').style.display = 'none';
-    document.getElementById('dashboard').style.display = 'block';
-    errorBox.style.display = 'none';
-    loadDashboard();
-  } catch (e) {
-    errorBox.innerText = 'Service temporarily unavailable';
-    errorBox.style.display = 'block';
+  if (!storedAuth) {
+    window.location.href = '/login.html';
+    return;
   }
-}
+
+  authHeader = storedAuth;
+  loadDashboard();
+});
 
 function logout() {
-  authHeader = null;
-  document.getElementById('dashboard').style.display = 'none';
-  document.getElementById('loginBox').style.display = 'block';
-  document.getElementById('username').value = '';
-  document.getElementById('password').value = '';
+  sessionStorage.clear();
+  window.location.href = '/login.html';
 }
 
 function showPageError(message) {
@@ -482,10 +442,7 @@ function renderBars(containerId, obj, total) {
   }
 }
 
-// Allow pressing Enter in password field to log in
-document.getElementById('password')?.addEventListener('keyup', e => {
-  if (e.key === 'Enter') login();
-});
+
 </script>
 
 </body>

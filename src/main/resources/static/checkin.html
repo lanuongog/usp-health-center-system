@@ -20,15 +20,7 @@
   }
   .container { max-width: 900px; margin: 30px auto; padding: 0 20px; }
 
-  #loginBox {
-    background: white; border-radius: 10px; padding: 40px; max-width: 380px;
-    margin: 80px auto; box-shadow: 0 2px 10px rgba(0,0,0,0.08);
-  }
-  #loginBox h2 { margin-top: 0; color: #3C7A4E; }
-  #loginBox input {
-    width: 100%; padding: 10px; margin: 8px 0 16px 0;
-    border: 1px solid #d1d5db; border-radius: 6px; font-size: 14px;
-  }
+  /* Login box removed - authentication handled by /login.html */
   button {
     background: #3C7A4E; color: white; border: none;
     padding: 10px 18px; border-radius: 6px; cursor: pointer; font-size: 14px;
@@ -36,9 +28,8 @@
   button:hover { background: #2E5F3B; }
   button.secondary { background: #9ca3af; }
   button.secondary:hover { background: #6b7280; }
-  #loginError { color: #B03A2E; font-size: 13px; margin-top: -8px; margin-bottom: 10px; display: none; }
 
-  #app { display: none; }
+  #app { display: block; }
   .topbar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
 
   .panel {
@@ -82,15 +73,7 @@
 
 <div class="container">
 
-  <div id="loginBox">
-    <h2>Nurse Login</h2>
-    <label style="font-size:13px;">Username</label>
-    <input type="text" id="username" placeholder="nurse" />
-    <label style="font-size:13px;">Password</label>
-    <input type="password" id="password" placeholder="••••••••" />
-    <div id="loginError">Invalid username or password.</div>
-    <button onclick="login()">Log In</button>
-  </div>
+
 
   <div id="app">
     <div class="topbar">
@@ -135,43 +118,22 @@
 <script>
 let authHeader = null;
 
-async function login() {
-  const user = document.getElementById('username').value;
-  const pass = document.getElementById('password').value;
-  const errorBox = document.getElementById('loginError');
+window.addEventListener('DOMContentLoaded', () => {
+  const storedAuth = sessionStorage.getItem('authHeader');
 
-  try {
-    const checkRes = await fetch('/api/check-login', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ username: user, password: pass, requiredRole: 'NURSE' })
-    });
-    const checkData = await checkRes.json();
-
-    if (!checkData.ok) {
-      errorBox.innerText = checkData.message;
-      errorBox.style.display = 'block';
-      return;
-    }
-
-    authHeader = 'Basic ' + btoa(user + ':' + pass);
-    document.getElementById('loginBox').style.display = 'none';
-    document.getElementById('app').style.display = 'block';
-    errorBox.style.display = 'none';
-    loadQueue();
-    loadCheckIns();
-  } catch (e) {
-    errorBox.innerText = 'Service temporarily unavailable';
-    errorBox.style.display = 'block';
+  if (!storedAuth) {
+    window.location.href = '/login.html';
+    return;
   }
-}
+
+  authHeader = storedAuth;
+  loadQueue();
+  loadCheckIns();
+});
 
 function logout() {
-  authHeader = null;
-  document.getElementById('app').style.display = 'none';
-  document.getElementById('loginBox').style.display = 'block';
-  document.getElementById('username').value = '';
-  document.getElementById('password').value = '';
+  sessionStorage.clear();
+  window.location.href = '/login.html';
 }
 
 function showPageError(message) {
@@ -308,9 +270,7 @@ async function loadCheckIns() {
   }
 }
 
-document.getElementById('password')?.addEventListener('keyup', e => {
-  if (e.key === 'Enter') login();
-});
+
 </script>
 
 </body>
