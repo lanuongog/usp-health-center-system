@@ -90,7 +90,7 @@ public class DataSeeder {
 
                 int migratedAppointments = 0;
                 for (Appointment appt : appointmentRepository.findAll()) {
-                    String newName = nameMigration.get(appt.getDoctorName());
+                    String newName = appt.getDoctorName() == null ? null : nameMigration.get(appt.getDoctorName());
                     if (newName != null) {
                         appt.setDoctorName(newName);
                         appointmentRepository.save(appt);
