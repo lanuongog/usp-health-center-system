@@ -6,13 +6,14 @@
 <title>Student Portal — USP Health Center</title>
 <style>
 :root {
---bg: #F5F7F8;
+--bg: #F4F8F8;
 --panel: #FFFFFF;
---ink: #1B2B33;
---ink-soft: #5C707A;
---line: #DCE3E6;
---brand: #1F4E5F;
---brand-soft: #E5EEF0;
+--ink: #14213D;
+--ink-soft: #5C7070;
+--line: #D8E6E6;
+--brand: #0D7377;
+--brand-dark: #095558;
+--brand-soft: #E3F1F1;
 --emergency: #B23A2E;
 --emergency-bg: #FBEAE8;
 --urgent: #B8721E;
@@ -69,28 +70,14 @@ padding: 22px 24px; max-width: 1180px; margin: 0 auto;
 width: 100%; padding: 9px 10px; border: 1px solid var(--line); border-radius: 6px;
 font-size: 13px; background: #fff; font-family: inherit;
 }
-.filter-pill {
-display: none;
-align-items: center;
-justify-content: space-between;
-background: var(--brand-soft);
-border: 1px solid var(--brand);
-border-radius: 7px;
-padding: 7px 12px;
-font-size: 12.5px;
-margin-bottom: 12px;
-}
-.filter-pill.show { display: flex; }
-.filter-pill button { background: none; border: none; color: var(--brand); font-weight: 700; cursor: pointer; font-size: 13px; }
 .slot-list { display: flex; flex-direction: column; gap: 7px; margin: 10px 0 16px; max-height: 220px; overflow-y: auto; }
 .slot-option {
 border: 1px solid var(--line); border-radius: 7px; padding: 9px 12px;
-font-size: 13px; cursor: pointer; display: flex; justify-content: space-between;
+font-size: 13px; cursor: pointer; display: flex; justify-content: flex-start;
 }
 .slot-option:hover { background: var(--brand-soft); }
 .slot-option.selected { background: var(--brand-soft); border-color: var(--brand); }
-.slot-option .doc { font-weight: 600; }
-.slot-option .time { color: var(--ink-soft); }
+.slot-option .time { font-weight: 600; }
 .empty-state { padding: 30px 20px; text-align: center; color: var(--ink-soft); font-size: 13px; }
 
 .appt-card {
@@ -136,14 +123,12 @@ border-radius: 6px; font-size: 14px; font-weight: 600; cursor: pointer; margin-t
 </div>
 </div>
 
+<div id="fee-banner" style="display:none;background:#FBEAE8;color:#B23A2E;border-bottom:1px solid #EBD3D0;padding:9px 24px;font-size:13px;text-align:center;"></div>
+
 <div class="layout">
 <div class="panel">
 <div class="panel-head"><h2>Book an Appointment</h2></div>
 <div class="panel-body">
-<div class="filter-pill" id="doctor-filter-pill">
-<span>Showing: <strong id="doctor-filter-name"></strong></span>
-<button onclick="clearDoctorFilter()">Clear</button>
-</div>
 <div class="field">
 <label for="date-input">Date</label>
 <input id="date-input" type="date" onchange="loadSlots()" />
@@ -184,7 +169,6 @@ border-radius: 6px; font-size: 14px; font-weight: 600; cursor: pointer; margin-t
 let authHeader = null;
 let currentStudentId = null;
 let selectedSlot = null;
-let doctorFilter = new URLSearchParams(window.location.search).get('doctor');
 
 window.addEventListener('DOMContentLoaded', () => {
   const storedAuth = sessionStorage.getItem('authHeader');
@@ -200,28 +184,41 @@ window.addEventListener('DOMContentLoaded', () => {
   currentStudentId = storedUser;
   document.getElementById('who-label').textContent = currentStudentId;
 
-  if (doctorFilter) {
-    document.getElementById('doctor-filter-pill').classList.add('show');
-    document.getElementById('doctor-filter-name').textContent = doctorFilter;
-  }
-
   const dateInput = document.getElementById('date-input');
   const tomorrow = new Date();
   tomorrow.setDate(tomorrow.getDate() + 1);
   dateInput.value = tomorrow.toISOString().split('T')[0];
   loadSlots();
   refreshAppointments();
+  loadFeeStatus();
 });
+
+function loadFeeStatus() {
+  fetch('/student/profile', { headers: { 'Authorization': authHeader } })
+    .then(res => res.json())
+    .then(profile => {
+      if (profile.error || profile.feePaid || !profile.feeAmount) return;
+      const banner = document.getElementById('fee-banner');
+      banner.textContent = `⚠ Your USP Health Services Fee (FJ$${Number(profile.feeAmount).toFixed(2)}) is unpaid. Please settle it at Student Administrative Services — some services may be limited until then.`;
+      banner.style.display = 'block';
+    })
+    .catch(() => {});
+}
 
 function logout() {
   sessionStorage.clear();
   window.location.href = '/login.html';
 }
 
-function clearDoctorFilter() {
-  doctorFilter = null;
-  document.getElementById('doctor-filter-pill').classList.remove('show');
-  loadSlots();
+// Converts a "09:00 AM - 09:30 AM" style label into minutes-since-midnight
+// (using its start time) so slots can be sorted chronologically regardless
+// of which doctor's row they came from.
+function timeSlotSortKey(timeSlot) {
+  const match = timeSlot.split('-')[0].trim().match(/(\d{1,2}):(\d{2})\s*(AM|PM)/i);
+  if (!match) return 0;
+  let hours = parseInt(match[1], 10) % 12;
+  if (match[3].toUpperCase() === 'PM') hours += 12;
+  return hours * 60 + parseInt(match[2], 10);
 }
 
 function loadSlots() {
@@ -229,14 +226,9 @@ function loadSlots() {
   if (!date) return;
   selectedSlot = null;
 
-  let url = '/schedule/available?date=' + date;
-  if (doctorFilter) {
-    url += '&doctorName=' + encodeURIComponent(doctorFilter);
-  }
-
   const container = document.getElementById('slot-container');
 
-  fetch(url)
+  fetch('/schedule/available?date=' + date)
     .then(res => {
       if (res.status === 404) return [];
       if (!res.ok) throw new Error();
@@ -247,9 +239,20 @@ function loadSlots() {
         container.innerHTML = '<div class="empty-state">No available appointments for the selected date.</div>';
         return;
       }
-      container.innerHTML = '<div class="slot-list">' + slots.map(s => `
+
+      // The health center assigns whichever doctor is on duty for a time slot,
+      // so students pick a time only — multiple doctors offering the same time
+      // collapse into a single bookable option.
+      const seenTimes = new Set();
+      const uniqueSlots = slots.filter(s => {
+        if (seenTimes.has(s.timeSlot)) return false;
+        seenTimes.add(s.timeSlot);
+        return true;
+      });
+      uniqueSlots.sort((a, b) => timeSlotSortKey(a.timeSlot) - timeSlotSortKey(b.timeSlot));
+
+      container.innerHTML = '<div class="slot-list">' + uniqueSlots.map(s => `
         <div class="slot-option" data-id="${s.id}" onclick='pickSlot(${s.id}, this)'>
-          <span class="doc">${escapeHtml(s.doctorName)}</span>
           <span class="time">${escapeHtml(s.timeSlot)}</span>
         </div>
       `).join('') + '</div>';
@@ -293,7 +296,7 @@ function bookAppointment() {
       toast.className = 'toast err';
       return;
     }
-    toast.textContent = 'Appointment confirmed with ' + data.doctorName + '.';
+    toast.textContent = 'Appointment confirmed for ' + data.timeSlot + '.';
     toast.className = 'toast ok';
     document.getElementById('reason-input').value = '';
     selectedSlot = null;
@@ -326,10 +329,10 @@ function renderAppointments(appointments) {
   listEl.innerHTML = appointments.map(a => `
     <div class="appt-card">
       <div class="appt-top">
-        <span class="doc">${escapeHtml(a.doctorName)}</span>
+        <span class="doc">${escapeHtml(a.appointmentDate)}${a.timeSlot ? ' · ' + escapeHtml(a.timeSlot) : ''}</span>
         <span class="badge ${a.urgencyLevel}">${escapeHtml(a.urgencyLevel)}</span>
       </div>
-      <div class="appt-meta">${escapeHtml(a.visitReason)} · ${escapeHtml(a.appointmentDate)}</div>
+      <div class="appt-meta">${escapeHtml(a.visitReason)}</div>
       <div class="appt-actions">
         <button class="btn-small danger" onclick="cancelAppointment(${a.id})">Cancel</button>
       </div>

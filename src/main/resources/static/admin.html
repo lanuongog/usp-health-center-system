@@ -4,15 +4,25 @@
 <meta charset="UTF-8">
 <title>USP Health Center - Admin Reporting Dashboard</title>
 <style>
+:root {
+--bg: #F4F8F8;
+--panel: #FFFFFF;
+--ink: #14213D;
+--ink-soft: #5C7070;
+--line: #D8E6E6;
+--brand: #0D7377;
+--brand-dark: #095558;
+--brand-soft: #E3F1F1;
+}
 * { box-sizing: border-box; }
 body {
 font-family: -apple-system, Segoe UI, Roboto, Arial, sans-serif;
-background: #f2f4f7;
+background: var(--bg);
 margin: 0;
-color: #1f2937;
+color: var(--ink);
 }
 header {
-background: #17324A;
+background: var(--brand);
 color: white;
 padding: 18px 30px;
 font-size: 20px;
@@ -26,10 +36,10 @@ header a.home-link:hover { opacity: 1; text-decoration: underline; }
 .container { max-width: 1000px; margin: 30px auto; padding: 0 20px; }
 
 button, .filterBar button, #logoutBtn {
-background: #2C5F8A; color: white; border: none;
+background: var(--brand); color: white; border: none;
 padding: 10px 18px; border-radius: 6px; cursor: pointer; font-size: 14px;
 }
-button:hover, .filterBar button:hover, #logoutBtn:hover { background: #1F4666; }
+button:hover, .filterBar button:hover, #logoutBtn:hover { background: var(--brand-dark); }
 #pageError {
 background: #FDEAEA; color: #B03A2E; border: 1px solid #f2b8b8;
 border-radius: 6px; padding: 10px 14px; font-size: 13px; margin-bottom: 16px; display: none;
@@ -77,6 +87,11 @@ color: #6b7280; border-bottom: 2px solid transparent; margin-bottom: -2px;
 
 .reportBar { display: flex; gap: 10px; align-items: center; margin-bottom: 20px; flex-wrap: wrap; }
 .reportBar select { padding: 7px; border: 1px solid #d1d5db; border-radius: 6px; }
+.addUserBar { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin-bottom: 16px; }
+.addUserBar input, .addUserBar select {
+padding: 8px 10px; border: 1px solid #d1d5db; border-radius: 6px; font-size: 13px;
+}
+.addUserBar input[type="text"], .addUserBar input[type="password"] { width: 160px; }
 .report-meta { font-size: 12px; color: #6b7280; margin-bottom: 16px; }
 
 .user-table { width: 100%; border-collapse: collapse; font-size: 13px; }
@@ -85,6 +100,9 @@ color: #6b7280; border-bottom: 2px solid transparent; margin-bottom: -2px;
 .status-badge { padding: 2px 10px; border-radius: 10px; font-size: 11px; font-weight: 600; }
 .status-badge.active { background: #DCEBFA; color: #17324A; }
 .status-badge.inactive { background: #eee; color: #666; }
+.fee-badge { padding: 2px 10px; border-radius: 10px; font-size: 11px; font-weight: 600; }
+.fee-badge.paid { background: #DCF3E4; color: #1E5B3A; }
+.fee-badge.unpaid { background: #FBEAE8; color: #B23A2E; }
 .toggle-btn {
 background: #2C5F8A; color: white; border: none; padding: 6px 12px;
 border-radius: 6px; cursor: pointer; font-size: 12px;
@@ -94,7 +112,7 @@ border-radius: 6px; cursor: pointer; font-size: 12px;
 </head>
 <body>
 
-<header><a href="/" class="home-link">← Home</a>USP Online Appointment &amp; Medical Records System &mdash; Admin Reporting</header>
+<header><a href="/" class="home-link">← Home</a></header>
 
 <div class="container">
 
@@ -144,11 +162,6 @@ border-radius: 6px; cursor: pointer; font-size: 12px;
 <h3>Appointments by Doctor (Caseload)</h3>
 <div id="byDoctor"></div>
 </div>
-
-<p style="font-size:12px;color:#9ca3af;margin-top:20px;">
-      Per REQ 63, Admin has access to aggregate statistics only. Individual student names,
-      visit reasons, and records are not shown here.
-</p>
 </div>
 
 <div id="tab-reports" class="tab-panel">
@@ -170,14 +183,23 @@ border-radius: 6px; cursor: pointer; font-size: 12px;
 <div class="panel">
 <h3>User Accounts</h3>
 <div id="userMgmtError" style="color:#B03A2E;font-size:13px;margin-bottom:12px;display:none;"></div>
+
+<div class="addUserBar">
+<input type="text" id="newUsername" placeholder="Username" />
+<input type="password" id="newPassword" placeholder="Password" />
+<select id="newRole">
+<option value="DOCTOR">Doctor</option>
+<option value="NURSE">Nurse</option>
+<option value="ADMIN">Admin</option>
+</select>
+<button onclick="createStaffAccount()">Add Staff Account</button>
+</div>
+<div id="addUserMsg" style="font-size:12.5px;margin-bottom:12px;display:none;"></div>
+
 <table class="user-table">
-<thead><tr><th>Username</th><th>Role</th><th>Status</th><th></th></tr></thead>
+<thead><tr><th>Username</th><th>Full Name</th><th>Role</th><th>Country</th><th>Fee</th><th>Status</th><th></th></tr></thead>
 <tbody id="userTableBody"></tbody>
 </table>
-<p style="font-size:12px;color:#9ca3af;margin-top:16px;">
-          Per FR-05-73, account management shows account status only - never individual
-          patient or medical record data.
-</p>
 </div>
 </div>
 </div>
@@ -357,10 +379,18 @@ async function loadUsers() {
     showUserMgmtError(null);
     const users = await res.json();
     const body = document.getElementById('userTableBody');
-    body.innerHTML = users.map(u => `
+    body.innerHTML = users.map(u => {
+      const isStudent = u.role === 'STUDENT';
+      const feeCell = isStudent
+        ? `<span class="fee-badge ${u.feePaid ? 'paid' : 'unpaid'}">${u.feePaid ? 'Paid' : 'Unpaid'}${u.feeAmount != null ? ' · FJ$' + Number(u.feeAmount).toFixed(2) : ''}</span>`
+        : '—';
+      return `
       <tr>
-        <td>${u.username}</td>
-        <td>${u.role}</td>
+        <td>${escapeHtml(u.username)}</td>
+        <td>${escapeHtml(u.fullName) || '—'}</td>
+        <td>${escapeHtml(u.role)}</td>
+        <td>${escapeHtml(u.country) || '—'}</td>
+        <td>${feeCell}</td>
         <td><span class="status-badge ${u.active ? 'active' : 'inactive'}">${u.active ? 'Active' : 'Inactive'}</span></td>
         <td>
           <button class="toggle-btn ${u.active ? 'deactivate' : ''}" onclick="toggleUser(${u.id}, false)">
@@ -368,9 +398,51 @@ async function loadUsers() {
           </button>
         </td>
       </tr>
-    `).join('');
+    `;
+    }).join('');
   } catch (e) {
     showUserMgmtError('Service temporarily unavailable');
+  }
+}
+
+async function createStaffAccount() {
+  const username = document.getElementById('newUsername').value.trim();
+  const password = document.getElementById('newPassword').value;
+  const role = document.getElementById('newRole').value;
+  const msg = document.getElementById('addUserMsg');
+
+  if (!username || !password) {
+    msg.textContent = 'Username and password are required.';
+    msg.style.color = '#B03A2E';
+    msg.style.display = 'block';
+    return;
+  }
+
+  try {
+    const res = await fetch('/admin/users', {
+      method: 'POST',
+      headers: { 'Authorization': authHeader, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username, password, role })
+    });
+    const data = await res.json();
+
+    if (!res.ok || data.error) {
+      msg.textContent = data.error || data.message || 'Unable to create account.';
+      msg.style.color = '#B03A2E';
+      msg.style.display = 'block';
+      return;
+    }
+
+    msg.textContent = `Account "${data.username}" created.`;
+    msg.style.color = '#1E5B3A';
+    msg.style.display = 'block';
+    document.getElementById('newUsername').value = '';
+    document.getElementById('newPassword').value = '';
+    loadUsers();
+  } catch (e) {
+    msg.textContent = 'Service temporarily unavailable';
+    msg.style.color = '#B03A2E';
+    msg.style.display = 'block';
   }
 }
 
@@ -431,6 +503,15 @@ function renderBars(containerId, obj, total) {
     `;
     container.appendChild(row);
   }
+}
+
+function escapeHtml(str) {
+  if (str === null || str === undefined) return '';
+  return String(str)
+    .replaceAll('&', '&amp;')
+    .replaceAll('<', '&lt;')
+    .replaceAll('>', '&gt;')
+    .replaceAll('"', '&quot;');
 }
 </script>
 

@@ -22,6 +22,14 @@ public class User {
     @Column(nullable = false)
     private boolean active = true;
 
+    // Student registration details (null/unset for non-student accounts)
+    private String fullName;
+    private String maritalStatus; // "Single" or "Married"
+    private String country; // one of the 12 USP member countries
+    @Column(nullable = false)
+    private boolean feePaid = false;
+    private Double feeAmount; // Health Services Fee owed, in FJD, set at registration time
+
     public User() {}
 
     public User(String username, String password, String role) {
@@ -45,4 +53,19 @@ public class User {
 
     public boolean isActive() { return active; }
     public void setActive(boolean active) { this.active = active; }
+
+    public String getFullName() { return fullName; }
+    public void setFullName(String fullName) { this.fullName = fullName; }
+
+    public String getMaritalStatus() { return maritalStatus; }
+    public void setMaritalStatus(String maritalStatus) { this.maritalStatus = maritalStatus; }
+
+    public String getCountry() { return country; }
+    public void setCountry(String country) { this.country = country; }
+
+    public boolean isFeePaid() { return feePaid; }
+    public void setFeePaid(boolean feePaid) { this.feePaid = feePaid; }
+
+    public Double getFeeAmount() { return feeAmount; }
+    public void setFeeAmount(Double feeAmount) { this.feeAmount = feeAmount; }
 }

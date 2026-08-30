@@ -9,13 +9,14 @@
 <link href="https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <style>
 :root {
---bg: #F8FAFC;
+--bg: #F4F8F8;
 --panel: #FFFFFF;
---ink: #0F172A;
---ink-soft: #64748B;
---line: #E2E8F0;
---brand: #1F4E5F;
---brand-soft: #E5EEF0;
+--ink: #14213D;
+--ink-soft: #5C7070;
+--line: #D8E6E6;
+--brand: #0D7377;
+--brand-dark: #095558;
+--brand-soft: #E3F1F1;
 --emergency: #B23A2E;
 --emergency-bg: #FBEAE8;
 --urgent: #B8721E;
@@ -288,9 +289,6 @@ min-height: 16px;
 <button id="tab-btn-booked" class="tab-filter-btn" onclick="switchDoctorTab('booked')">Scheduled Bookings</button>
 <button id="tab-btn-all" class="tab-filter-btn" onclick="switchDoctorTab('all')">All Records</button>
 </div>
-<div id="workflow-hint" style="background:#F0F7FA;padding:8px 14px;font-size:12px;color:var(--ink-soft);border-bottom:1px solid var(--line);">
-        💡 <strong>Workflow:</strong> When a student books an appointment, it appears in <em>Scheduled Bookings</em> and the <em>Nurse Check-in queue</em> (<a href="/checkin.html" style="color:var(--brand)">/checkin.html</a>). Once checked in, patients advance to <em>Active Triage</em>. You can also consult directly from either tab.
-</div>
 <div id="queue-list"></div>
 </div>
 
@@ -399,6 +397,9 @@ function selectPatient(appt) {
       <div class="detail-name">${escapeHtml(appt.studentName)}</div>
       <div class="detail-sub">${escapeHtml(appt.visitReason)} · ${escapeHtml(appt.urgencyLevel)} · ${escapeHtml(appt.doctorName)}</div>
 
+      <div class="section-label">Vitals &amp; Presenting Complaint</div>
+      <div id="vitals-box"><div class="history-loading">Loading vitals…</div></div>
+
       <div class="section-label">Medical History</div>
       <div id="history-box"><div class="history-loading">Loading history…</div></div>
 
@@ -408,6 +409,30 @@ function selectPatient(appt) {
       <button class="btn-record" id="record-btn" onclick="recordConsultation(${appt.id})">Save & complete consultation</button>
       <div class="toast" id="record-toast"></div>
   `;
+
+  fetch('/doctor/checkin/' + appt.id, { headers: { 'Authorization': authHeader } })
+    .then(res => {
+      if (res.status === 404) return null;
+      if (!res.ok) throw new Error();
+      return res.json();
+    })
+    .then(vitals => {
+      const box = document.getElementById('vitals-box');
+      if (!vitals) {
+        box.innerHTML = '<div class="history-empty">Not yet checked in by a nurse.</div>';
+        return;
+      }
+      box.innerHTML = `
+          <div class="history-item">
+            <div class="h-top"><span>Temp: ${escapeHtml(vitals.temperature)}</span><span>BP: ${escapeHtml(vitals.bloodPressure)}</span></div>
+            <div class="h-meta">${escapeHtml(vitals.presentingComplaint)}</div>
+          </div>
+      `;
+    })
+    .catch(() => {
+      document.getElementById('vitals-box').innerHTML =
+        '<div class="history-empty">Unable to load vitals.</div>';
+    });
 
   fetch('/doctor/history/' + encodeURIComponent(appt.studentName), { headers: { 'Authorization': authHeader } })
     .then(res => res.json())

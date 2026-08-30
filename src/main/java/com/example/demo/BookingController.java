@@ -3,7 +3,6 @@ package com.example.demo;
 import java.util.List;
 import java.util.Map;
 
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -15,14 +14,17 @@ import org.springframework.web.bind.annotation.RestController;
 @RequestMapping("/student")
 public class BookingController {
 
-    @Autowired
-    private DoctorScheduleRepository scheduleRepository;
+    private final DoctorScheduleRepository scheduleRepository;
+    private final AppointmentRepository appointmentRepository;
+    private final CheckInRepository checkInRepository;
 
-    @Autowired
-    private AppointmentRepository appointmentRepository;
-
-    @Autowired
-    private CheckInRepository checkInRepository;
+    public BookingController(DoctorScheduleRepository scheduleRepository,
+                            AppointmentRepository appointmentRepository,
+                            CheckInRepository checkInRepository) {
+        this.scheduleRepository = scheduleRepository;
+        this.appointmentRepository = appointmentRepository;
+        this.checkInRepository = checkInRepository;
+    }
 
     public static class BookingRequest {
         public Long slotId;
@@ -35,12 +37,15 @@ public class BookingController {
     public List<Map<String, Object>> myHistory(Authentication auth) {
         List<Appointment> list = appointmentRepository.findByStudentName(auth.getName());
         return list.stream()
-                .sorted(java.util.Comparator.comparing(Appointment::getAppointmentDate, java.util.Comparator.nullsLast(java.util.Comparator.reverseOrder())))
+                .sorted(java.util.Comparator.comparing(
+                    (Appointment a) -> a.getAppointmentDate(),
+                    java.util.Comparator.nullsLast(java.util.Comparator.reverseOrder())))
                 .map(a -> {
                     Map<String, Object> map = new java.util.LinkedHashMap<>();
                     map.put("id", a.getId());
                     map.put("doctorName", a.getDoctorName());
                     map.put("appointmentDate", a.getAppointmentDate() != null ? a.getAppointmentDate().toString() : "");
+                    map.put("timeSlot", a.getTimeSlot());
                     map.put("visitReason", a.getVisitReason());
                     map.put("urgencyLevel", a.getUrgencyLevel());
                     map.put("status", a.getStatus());
@@ -88,6 +93,7 @@ public class BookingController {
         appointment.setStudentName(auth.getName());
         appointment.setDoctorName(slot.getDoctorName());
         appointment.setAppointmentDate(slot.getScheduleDate());
+        appointment.setTimeSlot(slot.getTimeSlot());
         appointment.setVisitReason(request.visitReason);
         appointment.setUrgencyLevel(request.urgencyLevel);
         appointment.setStatus("BOOKED");
@@ -180,6 +186,7 @@ public class BookingController {
 
         appointment.setDoctorName(newSlot.getDoctorName());
         appointment.setAppointmentDate(newSlot.getScheduleDate());
+        appointment.setTimeSlot(newSlot.getTimeSlot());
         appointment.setScheduleSlotId(newSlot.getId());
         appointmentRepository.save(appointment);
 

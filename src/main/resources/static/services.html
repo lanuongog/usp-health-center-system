@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Our Services — USP Health & Wellness Center</title>
+<style>
+:root {
+--bg: #F4F8F8;
+--panel: #FFFFFF;
+--ink: #14213D;
+--ink-soft: #5C7070;
+--line: #D8E6E6;
+--brand: #0D7377;
+--brand-dark: #095558;
+--brand-soft: #E3F1F1;
+--footer-bg: #0F2B2E;
+--footer-text: #C7DBDB;
+}
+* { box-sizing: border-box; }
+body {
+margin: 0;
+font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+background: var(--bg);
+color: var(--ink);
+}
+header {
+background: var(--brand);
+padding: 14px 28px;
+display: flex;
+align-items: center;
+gap: 16px;
+}
+header a.home-link {
+color: #fff; text-decoration: none; opacity: 0.85; font-size: 14px;
+}
+header a.home-link:hover { opacity: 1; text-decoration: underline; }
+header .site-name { color: #fff; font-weight: 700; font-size: 15px; }
+
+main { max-width: 820px; margin: 0 auto; padding: 32px 24px 60px; }
+
+.page-title { font-size: 24px; font-weight: 700; margin: 0 0 6px; }
+.page-sub { color: var(--ink-soft); font-size: 14px; margin: 0 0 24px; }
+
+.service-nav {
+display: flex;
+flex-wrap: wrap;
+gap: 8px;
+margin-bottom: 32px;
+}
+.service-nav a {
+background: var(--panel);
+border: 1px solid var(--line);
+border-radius: 20px;
+padding: 7px 14px;
+font-size: 12.5px;
+font-weight: 600;
+color: var(--brand-dark);
+text-decoration: none;
+}
+.service-nav a:hover { background: var(--brand-soft); border-color: var(--brand); }
+
+.service-section {
+display: none;
+background: var(--panel);
+border: 1px solid var(--line);
+border-radius: 12px;
+padding: 26px 28px;
+margin-bottom: 20px;
+scroll-margin-top: 20px;
+}
+
+.back-link {
+display: none;
+color: var(--brand-dark);
+font-size: 13px;
+font-weight: 600;
+text-decoration: none;
+margin-bottom: 16px;
+}
+.back-link:hover { text-decoration: underline; }
+.service-section .icon-row {
+display: flex;
+align-items: center;
+gap: 12px;
+margin-bottom: 12px;
+}
+.service-section .icon-md {
+width: 40px; height: 40px; border-radius: 9px;
+background: var(--brand-soft);
+display: flex; align-items: center; justify-content: center;
+flex-shrink: 0;
+}
+.service-section .icon-md svg { width: 20px; height: 20px; stroke: var(--brand); }
+.service-section h2 { font-size: 18px; margin: 0; }
+.service-section p { font-size: 14px; line-height: 1.6; color: var(--ink); margin: 0 0 14px; }
+.service-section ul { margin: 0 0 14px; padding-left: 20px; font-size: 13.5px; line-height: 1.7; color: var(--ink); }
+.service-section .cta {
+display: inline-block;
+background: var(--brand);
+color: #fff;
+font-weight: 600;
+font-size: 13.5px;
+padding: 9px 18px;
+border-radius: 7px;
+text-decoration: none;
+}
+.service-section .cta:hover { background: var(--brand-dark); }
+
+footer {
+background: var(--footer-bg);
+padding: 24px 24px 20px;
+text-align: center;
+font-size: 12.5px;
+color: var(--footer-text);
+}
+</style>
+</head>
+<body>
+
+<header>
+<a class="home-link" href="/">← Home</a>
+<span class="site-name">USP Health & Wellness Center — Our Services</span>
+</header>
+
+<main>
+<a class="back-link" id="back-link" href="/services.html">← Back to Services</a>
+
+<div id="directory-view">
+<p class="page-title">Our Services</p>
+<p class="page-sub">What the Health & Wellness Center provides on Laucala Campus. Select a service to read more.</p>
+<div class="service-nav">
+<a href="#consultations">Medical Consultations</a>
+<a href="#preventative-care">Preventative Care</a>
+<a href="#emergency">Emergency Assistance</a>
+<a href="#referrals">Specialist Referrals</a>
+<a href="#visa-medical-report">Visa Medical Report</a>
+</div>
+</div>
+
+<section class="service-section" id="consultations">
+<div class="icon-row">
+<div class="icon-md">
+<svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0016.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 002 8.5c0 2.29 1.51 4.04 3 5.5l7 7z"/></svg>
+</div>
+<h2>Medical Consultations</h2>
+</div>
+<p>Illness and injury consultations with University Medical Officers. Book an appointment online, or check in as a walk-in during clinic hours. A nurse records your vitals and reason for visit, then a doctor examines you and provides treatment or advice.</p>
+<ul>
+<li>General illness and injury assessment</li>
+<li>Diagnosis and treatment guidance from University Medical Officers</li>
+<li>Follow-up consultations for ongoing conditions</li>
+</ul>
+<a class="cta" href="/login.html">Book a consultation →</a>
+</section>
+
+<section class="service-section" id="preventative-care">
+<div class="icon-row">
+<div class="icon-md">
+<svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 12l2 2 4-4"/><circle cx="12" cy="12" r="10"/></svg>
+</div>
+<h2>Preventative Care</h2>
+</div>
+<p>Wound dressing and basic health screenings to catch and manage issues early, before they become bigger problems.</p>
+<ul>
+<li>Wound cleaning and dressing changes</li>
+<li>Basic health screenings (blood pressure, general check-ups)</li>
+<li>Health education and preventative advice</li>
+</ul>
+<a class="cta" href="/login.html">Book a screening →</a>
+</section>
+
+<section class="service-section" id="emergency">
+<div class="icon-row">
+<div class="icon-md">
+<svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2L3 14h7l-1 8 11-14h-7l1-6z"/></svg>
+</div>
+<h2>Emergency Assistance</h2>
+</div>
+<p>First response and immediate treatment for injuries and urgent medical situations on campus. For life-threatening emergencies, contact campus security or emergency services immediately in addition to the Health Center.</p>
+<ul>
+<li>First response and stabilization for on-campus injuries</li>
+<li>Immediate treatment for urgent medical situations</li>
+<li>Coordination with external emergency services when needed</li>
+</ul>
+</section>
+
+<section class="service-section" id="referrals">
+<div class="icon-row">
+<div class="icon-md">
+<svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg>
+</div>
+<h2>Specialist Referrals</h2>
+</div>
+<p>When a condition needs care beyond what the campus clinic can provide, University Medical Officers refer students to the National Hospital or an appropriate specialist for further diagnosis and treatment.</p>
+<ul>
+<li>Referral letters to the National Hospital</li>
+<li>Coordination with specialist care where required</li>
+<li>Continuity of care via your medical record at the Health Center</li>
+</ul>
+</section>
+
+<section class="service-section" id="visa-medical-report">
+<div class="icon-row">
+<div class="icon-md">
+<svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 12h6M9 16h6M9 8h2M7 3h10a2 2 0 012 2v14a2 2 0 01-2 2H7a2 2 0 01-2-2V5a2 2 0 012-2z"/></svg>
+</div>
+<h2>Medical Report for Student Visa</h2>
+</div>
+<p>Students who need a medical examination report for a student visa application can request one from the Health Center. A University Medical Officer will need to examine you before the report can be issued.</p>
+
+<ul>
+<li>Valid passport or national ID</li>
+<li>Recent passport-sized photographs</li>
+<li>Any existing medical records, immunization history, or prior visa medical reports</li>
+<li>The visa medical examination form issued by your destination country's immigration authority, if you have one</li>
+<li>A list of current medications and known allergies</li>
+</ul>
+<a class="cta" href="/login.html">Book a visa medical exam →</a>
+</section>
+</main>
+
+<footer>
+<div>USP Health & Wellness Center — Laucala Campus</div>
+</footer>
+
+<script>
+const serviceIds = ['consultations', 'preventative-care', 'emergency', 'referrals', 'visa-medical-report'];
+
+function route() {
+  const hash = location.hash.slice(1);
+  const isValid = serviceIds.includes(hash);
+
+  document.querySelectorAll('.service-section').forEach(section => {
+    section.style.display = (isValid && section.id === hash) ? 'block' : 'none';
+  });
+
+  document.getElementById('directory-view').style.display = isValid ? 'none' : 'block';
+  document.getElementById('back-link').style.display = isValid ? 'inline-block' : 'none';
+
+  window.scrollTo(0, 0);
+}
+
+window.addEventListener('hashchange', route);
+window.addEventListener('DOMContentLoaded', route);
+</script>
+
+</body>
+</html>
