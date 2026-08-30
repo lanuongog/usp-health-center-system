@@ -66,3 +66,5 @@ git push
 **Whitelabel error page at `/dashboard`** - check you're logged in; try incognito mode and re-enter `admin` / `admin123` when prompted.
 
 **Connection refused to PostgreSQL** - confirm the PostgreSQL service is running (Windows Services -> `postgresql-x64-18` -> should say "Running") and that the port in `application.properties` matches what `netstat` shows.
+
+end
