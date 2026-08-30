@@ -1,25 +1,33 @@
 package com.example.demo;
 
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.format.annotation.DateTimeFormat;
-import org.springframework.http.HttpStatus;
-import org.springframework.security.core.Authentication;
-import org.springframework.web.bind.annotation.*;
-import org.springframework.web.server.ResponseStatusException;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
+import org.springframework.format.annotation.DateTimeFormat;
+import org.springframework.http.HttpStatus;
+import org.springframework.security.core.Authentication;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.server.ResponseStatusException;
+
 @RestController
 @RequestMapping("/schedule")
 public class ScheduleController {
 
-    @Autowired
-    private DoctorScheduleRepository scheduleRepository;
+    private final DoctorScheduleRepository scheduleRepository;
 
-    @Autowired
-    private AppointmentRepository appointmentRepository;
+    public ScheduleController(DoctorScheduleRepository scheduleRepository) {
+        this.scheduleRepository = scheduleRepository;
+    }
 
     // FR-02-20 to 23: students view open (unbooked) slots for a date, optionally filtered by doctor
     @GetMapping("/available")
@@ -38,6 +46,15 @@ public class ScheduleController {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "No available appointments for the selected date");
         }
         return open;
+    }
+
+    // Returns the distinct list of doctor names for the homepage search bar
+    @GetMapping("/doctors")
+    public List<String> getDoctorNames() {
+        return scheduleRepository.findAll().stream()
+                .map((DoctorSchedule d) -> d.getDoctorName())
+                .distinct()
+                .collect(Collectors.toList());
     }
 
     // FR-02-24: doctor/admin creates a new consultation slot

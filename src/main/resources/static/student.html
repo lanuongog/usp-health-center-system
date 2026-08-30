@@ -3,10 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Student Health Portal — USP Health Center</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<title>Student Portal — USP Health Center</title>
 <style>
   :root {
     --bg: #F8FAFC;
@@ -634,6 +631,110 @@
     border-radius: 6px;
     font-weight: 600;
   }
+:root {
+--bg: #F4F8F8;
+--panel: #FFFFFF;
+--ink: #14213D;
+--ink-soft: #5C7070;
+--line: #D8E6E6;
+--brand: #0D7377;
+--brand-dark: #095558;
+--brand-soft: #E3F1F1;
+--emergency: #B23A2E;
+--emergency-bg: #FBEAE8;
+--urgent: #B8721E;
+--urgent-bg: #FBF1E1;
+--routine: #3E6E85;
+--routine-bg: #E7EFF2;
+--ok: #3D7A55;
+}
+* { box-sizing: border-box; }
+body {
+margin: 0;
+font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+background: var(--bg);
+color: var(--ink);
+}
+.topbar {
+background: var(--brand);
+color: #fff;
+padding: 14px 24px;
+display: flex;
+align-items: center;
+justify-content: space-between;
+}
+.topbar h1 { font-size: 17px; font-weight: 600; margin: 0; letter-spacing: 0.2px; }
+.topbar .who { font-size: 13px; color: #CFE0E6; display: flex; align-items: center; gap: 12px; }
+.topbar button {
+background: transparent; border: 1px solid rgba(255,255,255,0.4); color: #fff;
+padding: 5px 12px; border-radius: 5px; font-size: 12px; cursor: pointer;
+}
+.topbar button:hover { background: rgba(255,255,255,0.1); }
+.topbar .home-link {
+color: #fff; font-size: 13px; text-decoration: none;
+opacity: 0.85; margin-right: 4px;
+}
+.topbar .home-link:hover { opacity: 1; text-decoration: underline; }
+
+#app-screen { display: block; }
+.layout {
+display: grid; grid-template-columns: 1fr 1fr; gap: 20px;
+padding: 22px 24px; max-width: 1180px; margin: 0 auto;
+}
+@media (max-width: 860px) { .layout { grid-template-columns: 1fr; } }
+
+.panel { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; overflow: hidden; }
+.panel-head { padding: 16px 18px; border-bottom: 1px solid var(--line); display: flex; align-items: baseline; justify-content: space-between; }
+.panel-head h2 { font-size: 15px; margin: 0; }
+.panel-body { padding: 18px; }
+
+.field-row { display: flex; gap: 10px; margin-bottom: 12px; }
+.field-row .field { flex: 1; margin-bottom: 0; }
+.field { margin-bottom: 14px; }
+.field label { display: block; font-size: 12px; color: var(--ink-soft); margin-bottom: 5px; }
+.field input, select {
+width: 100%; padding: 9px 10px; border: 1px solid var(--line); border-radius: 6px;
+font-size: 13px; background: #fff; font-family: inherit;
+}
+.slot-list { display: flex; flex-direction: column; gap: 7px; margin: 10px 0 16px; max-height: 220px; overflow-y: auto; }
+.slot-option {
+border: 1px solid var(--line); border-radius: 7px; padding: 9px 12px;
+font-size: 13px; cursor: pointer; display: flex; justify-content: flex-start;
+}
+.slot-option:hover { background: var(--brand-soft); }
+.slot-option.selected { background: var(--brand-soft); border-color: var(--brand); }
+.slot-option .time { font-weight: 600; }
+.empty-state { padding: 30px 20px; text-align: center; color: var(--ink-soft); font-size: 13px; }
+
+.appt-card {
+border: 1px solid var(--line); border-radius: 8px; padding: 12px 14px; margin-bottom: 10px;
+}
+.appt-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px; }
+.appt-top .doc { font-weight: 600; font-size: 14px; }
+.badge { font-size: 11px; font-weight: 600; padding: 3px 9px; border-radius: 20px; white-space: nowrap; }
+.badge.Emergency { background: var(--emergency-bg); color: var(--emergency); }
+.badge.Urgent { background: var(--urgent-bg); color: var(--urgent); }
+.badge.Routine { background: var(--routine-bg); color: var(--routine); }
+.appt-meta { font-size: 12.5px; color: var(--ink-soft); margin-bottom: 10px; }
+.appt-actions { display: flex; gap: 8px; }
+.btn-small {
+flex: 1; padding: 7px; border-radius: 6px; font-size: 12.5px; font-weight: 600;
+cursor: pointer; border: 1px solid var(--line); background: #fff;
+}
+.btn-small.danger { color: var(--emergency); border-color: #EBD3D0; }
+.btn-small.danger:hover { background: var(--emergency-bg); }
+.btn-small.neutral { color: var(--brand); border-color: var(--line); }
+.btn-small.neutral:hover { background: var(--brand-soft); }
+
+.btn-primary {
+width: 100%; background: var(--brand); color: #fff; border: none; padding: 10px;
+border-radius: 6px; font-size: 14px; font-weight: 600; cursor: pointer; margin-top: 4px;
+}
+.btn-primary:hover { background: #173C49; }
+
+.toast { font-size: 12.5px; margin-top: 8px; min-height: 16px; }
+.toast.ok { color: var(--ok); }
+.toast.err { color: var(--emergency); }
 </style>
 </head>
 <body>
@@ -642,127 +743,55 @@
 
 <!-- MAIN STUDENT PORTAL -->
 <div id="app-screen">
-  <div class="topbar">
-    <div class="brand-info">
-      <h1>USP Health Center</h1>
-      <span class="portal-tag">Student Medical Portal</span>
-    </div>
-    <div class="who">
-      <span>Logged in: <strong id="who-label"></strong></span>
-      <button onclick="logout()">Log out</button>
-    </div>
-  </div>
+<div class="topbar">
+<a href="/" class="home-link">← Home</a>
+<h1>Student Portal</h1>
+<div class="who">
+<span id="who-label"></span>
+<button onclick="logout()">Log out</button>
+</div>
+</div>
 
-  <!-- Sub Navigation Menu -->
-  <div class="menu-nav">
-    <button id="nav-btn-booking" class="menu-tab-btn active" onclick="switchStudentView('booking')">
-      <span>📅</span> Book &amp; Active Appointments
-    </button>
-    <button id="nav-btn-history" class="menu-tab-btn" onclick="switchStudentView('history')">
-      <span>📋</span> Medical &amp; Consultation History
-    </button>
-  </div>
+<div id="fee-banner" style="display:none;background:#FBEAE8;color:#B23A2E;border-bottom:1px solid #EBD3D0;padding:9px 24px;font-size:13px;text-align:center;"></div>
 
-  <!-- VIEW 1: BOOKING & UPCOMING APPOINTMENTS -->
-  <div id="view-booking" class="view-container">
-    <div class="layout">
-      <!-- LEFT PANEL: AVAILABLE SLOTS & BOOKING -->
-      <div class="panel">
-        <div class="panel-head">
-          <h2><span>📅</span> Book Doctor Appointment</h2>
-        </div>
-        <div class="panel-body">
-          <!-- Date & Doctor Filters -->
-          <div class="filter-bar">
-            <div class="field" style="margin-bottom:0;">
-              <label for="date-input">Appointment Date</label>
-              <input id="date-input" type="date" onchange="onDateChanged()" />
-            </div>
-            <div class="field" style="margin-bottom:0;">
-              <label for="doctor-select">Filter by Doctor</label>
-              <select id="doctor-select" onchange="loadSlots()">
-                <option value="">All Available Doctors</option>
-              </select>
-            </div>
-          </div>
+<div class="layout">
+<div class="panel">
+<div class="panel-head"><h2>Book an Appointment</h2></div>
+<div class="panel-body">
+<div class="field">
+<label for="date-input">Date</label>
+<input id="date-input" type="date" onchange="loadSlots()" />
+</div>
+<div id="slot-container">
+<div class="empty-state">Pick a date to see open slots.</div>
+</div>
+<div class="field-row">
+<div class="field">
+<label for="reason-input">Reason for visit</label>
+<input id="reason-input" type="text" placeholder="e.g. Fever" />
+</div>
+<div class="field">
+<label for="urgency-input">Urgency</label>
+<select id="urgency-input">
+<option value="Routine">Routine</option>
+<option value="Urgent">Urgent</option>
+<option value="Emergency">Emergency</option>
+</select>
+</div>
+</div>
+<button class="btn-primary" id="book-btn" onclick="bookAppointment()">Confirm Booking</button>
+<div class="toast" id="book-toast"></div>
+</div>
+</div>
 
-          <!-- Quick Date Buttons -->
-          <div class="quick-dates">
-            <button type="button" class="quick-date-btn active" id="btn-today" onclick="selectQuickDate(0)">Today</button>
-            <button type="button" class="quick-date-btn" id="btn-tomorrow" onclick="selectQuickDate(1)">Tomorrow</button>
-            <button type="button" class="quick-date-btn" id="btn-dayafter" onclick="selectQuickDate(2)">In 2 Days</button>
-          </div>
-
-          <!-- Slots List -->
-          <div class="slots-header">
-            <span>Available Consultation Slots</span>
-            <span id="slots-count" style="font-weight:normal;"></span>
-          </div>
-          <div id="slot-container">
-            <div class="empty-state">Loading appointment slots...</div>
-          </div>
-
-          <!-- Booking Form Inputs (Shown when slot is selected) -->
-          <div class="booking-section" id="booking-details-box" style="display:none;">
-            <div class="selected-summary">
-              <div>Selected Slot: <strong id="summary-doc"></strong> on <span id="summary-time"></span></div>
-              <button type="button" onclick="clearSelectedSlot()" style="background:none;border:none;color:var(--ink-soft);cursor:pointer;font-size:12px;">Change</button>
-            </div>
-
-            <div class="field">
-              <label for="reason-input">Reason for Visit <span style="color:var(--emergency)">*</span></label>
-              <input id="reason-input" type="text" placeholder="e.g. Fever, severe headache, flu symptoms, medical certificate" required />
-            </div>
-
-            <div class="field">
-              <label for="urgency-input">Urgency Level <span style="color:var(--emergency)">*</span></label>
-              <select id="urgency-input">
-                <option value="Routine">Routine — Standard checkup, non-urgent consultation</option>
-                <option value="Urgent">Urgent — Severe symptoms requiring prompt attention</option>
-                <option value="Emergency">Emergency — Acute condition / immediate medical need</option>
-              </select>
-            </div>
-
-            <button class="btn-primary" id="book-btn" onclick="bookAppointment()">
-              Confirm Appointment Booking
-            </button>
-          </div>
-
-          <div class="toast" id="book-toast"></div>
-        </div>
-      </div>
-
-      <!-- RIGHT PANEL: MY UPCOMING APPOINTMENTS -->
-      <div class="panel">
-        <div class="panel-head">
-          <h2><span>🩺</span> My Upcoming Appointments</h2>
-          <span class="count-badge" id="appt-count">0 upcoming</span>
-        </div>
-        <div class="panel-body" id="appt-list">
-          <div class="empty-state">Loading your appointments...</div>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- VIEW 2: MEDICAL & CONSULTATION HISTORY -->
-  <div id="view-history" class="view-container" style="display:none;">
-    <div class="panel">
-      <div class="panel-head">
-        <h2><span>📋</span> Completed Doctor Consultations &amp; Medical History</h2>
-        <span class="count-badge" id="history-count">0 records</span>
-      </div>
-      <div class="panel-body">
-        <p style="font-size:13px;color:var(--ink-soft);margin-bottom:18px;">
-          Review past visits, diagnosis, doctor recommendations, and clinical vital signs recorded at USP Health Center.
-        </p>
-        <div id="history-container">
-          <div class="empty-state">Loading your consultation history...</div>
-        </div>
-      </div>
-    </div>
-  </div>
-
+<div class="panel">
+<div class="panel-head">
+<h2>My Appointments</h2>
+<span class="count" id="appt-count"></span>
+</div>
+<div class="panel-body" id="appt-list"></div>
+</div>
+</div>
 </div>
 
 <script>
@@ -807,307 +836,206 @@
 
     loadDoctorList();
     selectQuickDate(0);
+let authHeader = null;
+let currentStudentId = null;
+let selectedSlot = null;
 
-    if (preloadedAppointments) {
-      renderAppointments(preloadedAppointments);
-    } else {
-      refreshAppointments();
-    }
-  }
+window.addEventListener('DOMContentLoaded', () => {
+  const storedAuth = sessionStorage.getItem('authHeader');
+  const storedUser = sessionStorage.getItem('currentUser');
+  const storedRole = sessionStorage.getItem('userRole');
 
   function logout() {
     sessionStorage.clear();
+  if (!storedAuth || !storedUser || storedRole !== 'STUDENT') {
     window.location.href = '/login.html';
+    return;
   }
 
-  function selectQuickDate(offsetDays) {
-    const d = new Date();
-    d.setDate(d.getDate() + offsetDays);
-    const dateStr = d.toISOString().split('T')[0];
-    document.getElementById('date-input').value = dateStr;
+  authHeader = storedAuth;
+  currentStudentId = storedUser;
+  document.getElementById('who-label').textContent = currentStudentId;
 
-    document.querySelectorAll('.quick-date-btn').forEach((btn, idx) => {
-      btn.classList.toggle('active', idx === offsetDays);
+  const dateInput = document.getElementById('date-input');
+  const tomorrow = new Date();
+  tomorrow.setDate(tomorrow.getDate() + 1);
+  dateInput.value = tomorrow.toISOString().split('T')[0];
+  loadSlots();
+  refreshAppointments();
+  loadFeeStatus();
+});
+
+function loadFeeStatus() {
+  fetch('/student/profile', { headers: { 'Authorization': authHeader } })
+    .then(res => res.json())
+    .then(profile => {
+      if (profile.error || profile.feePaid || !profile.feeAmount) return;
+      const banner = document.getElementById('fee-banner');
+      banner.textContent = `⚠ Your USP Health Services Fee (FJ$${Number(profile.feeAmount).toFixed(2)}) is unpaid. Please settle it at Student Administrative Services — some services may be limited until then.`;
+      banner.style.display = 'block';
+    })
+    .catch(() => {});
+}
+
+function logout() {
+  sessionStorage.clear();
+  window.location.href = '/login.html';
+}
+
+// Converts a "09:00 AM - 09:30 AM" style label into minutes-since-midnight
+// (using its start time) so slots can be sorted chronologically regardless
+// of which doctor's row they came from.
+function timeSlotSortKey(timeSlot) {
+  const match = timeSlot.split('-')[0].trim().match(/(\d{1,2}):(\d{2})\s*(AM|PM)/i);
+  if (!match) return 0;
+  let hours = parseInt(match[1], 10) % 12;
+  if (match[3].toUpperCase() === 'PM') hours += 12;
+  return hours * 60 + parseInt(match[2], 10);
+}
+
+function loadSlots() {
+  const date = document.getElementById('date-input').value;
+  if (!date) return;
+  selectedSlot = null;
+
+  const container = document.getElementById('slot-container');
+
+  fetch('/schedule/available?date=' + date)
+    .then(res => {
+      if (res.status === 404) return [];
+      if (!res.ok) throw new Error();
+      return res.json();
+    })
+    .then(slots => {
+      if (!Array.isArray(slots) || slots.length === 0) {
+        container.innerHTML = '<div class="empty-state">No available appointments for the selected date.</div>';
+        return;
+      }
+
+      // The health center assigns whichever doctor is on duty for a time slot,
+      // so students pick a time only — multiple doctors offering the same time
+      // collapse into a single bookable option.
+      const seenTimes = new Set();
+      const uniqueSlots = slots.filter(s => {
+        if (seenTimes.has(s.timeSlot)) return false;
+        seenTimes.add(s.timeSlot);
+        return true;
+      });
+      uniqueSlots.sort((a, b) => timeSlotSortKey(a.timeSlot) - timeSlotSortKey(b.timeSlot));
+
+      container.innerHTML = '<div class="slot-list">' + uniqueSlots.map(s => `
+        <div class="slot-option" data-id="${s.id}" onclick='pickSlot(${s.id}, this)'>
+          <span class="time">${escapeHtml(s.timeSlot)}</span>
+        </div>
+      `).join('') + '</div>';
+    })
+    .catch(() => {
+      container.innerHTML = '<div class="empty-state">Unable to load availability.</div>';
     });
+}
 
+function pickSlot(slotId, el) {
+  selectedSlot = slotId;
+  document.querySelectorAll('.slot-option').forEach(o => o.classList.remove('selected'));
+  el.classList.add('selected');
+}
+
+function bookAppointment() {
+  const toast = document.getElementById('book-toast');
+  const reason = document.getElementById('reason-input').value.trim();
+  const urgency = document.getElementById('urgency-input').value;
+
+  if (!selectedSlot) {
+    toast.textContent = 'Select an available slot first.';
+    toast.className = 'toast err';
+    return;
+  }
+  if (!reason) {
+    toast.textContent = 'Reason for visit is required.';
+    toast.className = 'toast err';
+    return;
+  }
+
+  fetch('/student/book', {
+    method: 'POST',
+    headers: { 'Authorization': authHeader, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ slotId: selectedSlot, visitReason: reason, urgencyLevel: urgency })
+  })
+  .then(res => res.json())
+  .then(data => {
+    if (data.error) {
+      toast.textContent = data.error;
+      toast.className = 'toast err';
+      return;
+    }
+    toast.textContent = 'Appointment confirmed for ' + data.timeSlot + '.';
+    toast.className = 'toast ok';
+    document.getElementById('reason-input').value = '';
+    selectedSlot = null;
     loadSlots();
-  }
-
-  function onDateChanged() {
-    document.querySelectorAll('.quick-date-btn').forEach(btn => btn.classList.remove('active'));
-    loadSlots();
-  }
-
-  function loadDoctorList() {
-    fetch('/schedule/doctors')
-      .then(res => res.json())
-      .then(doctors => {
-        availableDoctors = doctors || [];
-        const select = document.getElementById('doctor-select');
-        select.innerHTML = '<option value="">All Available Doctors</option>' +
-          availableDoctors.map(d => `<option value="${escapeHtml(d)}">${escapeHtml(d)}</option>`).join('');
-      })
-      .catch(() => {});
-  }
-
-  function loadSlots() {
-    const date = document.getElementById('date-input').value;
-    const doctor = document.getElementById('doctor-select').value;
-    const container = document.getElementById('slot-container');
-    const countEl = document.getElementById('slots-count');
-    clearSelectedSlot();
-
-    if (!date) {
-      container.innerHTML = '<div class="empty-state">Please pick a date to see open slots.</div>';
-      countEl.textContent = '';
-      return;
-    }
-
-    let url = '/schedule/available?date=' + encodeURIComponent(date);
-    if (doctor) {
-      url += '&doctorName=' + encodeURIComponent(doctor);
-    }
-
-    fetch(url)
-      .then(res => {
-        if (res.status === 404) return [];
-        if (!res.ok) throw new Error('Failed to load slots');
-        return res.json();
-      })
-      .then(slots => {
-        if (!Array.isArray(slots) || slots.length === 0) {
-          container.innerHTML = '<div class="empty-state">No open consultation slots for this date. Try another date or doctor.</div>';
-          countEl.textContent = '0 slots found';
-          return;
-        }
-
-        countEl.textContent = `${slots.length} available slot${slots.length === 1 ? '' : 's'}`;
-        container.innerHTML = '<div class="slot-grid">' + slots.map(s => `
-          <div class="slot-card" id="slot-card-${s.id}" onclick='pickSlot(${JSON.stringify(s)})'>
-            <div class="doc-name">🩺 ${escapeHtml(s.doctorName)}</div>
-            <div class="time-tag">⏰ ${escapeHtml(s.timeSlot)}</div>
-          </div>
-        `).join('') + '</div>';
-      })
-      .catch(() => {
-        container.innerHTML = '<div class="empty-state">Unable to load availability. Please try again.</div>';
-        countEl.textContent = '';
-      });
-  }
-
-  function pickSlot(slot) {
-    selectedSlotObj = slot;
-    document.querySelectorAll('.slot-card').forEach(c => c.classList.remove('selected'));
-    const activeCard = document.getElementById(`slot-card-${slot.id}`);
-    if (activeCard) activeCard.classList.add('selected');
-
-    document.getElementById('summary-doc').textContent = slot.doctorName;
-    document.getElementById('summary-time').textContent = `${slot.scheduleDate} (${slot.timeSlot})`;
-    document.getElementById('booking-details-box').style.display = 'block';
-    document.getElementById('reason-input').focus();
-    document.getElementById('booking-details-box').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-  }
-
-  function clearSelectedSlot() {
-    selectedSlotObj = null;
-    document.querySelectorAll('.slot-card').forEach(c => c.classList.remove('selected'));
-    document.getElementById('booking-details-box').style.display = 'none';
-  }
-
-  function bookAppointment() {
-    const toast = document.getElementById('book-toast');
-    const reason = document.getElementById('reason-input').value.trim();
-    const urgency = document.getElementById('urgency-input').value;
-    const btn = document.getElementById('book-btn');
-
-    if (!selectedSlotObj) {
-      showToast('Select an available consultation slot first.', 'err');
-      return;
-    }
-    if (!reason) {
-      showToast('Please specify the reason for your visit.', 'err');
-      document.getElementById('reason-input').focus();
-      return;
-    }
-
-    btn.disabled = true;
-    btn.textContent = 'Confirming Booking...';
-
-    fetch('/student/book', {
-      method: 'POST',
-      headers: {
-        'Authorization': authHeader,
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({
-        slotId: selectedSlotObj.id,
-        visitReason: reason,
-        urgencyLevel: urgency
-      })
-    })
-      .then(res => res.json())
-      .then(data => {
-        btn.disabled = false;
-        btn.textContent = 'Confirm Appointment Booking';
-
-        if (data.error) {
-          showToast(data.error, 'err');
-          return;
-        }
-
-        showToast(`✅ Appointment confirmed with ${data.doctorName} on ${data.date} (${data.timeSlot})!`, 'ok');
-        document.getElementById('reason-input').value = '';
-        clearSelectedSlot();
-        loadSlots();
-        refreshAppointments();
-      })
-      .catch(() => {
-        btn.disabled = false;
-        btn.textContent = 'Confirm Appointment Booking';
-        showToast('Unable to complete booking. Please try again.', 'err');
-      });
-  }
-
-  function showToast(msg, type) {
-    const toast = document.getElementById('book-toast');
-    toast.textContent = msg;
-    toast.className = 'toast ' + type;
-    toast.style.display = 'block';
-  }
-
-  function refreshAppointments() {
-    fetch('/student/my-appointments', { headers: { 'Authorization': authHeader } })
-      .then(res => res.json())
-      .then(renderAppointments)
-      .catch(() => {});
-  }
-
-  function renderAppointments(appointments) {
-    const listEl = document.getElementById('appt-list');
-    const countEl = document.getElementById('appt-count');
-    const count = appointments.length;
-    countEl.textContent = `${count} upcoming`;
-
-    if (count === 0) {
-      listEl.innerHTML = '<div class="empty-state">You have no upcoming appointments scheduled. Select a slot on the left to book one.</div>';
-      return;
-    }
-
-    listEl.innerHTML = appointments.map(a => `
-      <div class="appt-card">
-        <div class="appt-top">
-          <span class="doc">🩺 ${escapeHtml(a.doctorName)}</span>
-          <span class="badge ${a.urgencyLevel}">${escapeHtml(a.urgencyLevel)}</span>
-        </div>
-        <div class="appt-details">
-          <div class="reason">📝 Reason: ${escapeHtml(a.visitReason)}</div>
-          <div>🗓 Date: <strong>${escapeHtml(a.appointmentDate)}</strong></div>
-          <div>📌 Status: <strong style="color:var(--ok)">${escapeHtml(a.status)}</strong></div>
-        </div>
-        <div class="appt-actions">
-          <button class="btn-small danger" onclick="cancelAppointment(${a.id})">Cancel Appointment</button>
-        </div>
-      </div>
-    `).join('');
-  }
-
-  function cancelAppointment(appointmentId) {
-    if (!confirm('Are you sure you want to cancel this appointment? This slot will be released for other students.')) return;
-
-    fetch('/student/cancel', {
-      method: 'POST',
-      headers: { 'Authorization': authHeader, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ appointmentId })
-    })
-      .then(res => res.json())
-      .then(data => {
-        if (data.error) {
-          alert(data.error);
-          return;
-        }
-        refreshAppointments();
-        loadSlots();
-      })
-      .catch(() => {
-        alert('Failed to cancel appointment. Please try again.');
-      });
-  }
-
-  // ---------- Medical & Consultation History ----------
-  function loadHistory() {
-    const container = document.getElementById('history-container');
-    const countEl = document.getElementById('history-count');
-    container.innerHTML = '<div class="empty-state">Loading your medical history...</div>';
-
-    fetch('/student/history', { headers: { 'Authorization': authHeader } })
-      .then(res => res.json())
-      .then(history => {
-        if (!Array.isArray(history) || history.length === 0) {
-          countEl.textContent = '0 records';
-          container.innerHTML = '<div class="empty-state">No previous medical visits or consultations on record yet.</div>';
-          return;
-        }
-
-        countEl.textContent = `${history.length} visit${history.length === 1 ? '' : 's'} recorded`;
-
-        container.innerHTML = '<div class="history-grid">' + history.map(h => `
-          <div class="history-card">
-            <div class="history-head">
-              <div>
-                <div class="history-doc-info">🩺 ${escapeHtml(h.doctorName || 'Doctor')}</div>
-                <div class="history-date">🗓 Visit Date: <strong>${escapeHtml(h.appointmentDate || 'N/A')}</strong></div>
-              </div>
-              <div style="display:flex;gap:6px;align-items:center;">
-                <span class="badge ${h.urgencyLevel}">${escapeHtml(h.urgencyLevel || 'Routine')}</span>
-                <span class="badge ${h.status === 'COMPLETED' ? 'Completed' : (h.status === 'CHECKED_IN' ? 'CheckedIn' : 'Booked')}">${escapeHtml(h.status)}</span>
-              </div>
-            </div>
-
-            <div style="font-size:13.5px;margin-bottom:10px;">
-              <strong>Visit Reason:</strong> ${escapeHtml(h.visitReason || 'General Consultation')}
-            </div>
-
-            <div class="history-sections">
-              <!-- Clinical Consultation Box -->
-              <div class="h-box">
-                <div class="h-box-title">Doctor Consultation</div>
-                <div style="margin-bottom:6px;"><strong>Diagnosis:</strong> ${h.diagnosis ? escapeHtml(h.diagnosis) : '<em style="color:var(--ink-soft)">Pending consultation</em>'}</div>
-                <div><strong>Doctor Notes &amp; Advice:</strong><br>${h.consultationNotes ? escapeHtml(h.consultationNotes) : '<em style="color:var(--ink-soft)">None recorded yet</em>'}</div>
-                ${h.consultedByDoctor ? `<div style="font-size:11.5px;color:var(--ink-soft);margin-top:6px;">Consulted by: ${escapeHtml(h.consultedByDoctor)}</div>` : ''}
-              </div>
-
-              <!-- Vitals & Check-in Box -->
-              <div class="h-box">
-                <div class="h-box-title">Nurse Vitals &amp; Check-in</div>
-                ${(h.temperature || h.bloodPressure) ? `
-                  <div class="h-vitals-row">
-                    <div>Temp: <span class="v-pill">🌡️ ${escapeHtml(h.temperature)} °C</span></div>
-                    <div>BP: <span class="v-pill">💓 ${escapeHtml(h.bloodPressure)}</span></div>
-                  </div>
-                  <div style="margin-top:8px;"><strong>Complaint:</strong> ${h.presentingComplaint ? escapeHtml(h.presentingComplaint) : 'N/A'}</div>
-                ` : '<em style="color:var(--ink-soft)">No check-in vitals recorded</em>'}
-              </div>
-            </div>
-          </div>
-        `).join('') + '</div>';
-      })
-      .catch(() => {
-        container.innerHTML = '<div class="empty-state">Unable to load consultation history. Please try again.</div>';
-      });
-  }
-
-  function escapeHtml(str) {
-    if (str === null || str === undefined) return '';
-    return String(str)
-      .replaceAll('&', '&amp;')
-      .replaceAll('<', '&lt;')
-      .replaceAll('>', '&gt;')
-      .replaceAll('"', '&quot;');
-  }
-
-  document.getElementById('login-password')?.addEventListener('keydown', e => {
-    if (e.key === 'Enter') login();
+    refreshAppointments();
+  })
+  .catch(() => {
+    toast.textContent = 'Unable to reach the server.';
+    toast.className = 'toast err';
   });
+}
+
+function refreshAppointments() {
+  fetch('/student/my-appointments', { headers: { 'Authorization': authHeader } })
+    .then(res => res.json())
+    .then(renderAppointments)
+    .catch(() => {});
+}
+
+function renderAppointments(appointments) {
+  const listEl = document.getElementById('appt-list');
+  const countEl = document.getElementById('appt-count');
+  countEl.textContent = appointments.length + (appointments.length === 1 ? ' upcoming' : ' upcoming');
+
+  if (appointments.length === 0) {
+    listEl.innerHTML = '<div class="empty-state">You have no upcoming appointments.</div>';
+    return;
+  }
+
+  listEl.innerHTML = appointments.map(a => `
+    <div class="appt-card">
+      <div class="appt-top">
+        <span class="doc">${escapeHtml(a.appointmentDate)}${a.timeSlot ? ' · ' + escapeHtml(a.timeSlot) : ''}</span>
+        <span class="badge ${a.urgencyLevel}">${escapeHtml(a.urgencyLevel)}</span>
+      </div>
+      <div class="appt-meta">${escapeHtml(a.visitReason)}</div>
+      <div class="appt-actions">
+        <button class="btn-small danger" onclick="cancelAppointment(${a.id})">Cancel</button>
+      </div>
+    </div>
+  `).join('');
+}
+
+function cancelAppointment(appointmentId) {
+  if (!confirm('Cancel this appointment?')) return;
+
+  fetch('/student/cancel', {
+    method: 'POST',
+    headers: { 'Authorization': authHeader, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ appointmentId })
+  })
+  .then(res => res.json())
+  .then(() => {
+    refreshAppointments();
+    loadSlots();
+  })
+  .catch(() => {});
+}
+
+function escapeHtml(str) {
+  if (str === null || str === undefined) return '';
+  return String(str)
+    .replaceAll('&', '&amp;')
+    .replaceAll('<', '&lt;')
+    .replaceAll('>', '&gt;')
+    .replaceAll('"', '&quot;');
+}
 </script>
 
 </body>

@@ -1,6 +1,5 @@
 package com.example.demo;
 
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
 import java.util.Map;
@@ -9,11 +8,13 @@ import java.util.Map;
 @RequestMapping("/api")
 public class LoginCheckController {
 
-    @Autowired
-    private UserRepository userRepository;
+    private final UserRepository userRepository;
+    private final PasswordEncoder passwordEncoder;
 
-    @Autowired
-    private PasswordEncoder passwordEncoder;
+    public LoginCheckController(UserRepository userRepository, PasswordEncoder passwordEncoder) {
+        this.userRepository = userRepository;
+        this.passwordEncoder = passwordEncoder;
+    }
 
     public static class LoginCheckRequest {
         public String username;
@@ -44,7 +45,7 @@ public class LoginCheckController {
         // If a specific role or list of roles is requested, validate it
         if (request.requiredRole != null && !request.requiredRole.isBlank() && !"ANY".equalsIgnoreCase(request.requiredRole.trim())) {
             boolean roleMatches = java.util.Arrays.stream(request.requiredRole.split(","))
-                    .map(String::trim)
+                    .map((String s) -> s.trim())
                     .anyMatch(r -> r.equalsIgnoreCase(user.getRole()));
 
             if (!roleMatches) {

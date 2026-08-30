@@ -2,7 +2,8 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>USP Health Center - Admin Reporting Dashboard</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>USP Health & Wellness Center</title>
 <style>
   * { box-sizing: border-box; }
   body {
@@ -209,238 +210,328 @@ window.addEventListener('DOMContentLoaded', () => {
 function logout() {
   sessionStorage.clear();
   window.location.href = '/login.html';
+:root {
+--bg: #F4F8F8;
+--panel: #FFFFFF;
+--ink: #14213D;
+--ink-soft: #5C7070;
+--line: #D8E6E6;
+--brand: #0D7377;
+--brand-dark: #095558;
+--brand-soft: #E3F1F1;
+--footer-bg: #0F2B2E;
+--footer-text: #C7DBDB;
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+margin: 0;
+font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+background: var(--bg);
+color: var(--ink);
 }
 
-function showPageError(message) {
-  const box = document.getElementById('pageError');
-  box.innerText = message;
-  box.style.display = message ? 'block' : 'none';
+header {
+background: var(--brand);
+padding: 12px 28px;
+display: flex;
+align-items: center;
+justify-content: space-between;
+gap: 16px;
+flex-wrap: wrap;
+}
+header a.logo-link { display: flex; align-items: center; gap: 12px; text-decoration: none; }
+header .logo-chip {
+background: #fff;
+border-radius: 8px;
+padding: 4px 8px;
+display: flex;
+align-items: center;
+}
+header img.logo { height: 32px; display: block; }
+header .site-name { font-size: 15px; font-weight: 700; color: #fff; }
+
+.hero {
+position: relative;
+height: 220px;
+overflow: hidden;
+}
+.hero img.banner {
+width: 100%;
+height: 100%;
+object-fit: cover;
+display: block;
+}
+.hero .overlay {
+position: absolute;
+inset: 0;
+background: linear-gradient(180deg, rgba(13,115,119,0.20), rgba(9,25,30,0.78));
+display: flex;
+flex-direction: column;
+align-items: center;
+justify-content: center;
+text-align: center;
+padding: 20px;
+}
+.hero h1 { color: #fff; font-size: 26px; margin: 0 0 6px; }
+.hero p { color: #DCF0F0; font-size: 14px; margin: 0; max-width: 460px; }
+
+.eligibility-bar {
+background: var(--brand-soft);
+color: var(--brand-dark);
+text-align: center;
+font-size: 12.5px;
+padding: 9px 16px;
 }
 
-async function loadDashboard() {
-  try {
-    const res = await fetch('/dashboard/summary', { headers: { 'Authorization': authHeader } });
-    if (!res.ok) {
-      const err = await res.json();
-      showPageError(err.message || 'Unable to load statistics');
-      return;
-    }
-    showPageError(null);
-    const data = await res.json();
-    renderSummary(data);
-  } catch (e) {
-    showPageError('Service temporarily unavailable');
-  }
+main { max-width: 1120px; margin: 0 auto; padding: 30px 32px 16px; }
+
+.section-title {
+text-align: center;
+font-size: 18px;
+font-weight: 700;
+margin: 0 0 4px;
+}
+.section-sub {
+text-align: center;
+color: var(--ink-soft);
+font-size: 13px;
+margin: 0 0 20px;
 }
 
-async function applyFilter() {
-  const startInput = document.getElementById('startDate');
-  const endInput = document.getElementById('endDate');
-  const start = startInput.value;
-  const end = endInput.value;
+.services {
+display: grid;
+grid-template-columns: repeat(5, 1fr);
+gap: 18px;
+margin-bottom: 36px;
+}
+@media (max-width: 760px) { .services { grid-template-columns: repeat(2, 1fr); } }
 
-  startInput.classList.remove('invalid');
-  endInput.classList.remove('invalid');
+.service-card {
+background: var(--panel);
+border: 1px solid var(--line);
+border-radius: 10px;
+padding: 24px 16px;
+text-align: center;
+display: block;
+text-decoration: none;
+color: inherit;
+transition: box-shadow 0.15s, transform 0.15s, border-color 0.15s;
+}
+.service-card:hover {
+box-shadow: 0 4px 14px rgba(0,0,0,0.08);
+transform: translateY(-2px);
+border-color: var(--brand);
+}
+.service-card .icon-md {
+width: 40px;
+height: 40px;
+margin: 0 auto 10px;
+border-radius: 9px;
+background: var(--brand-soft);
+display: flex;
+align-items: center;
+justify-content: center;
+}
+.service-card .icon-md svg { width: 20px; height: 20px; stroke: var(--brand); }
+.service-card .title { font-weight: 700; font-size: 13.5px; margin-bottom: 4px; }
+.service-card .desc { font-size: 12px; color: var(--ink-soft); line-height: 1.4; }
 
-  if (!start || !end) {
-    showPageError('Please select both a start and end date.');
-    return;
-  }
-  if (start > end) {
-    startInput.classList.add('invalid');
-    endInput.classList.add('invalid');
-    showPageError('Invalid date range: start date must be on or before the end date.');
-    return;
-  }
-
-  try {
-    const res = await fetch(`/dashboard/summary/filter?startDate=${start}&endDate=${end}`, { headers: { 'Authorization': authHeader } });
-    if (!res.ok) {
-      const err = await res.json();
-      showPageError(err.message || 'Unable to load statistics');
-      return;
-    }
-    showPageError(null);
-    const data = await res.json();
-    renderSummary(data);
-  } catch (e) {
-    showPageError('Service temporarily unavailable');
-  }
+/* ===== ACCESS / LOGIN PROMPT ===== */
+.access-section {
+background: var(--brand-soft);
+border: 1px solid var(--line);
+border-radius: 14px;
+padding: 40px 32px;
+max-width: 680px;
+margin: 0 auto 36px;
+text-align: center;
+box-shadow: 0 4px 18px rgba(0,0,0,0.05);
+}
+.access-section .emblem {
+display: inline-flex;
+align-items: center;
+justify-content: center;
+width: 52px;
+height: 52px;
+background: var(--panel);
+border-radius: 14px;
+margin-bottom: 14px;
+font-size: 24px;
+}
+.access-section h2 {
+font-size: 22px;
+font-weight: 700;
+margin: 0 0 4px;
+color: var(--ink);
+}
+.access-section .subtitle {
+font-size: 13.5px;
+color: var(--ink-soft);
+margin: 0 0 18px;
+}
+.access-section p {
+font-size: 14.5px;
+line-height: 1.6;
+color: var(--ink);
+max-width: 520px;
+margin: 0 auto 22px;
+}
+.access-section .cta-btn {
+display: inline-block;
+background: var(--brand);
+color: #fff;
+font-weight: 700;
+font-size: 14.5px;
+padding: 12px 28px;
+border-radius: 8px;
+text-decoration: none;
+transition: background 0.15s;
+}
+.access-section .cta-btn:hover {
+background: var(--brand-dark);
 }
 
-function clearFilter() {
-  document.getElementById('startDate').value = '';
-  document.getElementById('endDate').value = '';
-  document.getElementById('startDate').classList.remove('invalid');
-  document.getElementById('endDate').classList.remove('invalid');
-  showPageError(null);
-  loadDashboard();
+.map-wrap {
+border: 1px solid var(--line);
+border-radius: 12px;
+overflow: hidden;
+margin-bottom: 10px;
+}
+.map-wrap iframe {
+width: 100%;
+height: 260px;
+border: 0;
+display: block;
 }
 
-// ---------- Tabs ----------
-function switchTab(tab) {
-  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-  document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
-  document.getElementById('tab-btn-' + tab).classList.add('active');
-  document.getElementById('tab-' + tab).classList.add('active');
-
-  if (tab === 'reports') loadReportTypes();
-  if (tab === 'users') loadUsers();
+footer {
+margin-top: 36px;
+background: var(--footer-bg);
+padding: 24px 24px 20px;
+text-align: center;
+font-size: 12.5px;
+color: var(--footer-text);
 }
-
-// ---------- Reports (4.5.2) ----------
-async function loadReportTypes() {
-  const select = document.getElementById('reportType');
-  if (select.options.length > 0) return; // already loaded
-  try {
-    const res = await fetch('/admin/reports/types', { headers: { 'Authorization': authHeader } });
-    const types = await res.json();
-    select.innerHTML = types.map(t => `<option value="${t}">${t}</option>`).join('');
-  } catch (e) {
-    select.innerHTML = '<option>Unable to load report types</option>';
-  }
+footer .line { margin-bottom: 4px; }
+footer .line strong { color: #fff; }
+footer .back-to-top {
+display: inline-block;
+margin-top: 14px;
+color: var(--footer-text);
+font-size: 12px;
+text-decoration: none;
+border-top: 1px solid rgba(255,255,255,0.15);
+padding-top: 14px;
 }
+footer .back-to-top:hover { color: #fff; text-decoration: underline; }
+</style>
+</head>
+<body>
 
-function showReportError(message) {
-  const box = document.getElementById('reportError');
-  box.innerText = message;
-  box.style.display = message ? 'block' : 'none';
-}
+<header id="top">
+<a class="logo-link" href="https://www.usp.ac.fj" target="_blank" rel="noopener">
+<span class="logo-chip"><img class="logo" src="/images/usp-logo.png" alt="USP logo" /></span>
+<span class="site-name">USP Health & Wellness Center</span>
+</a>
+</header>
 
-async function generateReport() {
-  const type = document.getElementById('reportType').value;
-  const start = document.getElementById('reportStartDate').value;
-  const end = document.getElementById('reportEndDate').value;
-  const resultsBox = document.getElementById('reportResults');
-  const metaBox = document.getElementById('reportMeta');
+<div class="hero">
+<img class="banner" src="/images/healthcenter.jpg" alt="USP Health Center" />
+<div class="overlay">
+<h1>Book your visit online</h1>
+<p>Check availability, book, or manage your visit — all in one place.</p>
+</div>
+</div>
 
-  if (!start || !end) {
-    showReportError('Please provide both a start and end date for the report');
-    metaBox.innerText = '';
-    resultsBox.innerHTML = '';
-    return;
-  }
-  if (start > end) {
-    showReportError('Invalid date range: start date must be on or before the end date');
-    metaBox.innerText = '';
-    resultsBox.innerHTML = '';
-    return;
-  }
+<div class="eligibility-bar">
+  Open to registered USP students in Laucala Only
+</div>
 
-  try {
-    const res = await fetch(`/admin/reports?type=${encodeURIComponent(type)}&startDate=${start}&endDate=${end}`,
-      { headers: { 'Authorization': authHeader } });
+<main>
 
-    if (!res.ok) {
-      const err = await res.json();
-      showReportError(err.message || 'Unable to generate report');
-      metaBox.innerText = '';
-      resultsBox.innerHTML = '';
-      return;
-    }
+<p class="section-title">Our Services</p>
+<p class="section-sub">What the Health & Wellness Center provides on Laucala Campus</p>
+<div class="services">
+<a class="service-card" href="/services.html#consultations">
+<div class="icon-md">
+<svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+<path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0016.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 002 8.5c0 2.29 1.51 4.04 3 5.5l7 7z"/>
+</svg>
+</div>
+<div class="title">Medical Consultations</div>
+<div class="desc">Illness and injury consultations with University Medical Officers</div>
+</a>
+<a class="service-card" href="/services.html#preventative-care">
+<div class="icon-md">
+<svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+<path d="M9 12l2 2 4-4"/><circle cx="12" cy="12" r="10"/>
+</svg>
+</div>
+<div class="title">Preventative Care</div>
+<div class="desc">Wound dressing and basic health screenings</div>
+</a>
+<a class="service-card" href="/services.html#emergency">
+<div class="icon-md">
+<svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+<path d="M13 2L3 14h7l-1 8 11-14h-7l1-6z"/>
+</svg>
+</div>
+<div class="title">Emergency Assistance</div>
+<div class="desc">First response and immediate treatment for injuries</div>
+</a>
+<a class="service-card" href="/services.html#referrals">
+<div class="icon-md">
+<svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+<path d="M9 18l6-6-6-6"/>
+</svg>
+</div>
+<div class="title">Specialist Referrals</div>
+<div class="desc">Referrals to the National Hospital for further care</div>
+</a>
+<a class="service-card" href="/services.html#visa-medical-report">
+<div class="icon-md">
+<svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+<path d="M9 12h6M9 16h6M9 8h2M7 3h10a2 2 0 012 2v14a2 2 0 01-2 2H7a2 2 0 01-2-2V5a2 2 0 012-2z"/>
+</svg>
+</div>
+<div class="title">Medical Report for Student Visa</div>
+<div class="desc">Health examination reports for student visa applications</div>
+</a>
+</div>
 
-    showReportError(null);
-    const report = await res.json();
-    metaBox.innerText = `${report.reportType} · ${report.dateRangeStart} to ${report.dateRangeEnd} · Generated ${new Date(report.generatedAt).toLocaleString()}`;
-    renderBars('reportResults', report.data, report.totalAppointments);
-  } catch (e) {
-    showReportError('Service temporarily unavailable');
-  }
-}
+<!-- ===== ACCESS SECTION ===== -->
+<div class="access-section">
+<div class="emblem">🏥</div>
+<h2>USP Health Center</h2>
 
-// ---------- User Management (4.5.3) ----------
-function showUserMgmtError(message) {
-  const box = document.getElementById('userMgmtError');
-  box.innerText = message;
-  box.style.display = message ? 'block' : 'none';
-}
 
-async function loadUsers() {
-  try {
-    const res = await fetch('/admin/users', { headers: { 'Authorization': authHeader } });
-    if (!res.ok) {
-      const err = await res.json();
-      showUserMgmtError(err.message || 'Unable to load user accounts');
-      return;
-    }
-    showUserMgmtError(null);
-    const users = await res.json();
-    const body = document.getElementById('userTableBody');
-    body.innerHTML = users.map(u => `
-      <tr>
-        <td>${u.username}</td>
-        <td>${u.role}</td>
-        <td><span class="status-badge ${u.active ? 'active' : 'inactive'}">${u.active ? 'Active' : 'Inactive'}</span></td>
-        <td>
-          <button class="toggle-btn ${u.active ? 'deactivate' : ''}" onclick="toggleUser(${u.id}, false)">
-            ${u.active ? 'Deactivate' : 'Activate'}
-          </button>
-        </td>
-      </tr>
-    `).join('');
-  } catch (e) {
-    showUserMgmtError('Service temporarily unavailable');
-  }
-}
+<p>
+  USP Health Services provide student-focused primary healthcare at the Laucala Campus clinic. 
+  Registered students, spouses and children under 18 can book appointments, view their queue status, 
+  and access medical records online through the Health Portal.
+</p>
 
-async function toggleUser(id, confirmed) {
-  try {
-    const res = await fetch(`/admin/users/${id}/toggle`, {
-      method: 'POST',
-      headers: { 'Authorization': authHeader, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ confirm: confirmed })
-    });
+<a class="cta-btn" href="/login.html">Log in to Health Portal →</a>
+</div>
 
-    if (!res.ok) {
-      const err = await res.json();
-      showUserMgmtError(err.message || 'Unable to update account');
-      return;
-    }
+<p class="section-title">Find Us</p>
+<p class="section-sub">Laucala Campus, Suva</p>
+<div class="map-wrap">
+<iframe
+src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d947.8256446631589!2d178.44378066812286!3d-18.14997014420256!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x6e1bddcdbdbb5761%3A0xb5677e95ee8c0da7!2sUSP%20Health%20%26%20Wellness%20Center!5e0!3m2!1sen!2sfj!4v1779332384433!5m2!1sen!2sfj"
+loading="lazy"
+referrerpolicy="no-referrer-when-downgrade">
+</iframe>
+</div>
+</main>
 
-    const result = await res.json();
-    if (result.requiresConfirmation) {
-      if (window.confirm(result.message)) {
-        toggleUser(id, true);
-      }
-      return;
-    }
-
-    showUserMgmtError(null);
-    loadUsers();
-  } catch (e) {
-    showUserMgmtError('Service temporarily unavailable');
-  }
-}
-
-function renderSummary(data) {
-  document.getElementById('statTotal').innerText = data.totalAppointments;
-  document.getElementById('statNoShow').innerText = data.noShowCount;
-  document.getElementById('statRate').innerText = data.noShowRate.toFixed(1) + '%';
-
-  renderBars('byReason', data.byVisitReason, data.totalAppointments);
-  renderBars('byDoctor', data.byDoctor, data.totalAppointments);
-}
-
-function renderBars(containerId, obj, total) {
-  const container = document.getElementById(containerId);
-  container.innerHTML = '';
-  if (!obj || Object.keys(obj).length === 0) {
-    container.innerHTML = '<p style="color:#9ca3af;font-size:13px;">No data available for the selected period.</p>';
-    return;
-  }
-  const max = Math.max(...Object.values(obj));
-  for (const [key, count] of Object.entries(obj)) {
-    const pct = max === 0 ? 0 : (count / max * 100);
-    const row = document.createElement('div');
-    row.className = 'bar-row';
-    row.innerHTML = `
-      <div class="bar-label">${key}</div>
-      <div class="bar-track"><div class="bar-fill" style="width:${pct}%"></div></div>
-      <div class="bar-count">${count}</div>
-    `;
-    container.appendChild(row);
-  }
-}
+<footer>
+<div class="line"><strong>USP Health & Wellness Center</strong> — Laucala Campus</div>
+<div class="line">Semester hours: Mon–Fri, 7:30 AM – 6:30 PM (closed 1–2 PM)</div>
+<div class="line">Phone: 3231618</div>
+<a class="back-to-top" href="#top">↑ Back to Top</a>
+</footer>
 
 
 </script>

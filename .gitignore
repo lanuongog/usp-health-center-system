@@ -62,3 +62,4 @@ application.properties
 
 # Tomcat temp folder created locally
 tomcat-temp/
+usp-health-center-fresh-check/

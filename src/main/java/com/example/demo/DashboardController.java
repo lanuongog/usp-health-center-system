@@ -1,6 +1,5 @@
 package com.example.demo;
 
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.format.annotation.DateTimeFormat;
 import java.time.LocalDate;
@@ -9,8 +8,11 @@ import java.util.*;
 @RestController
 public class DashboardController {
 
-    @Autowired
-    private AppointmentRepository appointmentRepository;
+    private final AppointmentRepository appointmentRepository;
+
+    public DashboardController(AppointmentRepository appointmentRepository) {
+        this.appointmentRepository = appointmentRepository;
+    }
 
     // NOTE: A raw "list all appointments" endpoint was intentionally removed from here.
     // REQ 63 requires Admin to see aggregate statistics only, never individual patient
@@ -42,18 +44,22 @@ public class DashboardController {
     }
 
     private DashboardSummary buildSummary(List<Appointment> appointments) {
-        long total = appointments.size();
-        long noShows = appointments.stream().filter(a -> "NO_SHOW".equals(a.getStatus())).count();
+        List<Appointment> active = appointments.stream()
+                .filter(a -> !"CANCELLED".equalsIgnoreCase(a.getStatus()))
+                .toList();
+
+        long total = active.size();
+        long noShows = active.stream().filter(a -> "NO_SHOW".equals(a.getStatus())).count();
         double noShowRate = total == 0 ? 0 : (double) noShows / total * 100;
 
         Map<String, Long> byReason = new LinkedHashMap<>();
-        for (Appointment a : appointments) {
-            byReason.merge(a.getVisitReason(), 1L, Long::sum);
+        for (Appointment a : active) {
+            byReason.merge(a.getVisitReason(), 1L, (oldVal, one) -> oldVal + one);
         }
 
         Map<String, Long> byDoctor = new LinkedHashMap<>();
-        for (Appointment a : appointments) {
-            byDoctor.merge(a.getDoctorName(), 1L, Long::sum);
+        for (Appointment a : active) {
+            byDoctor.merge(a.getDoctorName(), 1L, (oldVal, one) -> oldVal + one);
         }
 
         return new DashboardSummary(total, noShows, noShowRate, byReason, byDoctor);

@@ -8,6 +8,9 @@ import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.access.AccessDeniedHandler;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 
 @Configuration
 public class SecurityConfig {
@@ -37,6 +40,22 @@ public class SecurityConfig {
         };
     }
 
+    // FR-05-72 / 4.5.3.4: when an already-authenticated user with the wrong role
+    // hits a protected endpoint directly (not via the login form), return the
+    // SRS's specific message instead of Spring Security's generic 403 body.
+    @Bean
+    public AccessDeniedHandler accessDeniedHandler() {
+        return (HttpServletRequest request, HttpServletResponse response, org.springframework.security.access.AccessDeniedException ex) -> {
+            response.setStatus(HttpServletResponse.SC_FORBIDDEN);
+            response.setContentType("application/json");
+            String path = request.getRequestURI();
+            String message = path.startsWith("/admin")
+                    ? "You do not have permission to manage user accounts"
+                    : "You do not have permission to view this page";
+            response.getWriter().write("{\"message\": \"" + message + "\"}");
+        };
+    }
+
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http
@@ -45,13 +64,14 @@ public class SecurityConfig {
                 .requestMatchers("/admin/**").hasRole("ADMIN")
                 .requestMatchers("/nurse/**").hasRole("NURSE")
                 .requestMatchers("/doctor/**").hasRole("DOCTOR")
-                .requestMatchers("/student/register").permitAll()
+                .requestMatchers("/student/register", "/student/fee-schedule").permitAll()
                 .requestMatchers("/student/**").hasRole("STUDENT")
                 .requestMatchers("/schedule/available").permitAll()
                 .requestMatchers("/schedule/manage/**").hasAnyRole("DOCTOR", "ADMIN")
                 .anyRequest().permitAll()
             )
             .httpBasic(basic -> {})
+            .exceptionHandling(ex -> ex.accessDeniedHandler(accessDeniedHandler()))
             .csrf(csrf -> csrf.disable());
         return http.build();
     }

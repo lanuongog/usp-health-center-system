@@ -8,531 +8,573 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <style>
-  :root {
-    --primary: #124e66;
-    --primary-dark: #0d384a;
-    --primary-light: #2e7999;
-    --accent: #2e8b57;
-    --bg-gradient: linear-gradient(135deg, #0f2b38 0%, #173e50 50%, #1f4e5f 100%);
-    --card-bg: #ffffff;
-    --card-border: #e2e8f0;
-    --text-main: #1e293b;
-    --text-muted: #64748b;
-    --text-sub: #475569;
-    --danger: #dc2626;
-    --danger-bg: #fef2f2;
-    --success: #16a34a;
-    --success-bg: #f0fdf4;
-    --radius: 12px;
-    --shadow: 0 12px 28px rgba(0, 0, 0, 0.2);
-  }
+:root {
+--bg: #F4F8F8;
+--panel: #FFFFFF;
+--ink: #14213D;
+--ink-soft: #5C7070;
+--line: #D8E6E6;
+--brand: #0D7377;
+--brand-dark: #095558;
+--brand-soft: #E3F1F1;
+--footer-bg: #0F2B2E;
+--footer-text: #C7DBDB;
+--card-bg: #ffffff;
+--card-border: #e2e8f0;
+--text-main: #1e293b;
+--text-muted: #64748b;
+--text-sub: #475569;
+--danger: #dc2626;
+--danger-bg: #fef2f2;
+--success: #16a34a;
+--success-bg: #f0fdf4;
+--radius: 12px;
+--shadow: 0 12px 28px rgba(0, 0, 0, 0.2);
+}
 
-  * { box-sizing: border-box; margin: 0; padding: 0; }
+* { box-sizing: border-box; margin: 0; padding: 0; }
 
-  body {
-    font-family: 'Geist', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-    background: var(--bg-gradient);
-    min-height: 100vh;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    padding: 24px 16px;
-    color: var(--text-main);
-  }
+body {
+font-family: 'Geist', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+background: linear-gradient(135deg, var(--footer-bg) 0%, var(--brand-dark) 50%, var(--brand) 100%);
+min-height: 100vh;
+display: flex;
+flex-direction: column;
+align-items: center;
+justify-content: center;
+padding: 24px 16px;
+color: var(--text-main);
+}
 
-  .header-brand {
-    text-align: center;
-    color: #ffffff;
-    margin-bottom: 24px;
-  }
+.header-brand {
+text-align: center;
+color: #ffffff;
+margin-bottom: 24px;
+}
 
-  .header-brand .emblem {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    width: 52px;
-    height: 52px;
-    background: rgba(255, 255, 255, 0.15);
-    backdrop-filter: blur(8px);
-    border: 1px solid rgba(255, 255, 255, 0.3);
-    border-radius: 14px;
-    margin-bottom: 12px;
-    font-size: 24px;
-  }
+.header-brand .emblem {
+display: inline-flex;
+align-items: center;
+justify-content: center;
+width: 52px;
+height: 52px;
+background: rgba(255, 255, 255, 0.15);
+backdrop-filter: blur(8px);
+border: 1px solid rgba(255, 255, 255, 0.3);
+border-radius: 14px;
+margin-bottom: 12px;
+font-size: 24px;
+}
 
-  .header-brand h1 {
-    font-size: 24px;
-    font-weight: 700;
-    letter-spacing: -0.5px;
-    color: #ffffff;
-  }
+.header-brand h1 {
+font-size: 24px;
+font-weight: 700;
+letter-spacing: -0.5px;
+color: #ffffff;
+}
 
-  .header-brand p {
-    font-size: 14px;
-    color: #cbd5e1;
-    margin-top: 4px;
-  }
+.header-brand p {
+font-size: 14px;
+color: #cbd5e1;
+margin-top: 4px;
+}
 
-  .login-card {
-    background: var(--card-bg);
-    width: 100%;
-    max-width: 440px;
-    border-radius: var(--radius);
-    box-shadow: var(--shadow);
-    border: 1px solid rgba(255, 255, 255, 0.6);
-    overflow: hidden;
-    transition: all 0.3s ease;
-  }
+.login-card {
+background: var(--card-bg);
+width: 100%;
+max-width: 440px;
+border-radius: var(--radius);
+box-shadow: var(--shadow);
+border: 1px solid rgba(255, 255, 255, 0.6);
+overflow: hidden;
+}
 
-  .card-tabs {
-    display: flex;
-    background: #f1f5f9;
-    padding: 6px;
-    border-radius: 10px;
-    margin: 24px 28px 16px;
-    gap: 4px;
-  }
+.card-tabs {
+display: flex;
+background: #f1f5f9;
+padding: 6px;
+border-radius: 10px;
+margin: 24px 28px 16px;
+gap: 4px;
+}
 
-  .tab-btn {
-    flex: 1;
-    padding: 10px;
-    border: none;
-    background: transparent;
-    border-radius: 7px;
-    font-size: 14px;
-    font-weight: 600;
-    color: var(--text-muted);
-    cursor: pointer;
-    transition: all 0.2s ease;
-    font-family: inherit;
-  }
+.tab-btn {
+flex: 1;
+padding: 10px;
+border: none;
+background: transparent;
+border-radius: 7px;
+font-size: 14px;
+font-weight: 600;
+color: var(--text-muted);
+cursor: pointer;
+transition: all 0.2s ease;
+font-family: inherit;
+}
 
-  .tab-btn.active {
-    background: #ffffff;
-    color: var(--primary);
-    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
-  }
+.tab-btn.active {
+background: #ffffff;
+color: var(--brand);
+box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+}
 
-  .form-container {
-    padding: 12px 28px 28px;
-  }
+.form-container {
+padding: 12px 28px 28px;
+}
 
-  .field-group {
-    margin-bottom: 16px;
-  }
+.field-group {
+margin-bottom: 16px;
+}
 
-  .field-group label {
-    display: block;
-    font-size: 13px;
-    font-weight: 600;
-    color: var(--text-sub);
-    margin-bottom: 6px;
-  }
+.field-group label {
+display: block;
+font-size: 13px;
+font-weight: 600;
+color: var(--text-sub);
+margin-bottom: 6px;
+}
 
-  .input-wrapper {
-    position: relative;
-    display: flex;
-    align-items: center;
-  }
+.input-wrapper {
+position: relative;
+display: flex;
+align-items: center;
+}
 
-  .input-wrapper input {
-    width: 100%;
-    padding: 12px 14px;
-    border: 1.5px solid var(--card-border);
-    border-radius: 9px;
-    font-size: 14px;
-    font-family: inherit;
-    color: var(--text-main);
-    background: #ffffff;
-    transition: border-color 0.2s, box-shadow 0.2s;
-  }
+.input-wrapper input {
+width: 100%;
+padding: 12px 14px;
+border: 1.5px solid var(--card-border);
+border-radius: 9px;
+font-size: 14px;
+font-family: inherit;
+color: var(--text-main);
+background: #ffffff;
+transition: border-color 0.2s, box-shadow 0.2s;
+}
 
-  .input-wrapper input:focus {
-    outline: none;
-    border-color: var(--primary);
-    box-shadow: 0 0 0 3px rgba(18, 78, 102, 0.15);
-  }
+.input-wrapper input:focus {
+outline: none;
+border-color: var(--brand);
+box-shadow: 0 0 0 3px rgba(13, 115, 119, 0.15);
+}
 
-  .btn-submit {
-    width: 100%;
-    background: var(--primary);
-    color: #ffffff;
-    border: none;
-    padding: 13px 18px;
-    border-radius: 9px;
-    font-size: 15px;
-    font-weight: 600;
-    cursor: pointer;
-    transition: all 0.2s ease;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 8px;
-    font-family: inherit;
-    margin-top: 8px;
-  }
+.input-wrapper select {
+width: 100%;
+padding: 12px 14px;
+border: 1.5px solid var(--card-border);
+border-radius: 9px;
+font-size: 14px;
+font-family: inherit;
+color: var(--text-main);
+background: #ffffff;
+transition: border-color 0.2s, box-shadow 0.2s;
+}
 
-  .btn-submit:hover {
-    background: var(--primary-dark);
-    transform: translateY(-1px);
-    box-shadow: 0 4px 12px rgba(18, 78, 102, 0.3);
-  }
+.input-wrapper select:focus {
+outline: none;
+border-color: var(--brand);
+box-shadow: 0 0 0 3px rgba(13, 115, 119, 0.15);
+}
 
-  .btn-submit:active {
-    transform: translateY(0);
-  }
+.fee-preview {
+background: var(--brand-soft);
+border: 1px solid var(--brand);
+border-radius: 9px;
+padding: 10px 14px;
+font-size: 13px;
+color: var(--brand-dark);
+margin-bottom: 16px;
+display: none;
+}
+.fee-preview.show { display: block; }
+.fee-preview strong { font-size: 15px; }
 
-  .alert-box {
-    padding: 11px 14px;
-    border-radius: 8px;
-    font-size: 13px;
-    margin-bottom: 16px;
-    display: none;
-    line-height: 1.4;
-  }
+.checkbox-row {
+display: flex;
+align-items: flex-start;
+gap: 9px;
+font-size: 13px;
+color: var(--text-sub);
+line-height: 1.4;
+margin-bottom: 16px;
+}
+.checkbox-row input[type="checkbox"] {
+margin-top: 2px;
+width: 16px;
+height: 16px;
+flex-shrink: 0;
+accent-color: var(--brand);
+}
 
-  .alert-box.error {
-    background: var(--danger-bg);
-    color: var(--danger);
-    border: 1px solid #fecaca;
-    display: block;
-  }
+.btn-submit {
+width: 100%;
+background: var(--brand);
+color: #ffffff;
+border: none;
+padding: 13px 18px;
+border-radius: 9px;
+font-size: 15px;
+font-weight: 600;
+cursor: pointer;
+transition: all 0.2s ease;
+display: flex;
+align-items: center;
+justify-content: center;
+gap: 8px;
+font-family: inherit;
+margin-top: 8px;
+}
 
-  .alert-box.success {
-    background: var(--success-bg);
-    color: var(--success);
-    border: 1px solid #bbf7d0;
-    display: block;
-  }
+.btn-submit:hover {
+background: var(--brand-dark);
+transform: translateY(-1px);
+box-shadow: 0 4px 12px rgba(18, 78, 102, 0.3);
+}
 
-  .demo-accounts {
-    margin-top: 22px;
-    padding-top: 18px;
-    border-top: 1px solid #e2e8f0;
-  }
+.btn-submit:active {
+transform: translateY(0);
+}
 
-  .demo-accounts p {
-    font-size: 12px;
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-    color: var(--text-muted);
-    margin-bottom: 10px;
-    text-align: center;
-  }
+.alert-box {
+padding: 11px 14px;
+border-radius: 8px;
+font-size: 13px;
+margin-bottom: 16px;
+display: none;
+line-height: 1.4;
+}
 
-  .pills-grid {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 8px;
-  }
+.alert-box.error {
+background: var(--danger-bg);
+color: var(--danger);
+border: 1px solid #fecaca;
+display: block;
+}
 
-  .demo-pill {
-    background: #f8fafc;
-    border: 1px solid #e2e8f0;
-    padding: 8px 10px;
-    border-radius: 8px;
-    cursor: pointer;
-    font-size: 12px;
-    text-align: left;
-    transition: all 0.15s ease;
-    display: flex;
-    flex-direction: column;
-  }
+.alert-box.success {
+background: var(--success-bg);
+color: var(--success);
+border: 1px solid #bbf7d0;
+display: block;
+}
 
-  .demo-pill:hover {
-    background: #eff6ff;
-    border-color: #93c5fd;
-    transform: translateY(-1px);
-  }
+.back-home {
+margin-top: 22px;
+text-align: center;
+}
 
-  .demo-pill .role-tag {
-    font-weight: 700;
-    color: var(--primary);
-    font-size: 11.5px;
-  }
+.back-home a {
+color: #cbd5e1;
+font-size: 13.5px;
+text-decoration: none;
+padding: 8px 16px;
+border: 1px solid rgba(255,255,255,0.25);
+border-radius: 8px;
+transition: all 0.15s;
+}
 
-  .demo-pill .user-detail {
-    color: var(--text-muted);
-    font-size: 11px;
-    margin-top: 2px;
-  }
+.back-home a:hover {
+color: #ffffff;
+border-color: rgba(255,255,255,0.5);
+background: rgba(255,255,255,0.08);
+}
 
-  .quick-links {
-    margin-top: 24px;
-    display: flex;
-    justify-content: center;
-    gap: 16px;
-    flex-wrap: wrap;
-  }
-
-  .quick-links a {
-    color: #cbd5e1;
-    font-size: 12.5px;
-    text-decoration: none;
-    transition: color 0.15s;
-  }
-
-  .quick-links a:hover {
-    color: #ffffff;
-    text-decoration: underline;
-  }
-
-  .footer-note {
-    margin-top: 20px;
-    color: #94a3b8;
-    font-size: 12px;
-    text-align: center;
-  }
-
-  .role-indicator {
-    display: inline-block;
-    padding: 3px 8px;
-    border-radius: 12px;
-    font-size: 11px;
-    font-weight: 600;
-    margin-left: 6px;
-  }
+.footer-note {
+margin-top: 20px;
+color: #94a3b8;
+font-size: 12px;
+text-align: center;
+}
 </style>
 </head>
 <body>
 
 <div class="header-brand">
-  <div class="emblem">🏥</div>
-  <h1>USP Health Center</h1>
-  <p>Hospital &amp; Clinical Management Information System</p>
+<div class="emblem">🏥</div>
+<h1>USP Health Center</h1>
+<p>Hospital &amp; Clinical Management Information System</p>
 </div>
 
 <div class="login-card">
-  <div class="card-tabs">
-    <button class="tab-btn active" id="tab-login" onclick="setTab('login')">Sign In</button>
-    <button class="tab-btn" id="tab-register" onclick="setTab('register')">Student Register</button>
-  </div>
+<div class="card-tabs">
+<button class="tab-btn active" id="tab-login" onclick="setTab('login')">Sign In</button>
+<button class="tab-btn" id="tab-register" onclick="setTab('register')">Student Register</button>
+</div>
 
-  <div class="form-container">
-    <div id="alertBox" class="alert-box"></div>
+<div class="form-container">
+<div id="alertBox" class="alert-box"></div>
 
-    <!-- SIGN IN FORM -->
-    <form id="loginForm" onsubmit="handleLogin(event)">
-      <div class="field-group">
-        <label for="loginUsername">Student ID or Staff Username</label>
-        <div class="input-wrapper">
-          <input type="text" id="loginUsername" placeholder="e.g. student1, doctor, nurse, admin" required autofocus autocomplete="username" />
-        </div>
-      </div>
+<!-- SIGN IN FORM -->
+<form id="loginForm" onsubmit="handleLogin(event)">
+<div class="field-group">
+<label for="loginUsername">Student ID or Staff Username</label>
+<div class="input-wrapper">
+<input type="text" id="loginUsername" required autofocus autocomplete="username" />
+</div>
+</div>
 
-      <div class="field-group">
-        <label for="loginPassword">Password</label>
-        <div class="input-wrapper">
-          <input type="password" id="loginPassword" placeholder="••••••••" required autocomplete="current-password" />
-        </div>
-      </div>
+<div class="field-group">
+<label for="loginPassword">Password</label>
+<div class="input-wrapper">
+<input type="password" id="loginPassword" required autocomplete="current-password" />
+</div>
+</div>
 
-      <button type="submit" class="btn-submit" id="loginBtn">
-        <span>Sign In to Portal</span> &rarr;
-      </button>
+<button type="submit" class="btn-submit" id="loginBtn">
+<span>Sign In to Portal</span> →
+</button>
+</form>
 
-      <div class="demo-accounts">
-        <p>Quick Test Accounts (Click to Fill)</p>
-        <div class="pills-grid">
-          <button type="button" class="demo-pill" onclick="fillDemo('student1', 'student123')">
-            <span class="role-tag">🎓 Student</span>
-            <span class="user-detail">student1 / student123</span>
-          </button>
-          <button type="button" class="demo-pill" onclick="fillDemo('doctor', 'doctor123')">
-            <span class="role-tag">🩺 Doctor</span>
-            <span class="user-detail">doctor / doctor123</span>
-          </button>
-          <button type="button" class="demo-pill" onclick="fillDemo('nurse', 'nurse123')">
-            <span class="role-tag">💉 Nurse</span>
-            <span class="user-detail">nurse / nurse123</span>
-          </button>
-          <button type="button" class="demo-pill" onclick="fillDemo('admin', 'admin123')">
-            <span class="role-tag">📊 Admin</span>
-            <span class="user-detail">admin / admin123</span>
-          </button>
-        </div>
-      </div>
-    </form>
+<!-- STUDENT REGISTER FORM -->
+<form id="registerForm" style="display:none;" onsubmit="handleRegister(event)">
+<div class="field-group">
+<label for="regFullName">Full Name</label>
+<div class="input-wrapper">
+<input type="text" id="regFullName" required />
+</div>
+</div>
 
-    <!-- STUDENT REGISTER FORM -->
-    <form id="registerForm" style="display:none;" onsubmit="handleRegister(event)">
-      <div class="field-group">
-        <label for="regStudentId">Student ID Number</label>
-        <div class="input-wrapper">
-          <input type="text" id="regStudentId" placeholder="e.g. S11234567" required />
-        </div>
-      </div>
+<div class="field-group">
+<label for="regStudentId">Student ID Number</label>
+<div class="input-wrapper">
+<input type="text" id="regStudentId" placeholder="e.g. S11234567" required />
+</div>
+</div>
 
-      <div class="field-group">
-        <label for="regPassword">Create Password</label>
-        <div class="input-wrapper">
-          <input type="password" id="regPassword" placeholder="At least 6 characters" required />
-        </div>
-      </div>
+<div class="field-group">
+<label for="regPassword">Create Password</label>
+<div class="input-wrapper">
+<input type="password" id="regPassword" placeholder="At least 6 characters" required />
+</div>
+</div>
 
-      <button type="submit" class="btn-submit" id="regBtn" style="background:#2e8b57;">
-        <span>Create Student Account</span> &rarr;
-      </button>
-    </form>
-  </div>
+<div class="field-group">
+<label for="regMaritalStatus">Marital Status</label>
+<div class="input-wrapper">
+<select id="regMaritalStatus" required>
+<option value="" disabled selected>Select marital status</option>
+<option value="Single">Single</option>
+<option value="Married">Married</option>
+</select>
+</div>
+</div>
+
+<div class="field-group">
+<label for="regCountry">Country</label>
+<div class="input-wrapper">
+<select id="regCountry" required onchange="updateFeePreview()">
+<option value="" disabled selected>Select your country</option>
+</select>
+</div>
+</div>
+
+<div class="fee-preview" id="feePreview"></div>
+
+<div class="checkbox-row">
+<input type="checkbox" id="regFeePaid" required />
+<label for="regFeePaid">I have paid my USP Health Services Fee for this semester</label>
+</div>
+
+<button type="submit" class="btn-submit" id="regBtn" style="background:#2e8b57;">
+<span>Create Student Account</span> →
+</button>
+</form>
+</div>
 </div>
 
 
 
+<div class="back-home">
+<a href="/">← Back to Home</a>
+</div>
 
 <div class="footer-note">
-  &copy; 2026 USP Health Center System. Secure Multi-Role Portal.
+&copy; 2026 USP Health Center System. Secure Multi-Role Portal.
 </div>
 
 <script>
-  function setTab(tab) {
-    const isLogin = tab === 'login';
-    document.getElementById('tab-login').classList.toggle('active', isLogin);
-    document.getElementById('tab-register').classList.toggle('active', !isLogin);
-    document.getElementById('loginForm').style.display = isLogin ? 'block' : 'none';
-    document.getElementById('registerForm').style.display = isLogin ? 'none' : 'block';
-    clearAlert();
-    if (!isLogin) {
-      document.getElementById('regStudentId').focus();
-    } else {
-      document.getElementById('loginUsername').focus();
+let feeSchedule = null;
+
+fetch('/student/fee-schedule')
+  .then(res => res.json())
+  .then(data => {
+    feeSchedule = data;
+    const select = document.getElementById('regCountry');
+    for (const country of data.countries) {
+      const opt = document.createElement('option');
+      opt.value = country;
+      opt.textContent = country;
+      select.appendChild(opt);
     }
+  })
+  .catch(() => { feeSchedule = null; });
+
+function updateFeePreview() {
+  const country = document.getElementById('regCountry').value;
+  const preview = document.getElementById('feePreview');
+  if (!country || !feeSchedule) {
+    preview.classList.remove('show');
+    return;
+  }
+  const isLocal = country === feeSchedule.localCountry;
+  const amount = isLocal ? feeSchedule.localFee : feeSchedule.regionalFee;
+  preview.innerHTML = `USP Health Services Fee: <strong>FJ$${amount.toFixed(2)}</strong> (${isLocal ? 'Local' : 'Regional'} student rate)`;
+  preview.classList.add('show');
+}
+
+function setTab(tab) {
+  const isLogin = tab === 'login';
+  document.getElementById('tab-login').classList.toggle('active', isLogin);
+  document.getElementById('tab-register').classList.toggle('active', !isLogin);
+  document.getElementById('loginForm').style.display = isLogin ? 'block' : 'none';
+  document.getElementById('registerForm').style.display = isLogin ? 'none' : 'block';
+  clearAlert();
+  if (!isLogin) {
+    document.getElementById('regStudentId').focus();
+  } else {
+    document.getElementById('loginUsername').focus();
+  }
+}
+
+function showAlert(msg, isSuccess = false) {
+  const box = document.getElementById('alertBox');
+  box.textContent = msg;
+  box.className = 'alert-box ' + (isSuccess ? 'success' : 'error');
+  box.style.display = 'block';
+}
+
+function clearAlert() {
+  const box = document.getElementById('alertBox');
+  box.style.display = 'none';
+  box.textContent = '';
+}
+
+async function handleLogin(e) {
+  e.preventDefault();
+  clearAlert();
+
+  const username = document.getElementById('loginUsername').value.trim();
+  const password = document.getElementById('loginPassword').value;
+  const btn = document.getElementById('loginBtn');
+
+  if (!username || !password) {
+    showAlert('Please enter both username and password.');
+    return;
   }
 
-  function showAlert(msg, isSuccess = false) {
-    const box = document.getElementById('alertBox');
-    box.textContent = msg;
-    box.className = 'alert-box ' + (isSuccess ? 'success' : 'error');
-    box.style.display = 'block';
+  btn.disabled = true;
+  btn.innerHTML = '<span>Verifying credentials...</span>';
+
+  try {
+    const res = await fetch('/api/check-login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username, password })
+    });
+
+    const data = await res.json();
+
+    if (!data.ok) {
+      showAlert(data.message || 'Invalid username or password.');
+      btn.disabled = false;
+      btn.innerHTML = '<span>Sign In to Portal</span> →';
+      return;
+    }
+
+    const authHeader = 'Basic ' + btoa(username + ':' + password);
+    sessionStorage.setItem('authHeader', authHeader);
+    sessionStorage.setItem('currentUser', data.username || username);
+    sessionStorage.setItem('userRole', data.role);
+
+    showAlert(`Welcome back, ${data.username}! Redirecting to ${data.role} portal...`, true);
+
+    setTimeout(() => {
+      switch (data.role) {
+        case 'STUDENT':
+          window.location.href = '/student.html';
+          break;
+        case 'DOCTOR':
+          window.location.href = '/doctor.html';
+          break;
+        case 'NURSE':
+          window.location.href = '/checkin.html';
+          break;
+        case 'ADMIN':
+          window.location.href = '/admin.html';   
+          break;
+        default:
+          window.location.href = '/student.html';
+      }
+    }, 500);
+
+  } catch (err) {
+    showAlert('Unable to reach the server. Please check your connection.');
+    btn.disabled = false;
+    btn.innerHTML = '<span>Sign In to Portal</span> →';
+  }
+}
+
+async function handleRegister(e) {
+  e.preventDefault();
+  clearAlert();
+
+  const fullName = document.getElementById('regFullName').value.trim();
+  const studentId = document.getElementById('regStudentId').value.trim();
+  const password = document.getElementById('regPassword').value;
+  const maritalStatus = document.getElementById('regMaritalStatus').value;
+  const country = document.getElementById('regCountry').value;
+  const feePaid = document.getElementById('regFeePaid').checked;
+  const btn = document.getElementById('regBtn');
+
+  if (!fullName || !studentId || !password) {
+    showAlert('Please provide your full name, Student ID, and password.');
+    return;
+  }
+  if (!maritalStatus) {
+    showAlert('Please select your marital status.');
+    return;
+  }
+  if (!country) {
+    showAlert('Please select your country.');
+    return;
+  }
+  if (!feePaid) {
+    showAlert('You must confirm that you have paid your USP Health Services Fee before registering.');
+    return;
   }
 
-  function clearAlert() {
-    const box = document.getElementById('alertBox');
-    box.style.display = 'none';
-    box.textContent = '';
-  }
+  btn.disabled = true;
+  btn.innerHTML = '<span>Creating Account...</span>';
 
-  function fillDemo(username, password) {
+  try {
+    const res = await fetch('/student/register', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ studentId, password, fullName, maritalStatus, country, feePaid })
+    });
+
+    const data = await res.json();
+
+    if (data.error) {
+      showAlert(data.error);
+      btn.disabled = false;
+      btn.innerHTML = '<span>Create Student Account</span> →';
+      return;
+    }
+
+    showAlert('Registration successful! You can now log in.', true);
     setTab('login');
-    document.getElementById('loginUsername').value = username;
+    document.getElementById('loginUsername').value = studentId;
     document.getElementById('loginPassword').value = password;
-    clearAlert();
+    btn.disabled = false;
+    btn.innerHTML = '<span>Create Student Account</span> →';
+
+  } catch (err) {
+    showAlert('Unable to register at this time. Please try again.');
+    btn.disabled = false;
+    btn.innerHTML = '<span>Create Student Account</span> →';
   }
-
-  async function handleLogin(e) {
-    e.preventDefault();
-    clearAlert();
-
-    const username = document.getElementById('loginUsername').value.trim();
-    const password = document.getElementById('loginPassword').value;
-    const btn = document.getElementById('loginBtn');
-
-    if (!username || !password) {
-      showAlert('Please enter both username and password.');
-      return;
-    }
-
-    btn.disabled = true;
-    btn.innerHTML = '<span>Verifying credentials...</span>';
-
-    try {
-      const res = await fetch('/api/check-login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username, password })
-      });
-
-      const data = await res.json();
-
-      if (!data.ok) {
-        showAlert(data.message || 'Invalid username or password.');
-        btn.disabled = false;
-        btn.innerHTML = '<span>Sign In to Portal</span> &rarr;';
-        return;
-      }
-
-      // Save authentication session
-      const authHeader = 'Basic ' + btoa(username + ':' + password);
-      sessionStorage.setItem('authHeader', authHeader);
-      sessionStorage.setItem('currentUser', data.username || username);
-      sessionStorage.setItem('userRole', data.role);
-
-      showAlert(`Welcome back, ${data.username}! Redirecting to ${data.role} portal...`, true);
-
-      // Route according to user role
-      setTimeout(() => {
-        switch (data.role) {
-          case 'STUDENT':
-            window.location.href = '/student.html';
-            break;
-          case 'DOCTOR':
-            window.location.href = '/doctor.html';
-            break;
-          case 'NURSE':
-            window.location.href = '/checkin.html';
-            break;
-          case 'ADMIN':
-            window.location.href = '/index.html';
-            break;
-          default:
-            window.location.href = '/student.html';
-        }
-      }, 500);
-
-    } catch (err) {
-      showAlert('Unable to reach the server. Please check your connection.');
-      btn.disabled = false;
-      btn.innerHTML = '<span>Sign In to Portal</span> &rarr;';
-    }
-  }
-
-  async function handleRegister(e) {
-    e.preventDefault();
-    clearAlert();
-
-    const studentId = document.getElementById('regStudentId').value.trim();
-    const password = document.getElementById('regPassword').value;
-    const btn = document.getElementById('regBtn');
-
-    if (!studentId || !password) {
-      showAlert('Please provide both Student ID and password.');
-      return;
-    }
-
-    btn.disabled = true;
-    btn.innerHTML = '<span>Creating Account...</span>';
-
-    try {
-      const res = await fetch('/student/register', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ studentId, password })
-      });
-
-      const data = await res.json();
-
-      if (data.error) {
-        showAlert(data.error);
-        btn.disabled = false;
-        btn.innerHTML = '<span>Create Student Account</span> &rarr;';
-        return;
-      }
-
-      showAlert('Registration successful! You can now log in.', true);
-      setTab('login');
-      document.getElementById('loginUsername').value = studentId;
-      document.getElementById('loginPassword').value = password;
-      btn.disabled = false;
-      btn.innerHTML = '<span>Create Student Account</span> &rarr;';
-
-    } catch (err) {
-      showAlert('Unable to register at this time. Please try again.');
-      btn.disabled = false;
-      btn.innerHTML = '<span>Create Student Account</span> &rarr;';
-    }
-  }
+}
 </script>
 
 </body>
