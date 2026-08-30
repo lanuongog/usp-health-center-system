@@ -225,7 +225,7 @@ footer .back-to-top:hover { color: #fff; text-decoration: underline; }
 <body>
 
 <header id="top">
-<a class="logo-link" href="https://www.usp.ac.fj" target="_blank" rel="noopener">
+<a class="logo-link" href="/">
 <span class="logo-chip"><img class="logo" src="/images/usp-logo.png" alt="USP logo" /></span>
 <span class="site-name">USP Health & Wellness Center</span>
 </a>
@@ -307,7 +307,7 @@ footer .back-to-top:hover { color: #fff; text-decoration: underline; }
   and access medical records online through the Health Portal.
 </p>
 
-<a class="cta-btn" href="/login.html">Log in to Health Portal →</a>
+<a class="cta-btn" id="loginCta" href="/login.html">Log in to Health Portal →</a>
 </div>
 
 <p class="section-title">Find Us</p>
@@ -328,6 +328,24 @@ referrerpolicy="no-referrer-when-downgrade">
 <a class="back-to-top" href="#top">↑ Back to Top</a>
 </footer>
 
+<script>
+window.addEventListener('DOMContentLoaded', () => {
+  const storedAuth = localStorage.getItem('authHeader');
+  const storedRole = localStorage.getItem('userRole');
+  if (!storedAuth || !storedRole) return;
+
+  const portalPaths = {
+    STUDENT: '/student.html',
+    DOCTOR: '/doctor.html',
+    NURSE: '/checkin.html',
+    ADMIN: '/admin.html'
+  };
+
+  const cta = document.getElementById('loginCta');
+  cta.href = portalPaths[storedRole] || '/student.html';
+  cta.textContent = 'Go to your profile →';
+});
+</script>
 
 </body>
 </html>

@@ -126,6 +126,19 @@ background: #FFFFFF;
 color: var(--brand);
 box-shadow: 0 1px 3px rgba(0,0,0,0.1);
 }
+.queue-search-box {
+padding: 10px 18px;
+border-bottom: 1px solid var(--line);
+}
+.queue-search-box input {
+width: 100%;
+padding: 8px 10px;
+border: 1px solid var(--line);
+border-radius: 6px;
+font-size: 13px;
+font-family: inherit;
+box-sizing: border-box;
+}
 
 
 /* Queue rows — triage board styling */
@@ -289,6 +302,9 @@ min-height: 16px;
 <button id="tab-btn-booked" class="tab-filter-btn" onclick="switchDoctorTab('booked')">Scheduled Bookings</button>
 <button id="tab-btn-all" class="tab-filter-btn" onclick="switchDoctorTab('all')">All Records</button>
 </div>
+<div class="queue-search-box" id="queue-search-box" style="display:none;">
+<input type="text" id="queue-search-input" aria-label="Search by student name or ID" placeholder="Search by student name or ID..." oninput="onQueueSearch(this.value)" />
+</div>
 <div id="queue-list"></div>
 </div>
 
@@ -309,13 +325,16 @@ min-height: 16px;
 let authHeader = null;
 let currentUsername = null;
 let selectedAppointment = null;
+let currentQueue = [];
+let fullQueue = [];
+let queueSearchTerm = '';
 let currentDoctorTab = 'queue'; // 'queue', 'booked', 'all'
 
 
 window.addEventListener('DOMContentLoaded', () => {
-  const storedAuth = sessionStorage.getItem('authHeader');
-  const storedUser = sessionStorage.getItem('currentUser');
-  const storedRole = sessionStorage.getItem('userRole');
+  const storedAuth = localStorage.getItem('authHeader');
+  const storedUser = localStorage.getItem('currentUser');
+  const storedRole = localStorage.getItem('userRole');
 
   if (!storedAuth || !storedUser || storedRole !== 'DOCTOR') {
     window.location.href = '/login.html';
@@ -334,12 +353,23 @@ function switchDoctorTab(tab) {
   document.getElementById('tab-btn-queue').classList.toggle('active', tab === 'queue');
   document.getElementById('tab-btn-booked').classList.toggle('active', tab === 'booked');
   document.getElementById('tab-btn-all').classList.toggle('active', tab === 'all');
+
+  queueSearchTerm = '';
+  document.getElementById('queue-search-input').value = '';
+  document.getElementById('queue-search-box').style.display = tab === 'all' ? 'block' : 'none';
+
   refreshQueue();
 }
 
 
+function onQueueSearch(term) {
+  queueSearchTerm = term;
+  renderQueue(fullQueue);
+}
+
+
 function logout() {
-  sessionStorage.clear();
+  localStorage.clear();
   window.location.href = '/login.html';
 }
 
@@ -351,7 +381,10 @@ function refreshQueue() {
 
   fetch(endpoint, { headers: { 'Authorization': authHeader } })
     .then(res => res.json())
-    .then(renderQueue)
+    .then(data => {
+      fullQueue = data;
+      renderQueue(fullQueue);
+    })
     .catch(() => {
       document.getElementById('queue-list').innerHTML =
         '<div class="empty-state">Unable to load appointments.</div>';
@@ -359,7 +392,13 @@ function refreshQueue() {
 }
 
 
-function renderQueue(queue) {
+function renderQueue(rawQueue) {
+  const term = queueSearchTerm.trim().toLowerCase();
+  const queue = term
+    ? rawQueue.filter(appt => (appt.studentName || '').toLowerCase().includes(term))
+    : rawQueue;
+  currentQueue = queue;
+
   const listEl = document.getElementById('queue-list');
   const countEl = document.getElementById('queue-count');
   countEl.textContent = queue.length + (queue.length === 1 ? ' record' : ' records');
@@ -367,19 +406,19 @@ function renderQueue(queue) {
   if (queue.length === 0) {
     let msg = 'No patients in active triage queue.';
     if (currentDoctorTab === 'booked') msg = 'No un-checked-in booked appointments.';
-    else if (currentDoctorTab === 'all') msg = 'No appointment records found.';
+    else if (currentDoctorTab === 'all') msg = term ? 'No records match your search.' : 'No appointment records found.';
     listEl.innerHTML = `<div class="empty-state">${msg}</div>`;
     return;
   }
 
   listEl.innerHTML = queue.map(appt => `
       <div class="queue-row ${selectedAppointment && selectedAppointment.id === appt.id ? 'selected' : ''}"
-           onclick='selectPatient(${JSON.stringify(appt)})'>
+           onclick="selectPatientById(${appt.id})">
         <div class="flag ${appt.urgencyLevel}"></div>
         <div class="row-body">
           <div class="row-main">
             <div class="name">👤 ${escapeHtml(appt.studentName)}</div>
-            <div class="reason">${escapeHtml(appt.visitReason)} · ${escapeHtml(appt.doctorName)} · <em>${escapeHtml(appt.status)}</em></div>
+            <div class="reason">${escapeHtml(appt.visitReason)} · ${escapeHtml(appt.consultedByDoctor || 'Unassigned')} · <em>${escapeHtml(appt.status)}</em></div>
           </div>
           <span class="badge ${appt.urgencyLevel}">${appt.urgencyLevel}</span>
         </div>
@@ -388,14 +427,39 @@ function renderQueue(queue) {
 }
 
 
+function selectPatientById(id) {
+  const appt = currentQueue.find(a => a.id === id);
+  if (appt) selectPatient(appt);
+}
+
 function selectPatient(appt) {
   selectedAppointment = appt;
   refreshQueue();
 
   const body = document.getElementById('detail-body');
+  const consultationSection = appt.status === 'COMPLETED'
+    ? `
+      <div class="section-label">Consultation Record</div>
+      <div class="history-item">
+        <div class="h-top"><span>Diagnosis</span></div>
+        <div class="h-meta">${escapeHtml(appt.diagnosis)}</div>
+      </div>
+      <div class="history-item">
+        <div class="h-top"><span>Notes</span></div>
+        <div class="h-meta">${escapeHtml(appt.consultationNotes)}</div>
+      </div>
+    `
+    : `
+      <div class="section-label">Record Consultation</div>
+      <input class="diag-input" id="diagnosis-input" placeholder="Diagnosis" />
+      <textarea id="notes-input" placeholder="Consultation notes"></textarea>
+      <button class="btn-record" id="record-btn" onclick="recordConsultation(${appt.id})">Save & complete consultation</button>
+      <div class="toast" id="record-toast"></div>
+    `;
+
   body.innerHTML = `
       <div class="detail-name">${escapeHtml(appt.studentName)}</div>
-      <div class="detail-sub">${escapeHtml(appt.visitReason)} · ${escapeHtml(appt.urgencyLevel)} · ${escapeHtml(appt.doctorName)}</div>
+      <div class="detail-sub">${escapeHtml(appt.visitReason)} · ${escapeHtml(appt.urgencyLevel)} · ${escapeHtml(appt.consultedByDoctor || 'Unassigned')}</div>
 
       <div class="section-label">Vitals &amp; Presenting Complaint</div>
       <div id="vitals-box"><div class="history-loading">Loading vitals…</div></div>
@@ -403,11 +467,7 @@ function selectPatient(appt) {
       <div class="section-label">Medical History</div>
       <div id="history-box"><div class="history-loading">Loading history…</div></div>
 
-      <div class="section-label">Record Consultation</div>
-      <input class="diag-input" id="diagnosis-input" placeholder="Diagnosis" />
-      <textarea id="notes-input" placeholder="Consultation notes"></textarea>
-      <button class="btn-record" id="record-btn" onclick="recordConsultation(${appt.id})">Save & complete consultation</button>
-      <div class="toast" id="record-toast"></div>
+      ${consultationSection}
   `;
 
   fetch('/doctor/checkin/' + appt.id, { headers: { 'Authorization': authHeader } })

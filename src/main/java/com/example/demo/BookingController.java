@@ -91,7 +91,9 @@ public class BookingController {
 
         Appointment appointment = new Appointment();
         appointment.setStudentName(auth.getName());
-        appointment.setDoctorName(slot.getDoctorName());
+        // No doctor is assigned at booking time - any doctor may pick up this
+        // patient once checked in, and the treating doctor is recorded as
+        // consultedByDoctor when the consultation is actually completed.
         appointment.setAppointmentDate(slot.getScheduleDate());
         appointment.setTimeSlot(slot.getTimeSlot());
         appointment.setVisitReason(request.visitReason);
@@ -103,7 +105,6 @@ public class BookingController {
         return Map.of(
                 "message", "Appointment confirmed.",
                 "appointmentId", appointment.getId(),
-                "doctorName", appointment.getDoctorName(),
                 "date", appointment.getAppointmentDate().toString(),
                 "timeSlot", slot.getTimeSlot()
         );
@@ -184,7 +185,6 @@ public class BookingController {
             });
         }
 
-        appointment.setDoctorName(newSlot.getDoctorName());
         appointment.setAppointmentDate(newSlot.getScheduleDate());
         appointment.setTimeSlot(newSlot.getTimeSlot());
         appointment.setScheduleSlotId(newSlot.getId());
@@ -192,7 +192,6 @@ public class BookingController {
 
         return Map.of(
                 "message", "Appointment rescheduled.",
-                "newDoctorName", newSlot.getDoctorName(),
                 "newDate", newSlot.getScheduleDate().toString(),
                 "newTimeSlot", newSlot.getTimeSlot()
         );

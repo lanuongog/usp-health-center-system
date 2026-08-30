@@ -57,9 +57,13 @@ public class DashboardController {
             byReason.merge(a.getVisitReason(), 1L, (oldVal, one) -> oldVal + one);
         }
 
+        // Caseload is attributed by who actually treated the patient
+        // (consultedByDoctor), not by doctorName - no doctor is assigned to an
+        // appointment until a doctor picks it up and completes the consultation.
         Map<String, Long> byDoctor = new LinkedHashMap<>();
         for (Appointment a : active) {
-            byDoctor.merge(a.getDoctorName(), 1L, (oldVal, one) -> oldVal + one);
+            String doctor = a.getConsultedByDoctor() != null ? a.getConsultedByDoctor() : "Unassigned";
+            byDoctor.merge(doctor, 1L, (oldVal, one) -> oldVal + one);
         }
 
         return new DashboardSummary(total, noShows, noShowRate, byReason, byDoctor);

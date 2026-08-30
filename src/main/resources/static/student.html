@@ -171,9 +171,9 @@ let currentStudentId = null;
 let selectedSlot = null;
 
 window.addEventListener('DOMContentLoaded', () => {
-  const storedAuth = sessionStorage.getItem('authHeader');
-  const storedUser = sessionStorage.getItem('currentUser');
-  const storedRole = sessionStorage.getItem('userRole');
+  const storedAuth = localStorage.getItem('authHeader');
+  const storedUser = localStorage.getItem('currentUser');
+  const storedRole = localStorage.getItem('userRole');
 
   if (!storedAuth || !storedUser || storedRole !== 'STUDENT') {
     window.location.href = '/login.html';
@@ -206,7 +206,7 @@ function loadFeeStatus() {
 }
 
 function logout() {
-  sessionStorage.clear();
+  localStorage.clear();
   window.location.href = '/login.html';
 }
 

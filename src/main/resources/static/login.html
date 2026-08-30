@@ -393,6 +393,24 @@ text-align: center;
 <script>
 let feeSchedule = null;
 
+function portalPathForRole(role) {
+  switch (role) {
+    case 'STUDENT': return '/student.html';
+    case 'DOCTOR': return '/doctor.html';
+    case 'NURSE': return '/checkin.html';
+    case 'ADMIN': return '/admin.html';
+    default: return '/student.html';
+  }
+}
+
+window.addEventListener('DOMContentLoaded', () => {
+  const storedAuth = localStorage.getItem('authHeader');
+  const storedRole = localStorage.getItem('userRole');
+  if (storedAuth && storedRole) {
+    window.location.href = portalPathForRole(storedRole);
+  }
+});
+
 fetch('/student/fee-schedule')
   .then(res => res.json())
   .then(data => {
@@ -480,29 +498,14 @@ async function handleLogin(e) {
     }
 
     const authHeader = 'Basic ' + btoa(username + ':' + password);
-    sessionStorage.setItem('authHeader', authHeader);
-    sessionStorage.setItem('currentUser', data.username || username);
-    sessionStorage.setItem('userRole', data.role);
+    localStorage.setItem('authHeader', authHeader);
+    localStorage.setItem('currentUser', data.username || username);
+    localStorage.setItem('userRole', data.role);
 
     showAlert(`Welcome back, ${data.username}! Redirecting to ${data.role} portal...`, true);
 
     setTimeout(() => {
-      switch (data.role) {
-        case 'STUDENT':
-          window.location.href = '/student.html';
-          break;
-        case 'DOCTOR':
-          window.location.href = '/doctor.html';
-          break;
-        case 'NURSE':
-          window.location.href = '/checkin.html';
-          break;
-        case 'ADMIN':
-          window.location.href = '/admin.html';   
-          break;
-        default:
-          window.location.href = '/student.html';
-      }
+      window.location.href = portalPathForRole(data.role);
     }, 500);
 
   } catch (err) {
@@ -560,10 +563,10 @@ async function handleRegister(e) {
       return;
     }
 
-    showAlert('Registration successful! You can now log in.', true);
     setTab('login');
     document.getElementById('loginUsername').value = studentId;
     document.getElementById('loginPassword').value = password;
+    showAlert('You have successfully registered! Please log in below.', true);
     btn.disabled = false;
     btn.innerHTML = '<span>Create Student Account</span> →';
 

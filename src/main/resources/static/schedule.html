@@ -89,8 +89,8 @@ th { color: var(--ink-soft); font-weight: 600; }
 let authHeader = null;
 
 window.addEventListener('DOMContentLoaded', () => {
-  const storedAuth = sessionStorage.getItem('authHeader');
-  const storedRole = sessionStorage.getItem('userRole');
+  const storedAuth = localStorage.getItem('authHeader');
+  const storedRole = localStorage.getItem('userRole');
 
   if (!storedAuth || (storedRole !== 'DOCTOR' && storedRole !== 'ADMIN')) {
     window.location.href = '/login.html';
@@ -102,7 +102,7 @@ window.addEventListener('DOMContentLoaded', () => {
 });
 
 function logout() {
-  sessionStorage.clear();
+  localStorage.clear();
   window.location.href = '/login.html';
 }
 

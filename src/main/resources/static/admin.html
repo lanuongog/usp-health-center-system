@@ -196,6 +196,10 @@ border-radius: 6px; cursor: pointer; font-size: 12px;
 </div>
 <div id="addUserMsg" style="font-size:12.5px;margin-bottom:12px;display:none;"></div>
 
+<div class="filterBar">
+<label>Search <input type="text" id="userSearchInput" placeholder="Search by username or full name..." oninput="onUserSearch(this.value)" style="width:260px;"></label>
+</div>
+
 <table class="user-table">
 <thead><tr><th>Username</th><th>Full Name</th><th>Role</th><th>Country</th><th>Fee</th><th>Status</th><th></th></tr></thead>
 <tbody id="userTableBody"></tbody>
@@ -208,10 +212,12 @@ border-radius: 6px; cursor: pointer; font-size: 12px;
 
 <script>
 let authHeader = null;
+let fullUserList = [];
+let userSearchTerm = '';
 
 window.addEventListener('DOMContentLoaded', () => {
-  const storedAuth = sessionStorage.getItem('authHeader');
-  const storedRole = sessionStorage.getItem('userRole');
+  const storedAuth = localStorage.getItem('authHeader');
+  const storedRole = localStorage.getItem('userRole');
 
   if (!storedAuth || storedRole !== 'ADMIN') {
     window.location.href = '/login.html';
@@ -223,7 +229,7 @@ window.addEventListener('DOMContentLoaded', () => {
 });
 
 function logout() {
-  sessionStorage.clear();
+  localStorage.clear();
   window.location.href = '/login.html';
 }
 
@@ -377,9 +383,33 @@ async function loadUsers() {
       return;
     }
     showUserMgmtError(null);
-    const users = await res.json();
-    const body = document.getElementById('userTableBody');
-    body.innerHTML = users.map(u => {
+    fullUserList = await res.json();
+    renderUserTable();
+  } catch (e) {
+    showUserMgmtError('Service temporarily unavailable');
+  }
+}
+
+function onUserSearch(term) {
+  userSearchTerm = term;
+  renderUserTable();
+}
+
+function renderUserTable() {
+  const term = userSearchTerm.trim().toLowerCase();
+  const users = term
+    ? fullUserList.filter(u =>
+        (u.username || '').toLowerCase().includes(term) ||
+        (u.fullName || '').toLowerCase().includes(term))
+    : fullUserList;
+
+  const body = document.getElementById('userTableBody');
+  if (users.length === 0) {
+    body.innerHTML = `<tr><td colspan="7" style="text-align:center;color:#6b7280;">No matching user accounts.</td></tr>`;
+    return;
+  }
+
+  body.innerHTML = users.map(u => {
       const isStudent = u.role === 'STUDENT';
       const feeCell = isStudent
         ? `<span class="fee-badge ${u.feePaid ? 'paid' : 'unpaid'}">${u.feePaid ? 'Paid' : 'Unpaid'}${u.feeAmount != null ? ' · FJ$' + Number(u.feeAmount).toFixed(2) : ''}</span>`
@@ -399,10 +429,7 @@ async function loadUsers() {
         </td>
       </tr>
     `;
-    }).join('');
-  } catch (e) {
-    showUserMgmtError('Service temporarily unavailable');
-  }
+  }).join('');
 }
 
 async function createStaffAccount() {

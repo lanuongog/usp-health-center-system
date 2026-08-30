@@ -155,6 +155,7 @@ public class DataSeeder {
                 a1.setVisitReason("Fever");
                 a1.setUrgencyLevel("Urgent");
                 a1.setStatus("COMPLETED");
+                a1.setConsultedByDoctor("dr.patel");
                 appointmentRepository.save(a1);
 
                 Appointment a2 = new Appointment();
@@ -164,6 +165,7 @@ public class DataSeeder {
                 a2.setVisitReason("Routine Checkup");
                 a2.setUrgencyLevel("Routine");
                 a2.setStatus("COMPLETED");
+                a2.setConsultedByDoctor("dr.patel");
                 appointmentRepository.save(a2);
 
                 Appointment a3 = new Appointment();
@@ -182,11 +184,14 @@ public class DataSeeder {
                 a4.setVisitReason("Injury");
                 a4.setUrgencyLevel("Emergency");
                 a4.setStatus("COMPLETED");
+                a4.setConsultedByDoctor("dr.lee");
                 appointmentRepository.save(a4);
 
+                // Not yet checked in or seen, so no doctor is assigned -
+                // matches the real booking flow, where a doctor is only
+                // attached once they pick up and complete the consultation.
                 Appointment a5 = new Appointment();
                 a5.setStudentName("Elena Prasad");
-                a5.setDoctorName("dr.patel");
                 a5.setAppointmentDate(LocalDate.now());
                 a5.setVisitReason("Headache");
                 a5.setUrgencyLevel("Routine");
@@ -195,7 +200,6 @@ public class DataSeeder {
 
                 Appointment a6 = new Appointment();
                 a6.setStudentName("Frank Lal");
-                a6.setDoctorName("dr.lee");
                 a6.setAppointmentDate(LocalDate.now());
                 a6.setVisitReason("Sprained Ankle");
                 a6.setUrgencyLevel("Urgent");

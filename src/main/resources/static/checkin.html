@@ -130,8 +130,8 @@ th { color: #6b7280; font-weight: 600; }
 let authHeader = null;
 
 window.addEventListener('DOMContentLoaded', () => {
-  const storedAuth = sessionStorage.getItem('authHeader');
-  const storedRole = sessionStorage.getItem('userRole');
+  const storedAuth = localStorage.getItem('authHeader');
+  const storedRole = localStorage.getItem('userRole');
 
   if (!storedAuth || storedRole !== 'NURSE') {
     window.location.href = '/login.html';
@@ -144,7 +144,7 @@ window.addEventListener('DOMContentLoaded', () => {
 });
 
 function logout() {
-  sessionStorage.clear();
+  localStorage.clear();
   window.location.href = '/login.html';
 }
 
@@ -179,7 +179,7 @@ async function loadQueue() {
         <div class="info">
           <strong>${escapeHtml(a.studentName)}</strong>
           <span class="urgency-tag ${escapeHtml(a.urgencyLevel)}">${escapeHtml(a.urgencyLevel)}</span>
-          <div>${escapeHtml(a.doctorName)} &middot; ${escapeHtml(a.visitReason)}</div>
+          <div>${escapeHtml(a.visitReason)}</div>
         </div>
         <button onclick="startCheckIn(${a.id}, this.dataset.name)" data-name="${escapeHtml(a.studentName)}">Check In</button>
       `;

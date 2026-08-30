@@ -75,7 +75,8 @@ public class ReportController {
                     break;
                 case "Doctor Workload":
                     for (Appointment a : appointments) {
-                        data.merge(a.getDoctorName(), 1L, (oldVal, one) -> oldVal + one);
+                        String doctor = a.getConsultedByDoctor() != null ? a.getConsultedByDoctor() : "Unassigned";
+                        data.merge(doctor, 1L, (oldVal, one) -> oldVal + one);
                     }
                     break;
                 case "Appointment Summary":
