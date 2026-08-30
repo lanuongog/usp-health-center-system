@@ -1,6 +1,5 @@
 package com.example.demo;
 
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
@@ -12,11 +11,14 @@ import java.util.List;
 @RequestMapping("/nurse")
 public class NurseController {
 
-    @Autowired
-    private AppointmentRepository appointmentRepository;
+    private final AppointmentRepository appointmentRepository;
+    private final CheckInRepository checkInRepository;
 
-    @Autowired
-    private CheckInRepository checkInRepository;
+    public NurseController(AppointmentRepository appointmentRepository,
+                          CheckInRepository checkInRepository) {
+        this.appointmentRepository = appointmentRepository;
+        this.checkInRepository = checkInRepository;
+    }
 
     // FR-03-29: view students with scheduled appointments who have not yet been checked in
     @GetMapping("/queue")
@@ -46,11 +48,14 @@ public class NurseController {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "No valid appointment found");
         }
 
-        // FR-03-40 (basic validation): required fields must be present
+        // 4.3.3.4: required fields must be present
         if (isBlank(request.temperature) || isBlank(request.bloodPressure) || isBlank(request.presentingComplaint)) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
                     "Display validation messages for incomplete vital information");
         }
+
+        // FR-03-40 / 4.3.3.4: reject out-of-range or malformed vital sign values
+        validateVitals(request.temperature, request.bloodPressure);
 
         CheckIn checkIn = new CheckIn();
         checkIn.setAppointment(appointment);
@@ -73,5 +78,52 @@ public class NurseController {
 
     private boolean isBlank(String s) {
         return s == null || s.trim().isEmpty();
+    }
+
+    // FR-03-40: a plausible human body temperature in Celsius
+    private static final double MIN_TEMP_C = 30.0;
+    private static final double MAX_TEMP_C = 43.0;
+
+    // FR-03-40: plausible systolic/diastolic blood pressure bounds (mmHg)
+    private static final int MIN_SYSTOLIC = 60;
+    private static final int MAX_SYSTOLIC = 250;
+    private static final int MIN_DIASTOLIC = 40;
+    private static final int MAX_DIASTOLIC = 150;
+
+    private void validateVitals(String temperature, String bloodPressure) {
+        double temp;
+        try {
+            temp = Double.parseDouble(temperature.trim());
+        } catch (NumberFormatException e) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                    "Temperature must be a number in degrees Celsius (e.g. 37.2)");
+        }
+        if (temp < MIN_TEMP_C || temp > MAX_TEMP_C) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                    "Temperature is out of the valid range (" + MIN_TEMP_C + "–" + MAX_TEMP_C + "°C)");
+        }
+
+        String[] parts = bloodPressure.trim().split("/");
+        if (parts.length != 2) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                    "Blood pressure must be in the format systolic/diastolic (e.g. 120/80)");
+        }
+
+        int systolic;
+        int diastolic;
+        try {
+            systolic = Integer.parseInt(parts[0].trim());
+            diastolic = Integer.parseInt(parts[1].trim());
+        } catch (NumberFormatException e) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                    "Blood pressure must be in the format systolic/diastolic (e.g. 120/80)");
+        }
+
+        boolean outOfRange = systolic < MIN_SYSTOLIC || systolic > MAX_SYSTOLIC
+                || diastolic < MIN_DIASTOLIC || diastolic > MAX_DIASTOLIC;
+        if (outOfRange || systolic <= diastolic) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                    "Blood pressure values are out of the valid range");
+        }
     }
 }

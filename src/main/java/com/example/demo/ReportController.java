@@ -1,6 +1,5 @@
 package com.example.demo;
 
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
@@ -15,8 +14,11 @@ import java.util.Map;
 @RequestMapping("/admin/reports")
 public class ReportController {
 
-    @Autowired
-    private AppointmentRepository appointmentRepository;
+    private final AppointmentRepository appointmentRepository;
+
+    public ReportController(AppointmentRepository appointmentRepository) {
+        this.appointmentRepository = appointmentRepository;
+    }
 
     // FR-05-63: available report types an administrator can choose from
     @GetMapping("/types")
@@ -68,12 +70,12 @@ public class ReportController {
             switch (type) {
                 case "Visit Reason Breakdown":
                     for (Appointment a : appointments) {
-                        data.merge(a.getVisitReason(), 1L, Long::sum);
+                        data.merge(a.getVisitReason(), 1L, (oldVal, one) -> oldVal + one);
                     }
                     break;
                 case "Doctor Workload":
                     for (Appointment a : appointments) {
-                        data.merge(a.getDoctorName(), 1L, Long::sum);
+                        data.merge(a.getDoctorName(), 1L, (oldVal, one) -> oldVal + one);
                     }
                     break;
                 case "Appointment Summary":

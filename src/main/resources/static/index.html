@@ -46,44 +46,6 @@ align-items: center;
 header img.logo { height: 32px; display: block; }
 header .site-name { font-size: 15px; font-weight: 700; color: #fff; }
 
-.header-search {
-position: relative;
-width: 100%;
-max-width: 260px;
-}
-.header-search input {
-width: 100%;
-padding: 9px 12px;
-border-radius: 7px;
-border: none;
-font-size: 13.5px;
-}
-.header-search input:focus { outline: 2px solid rgba(255,255,255,0.5); }
-.header-search .search-suggestions {
-position: absolute;
-top: 100%;
-left: 0;
-right: 0;
-background: #fff;
-border-radius: 8px;
-margin-top: 4px;
-box-shadow: 0 4px 14px rgba(0,0,0,0.2);
-overflow: hidden;
-text-align: left;
-display: none;
-z-index: 10;
-}
-.header-search .search-suggestions.show { display: block; }
-.header-search .search-suggestions a {
-display: block;
-padding: 10px 14px;
-font-size: 13.5px;
-color: var(--ink);
-text-decoration: none;
-}
-.header-search .search-suggestions a:hover { background: var(--brand-soft); }
-.header-search .search-suggestions .none { padding: 10px 14px; font-size: 13px; color: var(--ink-soft); }
-
 .hero {
 position: relative;
 height: 220px;
@@ -117,7 +79,7 @@ font-size: 12.5px;
 padding: 9px 16px;
 }
 
-main { max-width: 900px; margin: 0 auto; padding: 34px 24px 10px; }
+main { max-width: 1120px; margin: 0 auto; padding: 30px 32px 16px; }
 
 .section-title {
 text-align: center;
@@ -134,9 +96,9 @@ margin: 0 0 20px;
 
 .services {
 display: grid;
-grid-template-columns: repeat(4, 1fr);
-gap: 14px;
-margin-bottom: 48px;
+grid-template-columns: repeat(5, 1fr);
+gap: 18px;
+margin-bottom: 36px;
 }
 @media (max-width: 760px) { .services { grid-template-columns: repeat(2, 1fr); } }
 
@@ -144,8 +106,17 @@ margin-bottom: 48px;
 background: var(--panel);
 border: 1px solid var(--line);
 border-radius: 10px;
-padding: 18px 14px;
+padding: 24px 16px;
 text-align: center;
+display: block;
+text-decoration: none;
+color: inherit;
+transition: box-shadow 0.15s, transform 0.15s, border-color 0.15s;
+}
+.service-card:hover {
+box-shadow: 0 4px 14px rgba(0,0,0,0.08);
+transform: translateY(-2px);
+border-color: var(--brand);
 }
 .service-card .icon-md {
 width: 40px;
@@ -163,12 +134,13 @@ justify-content: center;
 
 /* ===== ACCESS / LOGIN PROMPT ===== */
 .access-section {
-background: var(--panel);
+background: var(--brand-soft);
 border: 1px solid var(--line);
 border-radius: 14px;
-padding: 36px 32px;
+padding: 40px 32px;
+max-width: 680px;
+margin: 0 auto 36px;
 text-align: center;
-margin-bottom: 48px;
 box-shadow: 0 4px 18px rgba(0,0,0,0.05);
 }
 .access-section .emblem {
@@ -177,7 +149,7 @@ align-items: center;
 justify-content: center;
 width: 52px;
 height: 52px;
-background: var(--brand-soft);
+background: var(--panel);
 border-radius: 14px;
 margin-bottom: 14px;
 font-size: 24px;
@@ -257,10 +229,6 @@ footer .back-to-top:hover { color: #fff; text-decoration: underline; }
 <span class="logo-chip"><img class="logo" src="/images/usp-logo.png" alt="USP logo" /></span>
 <span class="site-name">USP Health & Wellness Center</span>
 </a>
-<div class="header-search">
-<input id="doctor-search" type="text" placeholder="Search for a doctor..." autocomplete="off" />
-<div class="search-suggestions" id="search-suggestions"></div>
-</div>
 </header>
 
 <div class="hero">
@@ -272,7 +240,7 @@ footer .back-to-top:hover { color: #fff; text-decoration: underline; }
 </div>
 
 <div class="eligibility-bar">
-  Open to registered USP students, and spouses/children under 18 (subject to the applicable Health Services Fee)
+  Open to registered USP students in Laucala Only
 </div>
 
 <main>
@@ -280,7 +248,7 @@ footer .back-to-top:hover { color: #fff; text-decoration: underline; }
 <p class="section-title">Our Services</p>
 <p class="section-sub">What the Health & Wellness Center provides on Laucala Campus</p>
 <div class="services">
-<div class="service-card">
+<a class="service-card" href="/services.html#consultations">
 <div class="icon-md">
 <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
 <path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0016.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 002 8.5c0 2.29 1.51 4.04 3 5.5l7 7z"/>
@@ -288,8 +256,8 @@ footer .back-to-top:hover { color: #fff; text-decoration: underline; }
 </div>
 <div class="title">Medical Consultations</div>
 <div class="desc">Illness and injury consultations with University Medical Officers</div>
-</div>
-<div class="service-card">
+</a>
+<a class="service-card" href="/services.html#preventative-care">
 <div class="icon-md">
 <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
 <path d="M9 12l2 2 4-4"/><circle cx="12" cy="12" r="10"/>
@@ -297,8 +265,8 @@ footer .back-to-top:hover { color: #fff; text-decoration: underline; }
 </div>
 <div class="title">Preventative Care</div>
 <div class="desc">Wound dressing and basic health screenings</div>
-</div>
-<div class="service-card">
+</a>
+<a class="service-card" href="/services.html#emergency">
 <div class="icon-md">
 <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
 <path d="M13 2L3 14h7l-1 8 11-14h-7l1-6z"/>
@@ -306,8 +274,8 @@ footer .back-to-top:hover { color: #fff; text-decoration: underline; }
 </div>
 <div class="title">Emergency Assistance</div>
 <div class="desc">First response and immediate treatment for injuries</div>
-</div>
-<div class="service-card">
+</a>
+<a class="service-card" href="/services.html#referrals">
 <div class="icon-md">
 <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
 <path d="M9 18l6-6-6-6"/>
@@ -315,7 +283,16 @@ footer .back-to-top:hover { color: #fff; text-decoration: underline; }
 </div>
 <div class="title">Specialist Referrals</div>
 <div class="desc">Referrals to the National Hospital for further care</div>
+</a>
+<a class="service-card" href="/services.html#visa-medical-report">
+<div class="icon-md">
+<svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+<path d="M9 12h6M9 16h6M9 8h2M7 3h10a2 2 0 012 2v14a2 2 0 01-2 2H7a2 2 0 01-2-2V5a2 2 0 012-2z"/>
+</svg>
 </div>
+<div class="title">Medical Report for Student Visa</div>
+<div class="desc">Health examination reports for student visa applications</div>
+</a>
 </div>
 
 <!-- ===== ACCESS SECTION ===== -->
@@ -351,39 +328,6 @@ referrerpolicy="no-referrer-when-downgrade">
 <a class="back-to-top" href="#top">↑ Back to Top</a>
 </footer>
 
-<script>
-const searchInput = document.getElementById('doctor-search');
-const suggestionsBox = document.getElementById('search-suggestions');
-let allDoctors = [];
-
-fetch('/schedule/doctors')
-  .then(res => res.json())
-  .then(doctors => { allDoctors = doctors; })
-  .catch(() => { allDoctors = []; });
-
-searchInput.addEventListener('input', () => {
-  const term = searchInput.value.trim().toLowerCase();
-  if (!term) {
-    suggestionsBox.classList.remove('show');
-    return;
-  }
-  const matches = allDoctors.filter(d => d.toLowerCase().includes(term));
-  if (matches.length === 0) {
-    suggestionsBox.innerHTML = '<div class="none">No doctors found.</div>';
-  } else {
-    suggestionsBox.innerHTML = matches.map(d =>
-      `<a href="/student.html?doctor=${encodeURIComponent(d)}">${d}</a>`
-    ).join('');
-  }
-  suggestionsBox.classList.add('show');
-});
-
-document.addEventListener('click', e => {
-  if (!e.target.closest('.header-search')) {
-    suggestionsBox.classList.remove('show');
-  }
-});
-</script>
 
 </body>
 </html>

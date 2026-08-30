@@ -19,6 +19,7 @@ public class Appointment {
     private String studentName;
     private String doctorName;
     private LocalDate appointmentDate;
+    private String timeSlot;
     private String visitReason;
     private String urgencyLevel; // e.g. "Routine", "Urgent", "Emergency"
     private String status; // e.g. "PENDING", "COMPLETED", "NO_SHOW", "CANCELLED"
@@ -41,6 +42,9 @@ public class Appointment {
 
     public LocalDate getAppointmentDate() { return appointmentDate; }
     public void setAppointmentDate(LocalDate appointmentDate) { this.appointmentDate = appointmentDate; }
+
+    public String getTimeSlot() { return timeSlot; }
+    public void setTimeSlot(String timeSlot) { this.timeSlot = timeSlot; }
 
     public String getVisitReason() { return visitReason; }
     public void setVisitReason(String visitReason) { this.visitReason = visitReason; }

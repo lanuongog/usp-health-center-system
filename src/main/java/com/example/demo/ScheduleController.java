@@ -5,7 +5,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.Authentication;
@@ -24,11 +23,11 @@ import org.springframework.web.server.ResponseStatusException;
 @RequestMapping("/schedule")
 public class ScheduleController {
 
-    @Autowired
-    private DoctorScheduleRepository scheduleRepository;
+    private final DoctorScheduleRepository scheduleRepository;
 
-    @Autowired
-    private AppointmentRepository appointmentRepository;
+    public ScheduleController(DoctorScheduleRepository scheduleRepository) {
+        this.scheduleRepository = scheduleRepository;
+    }
 
     // FR-02-20 to 23: students view open (unbooked) slots for a date, optionally filtered by doctor
     @GetMapping("/available")
@@ -53,7 +52,7 @@ public class ScheduleController {
     @GetMapping("/doctors")
     public List<String> getDoctorNames() {
         return scheduleRepository.findAll().stream()
-                .map(DoctorSchedule::getDoctorName)
+                .map((DoctorSchedule d) -> d.getDoctorName())
                 .distinct()
                 .collect(Collectors.toList());
     }
