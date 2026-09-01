@@ -5,7 +5,11 @@ import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
 import java.time.LocalDateTime;
+import java.util.Comparator;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/nurse")
@@ -13,17 +17,50 @@ public class NurseController {
 
     private final AppointmentRepository appointmentRepository;
     private final CheckInRepository checkInRepository;
+    private final DoctorScheduleRepository scheduleRepository;
+    private final UserRepository userRepository;
 
     public NurseController(AppointmentRepository appointmentRepository,
-                          CheckInRepository checkInRepository) {
+                          CheckInRepository checkInRepository,
+                          DoctorScheduleRepository scheduleRepository,
+                          UserRepository userRepository) {
         this.appointmentRepository = appointmentRepository;
         this.checkInRepository = checkInRepository;
+        this.scheduleRepository = scheduleRepository;
+        this.userRepository = userRepository;
     }
 
     // view students with scheduled appointments who have not yet been checked in
     @GetMapping("/queue")
     public List<Appointment> getQueue() {
         return appointmentRepository.findByStatus("BOOKED");
+    }
+
+    // every appointment record, most recent date first, enriched with the
+    // student's full name, so a nurse can search for a specific student and see
+    // when their appointment was and check them in even after a no-show mark
+    @GetMapping("/all")
+    public List<Map<String, Object>> getAllAppointments() {
+        List<Appointment> appointments = appointmentRepository.findAll().stream()
+                .sorted(Comparator
+                        .comparing((Appointment a) -> a.getAppointmentDate(), Comparator.nullsLast(Comparator.reverseOrder()))
+                        .thenComparing(a -> a.getId(), Comparator.reverseOrder()))
+                .collect(Collectors.toList());
+
+        Map<String, String> fullNamesByUsername = userRepository.findAll().stream()
+                .filter(u -> u.getFullName() != null && !u.getFullName().isBlank())
+                .collect(Collectors.toMap(User::getUsername, User::getFullName, (a, b) -> a));
+
+        return appointments.stream().map(a -> {
+            Map<String, Object> map = new LinkedHashMap<>();
+            map.put("id", a.getId());
+            map.put("studentId", a.getStudentName());
+            map.put("studentName", fullNamesByUsername.getOrDefault(a.getStudentName(), a.getStudentName()));
+            map.put("appointmentDate", a.getAppointmentDate() != null ? a.getAppointmentDate().toString() : "");
+            map.put("timeSlot", a.getTimeSlot());
+            map.put("status", a.getStatus());
+            return map;
+        }).collect(Collectors.toList());
     }
 
     public static class CheckInRequest {
@@ -44,7 +81,9 @@ public class NurseController {
         if (checkInRepository.findByAppointmentId(appointment.getId()).isPresent()) {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "This student has already been checked in");
         }
-        if (!"BOOKED".equals(appointment.getStatus())) {
+        // a student who was marked as a no-show can still be checked in if they
+        // turn up after all, in addition to the normal booked-and-waiting case
+        if (!"BOOKED".equals(appointment.getStatus()) && !"NO_SHOW".equals(appointment.getStatus())) {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "No valid appointment found");
         }
 
@@ -74,6 +113,31 @@ public class NurseController {
     @GetMapping("/checkins")
     public List<CheckIn> getAllCheckIns() {
         return checkInRepository.findAll();
+    }
+
+    public static class NoShowRequest {
+        public Long appointmentId;
+    }
+
+    // mark a booked student who never arrived as a no-show, removing them from
+    // the check-in queue and freeing the schedule slot for other students
+    @PostMapping("/no-show")
+    public Appointment markNoShow(@RequestBody NoShowRequest request) {
+        Appointment appointment = appointmentRepository.findById(request.appointmentId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Student record not found"));
+
+        if (!"BOOKED".equals(appointment.getStatus())) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "No valid appointment found");
+        }
+
+        appointment.setStatus("NO_SHOW");
+        Appointment saved = appointmentRepository.save(appointment);
+
+        if (saved.getAppointmentDate() != null && saved.getTimeSlot() != null) {
+            scheduleRepository.setBookedForTimeSlot(saved.getAppointmentDate(), saved.getTimeSlot(), false);
+        }
+
+        return saved;
     }
 
     private boolean isBlank(String s) {

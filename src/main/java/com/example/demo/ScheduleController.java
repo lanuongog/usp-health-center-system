@@ -29,7 +29,8 @@ public class ScheduleController {
         this.scheduleRepository = scheduleRepository;
     }
 
-    // students view open (unbooked) slots for a date, optionally filtered by doctor
+    // students view slots for a date (booked and open), optionally filtered by doctor,
+    // so the booking page can show booked times as taken rather than hiding them
     @GetMapping("/available")
     public List<DoctorSchedule> getAvailable(
             @RequestParam(required = false) String doctorName,
@@ -39,13 +40,11 @@ public class ScheduleController {
                 ? scheduleRepository.findByDoctorNameAndScheduleDate(doctorName, date)
                 : scheduleRepository.findByScheduleDate(date);
 
-        List<DoctorSchedule> open = slots.stream().filter(s -> !s.isBooked()).collect(Collectors.toList());
-
-        // no appointment slots available for the selected date
-        if (open.isEmpty()) {
+        // no appointment slots scheduled at all for the selected date
+        if (slots.isEmpty()) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "No available appointments for the selected date");
         }
-        return open;
+        return slots;
     }
 
     // Returns the distinct list of doctor names for the homepage search bar
@@ -64,7 +63,9 @@ public class ScheduleController {
         validateRequiredFields(slot);
         validateNoConflict(slot, null);
 
-        slot.setBooked(false);
+        // A time slot is booked as a unit across every doctor scheduled for it, so a
+        // newly added doctor for an already-booked date+time joins it as booked too.
+        slot.setBooked(scheduleRepository.anyBookedForTimeSlot(slot.getScheduleDate(), slot.getTimeSlot()));
         return scheduleRepository.save(slot);
     }
 
@@ -80,6 +81,7 @@ public class ScheduleController {
 
         existing.setScheduleDate(updated.getScheduleDate());
         existing.setTimeSlot(updated.getTimeSlot());
+        existing.setBooked(scheduleRepository.anyBookedForTimeSlot(updated.getScheduleDate(), updated.getTimeSlot()));
         // doctorName is intentionally not changed by an update - a slot belongs to the doctor that created it
 
         try {

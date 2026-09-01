@@ -73,11 +73,16 @@ font-size: 13px; background: #fff; font-family: inherit;
 .slot-list { display: flex; flex-direction: column; gap: 7px; margin: 10px 0 16px; max-height: 220px; overflow-y: auto; }
 .slot-option {
 border: 1px solid var(--line); border-radius: 7px; padding: 9px 12px;
-font-size: 13px; cursor: pointer; display: flex; justify-content: flex-start;
+font-size: 13px; cursor: pointer; display: flex; justify-content: space-between; align-items: center;
 }
 .slot-option:hover { background: var(--brand-soft); }
 .slot-option.selected { background: var(--brand-soft); border-color: var(--brand); }
 .slot-option .time { font-weight: 600; }
+.slot-option.booked {
+background: var(--emergency-bg); border-color: #EBD3D0; color: var(--emergency);
+cursor: not-allowed;
+}
+.slot-option.booked:hover { background: var(--emergency-bg); }
 .empty-state { padding: 30px 20px; text-align: center; color: var(--ink-soft); font-size: 13px; }
 
 .appt-card {
@@ -89,6 +94,7 @@ border: 1px solid var(--line); border-radius: 8px; padding: 12px 14px; margin-bo
 .badge.Emergency { background: var(--emergency-bg); color: var(--emergency); }
 .badge.Urgent { background: var(--urgent-bg); color: var(--urgent); }
 .badge.Routine { background: var(--routine-bg); color: var(--routine); }
+.badge.Booked { background: var(--emergency); color: #fff; }
 .appt-meta { font-size: 12.5px; color: var(--ink-soft); margin-bottom: 10px; }
 .appt-actions { display: flex; gap: 8px; }
 .btn-small {
@@ -309,9 +315,10 @@ function loadSlots() {
         return;
       }
 
-      // The health center assigns whichever doctor is on duty for a time slot,
-      // so students pick a time only — multiple doctors offering the same time
-      // collapse into a single bookable option.
+      // Students pick a time only, not a doctor; the backend still lists one row
+      // per doctor scheduled for that time, so collapse those into one option.
+      // A time slot is booked/freed as a unit across every doctor's row for it,
+      // so the first row's booked flag reflects the whole time slot.
       const seenTimes = new Set();
       const uniqueSlots = slots.filter(s => {
         if (seenTimes.has(s.timeSlot)) return false;
@@ -321,8 +328,10 @@ function loadSlots() {
       uniqueSlots.sort((a, b) => timeSlotSortKey(a.timeSlot) - timeSlotSortKey(b.timeSlot));
 
       container.innerHTML = '<div class="slot-list">' + uniqueSlots.map(s => `
-        <div class="slot-option" data-id="${s.id}" onclick='pickSlot(${s.id}, this)'>
+        <div class="slot-option${s.booked ? ' booked' : ''}" data-id="${s.id}"
+             ${s.booked ? '' : `onclick='pickSlot(${s.id}, this)'`}>
           <span class="time">${escapeHtml(s.timeSlot)}</span>
+          ${s.booked ? '<span class="badge Booked">Booked</span>' : ''}
         </div>
       `).join('') + '</div>';
     })

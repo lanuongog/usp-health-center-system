@@ -18,6 +18,9 @@ public interface AppointmentRepository extends JpaRepository<Appointment, Long> 
 
     List<Appointment> findByStudentNameAndStatus(String studentName, String status);
 
+    List<Appointment> findByStudentNameAndStatusAndAppointmentDateAndTimeSlot(
+            String studentName, String status, LocalDate appointmentDate, String timeSlot);
+
     long countByStatus(String status);
 
     @Query("SELECT a.visitReason, COUNT(a) FROM Appointment a GROUP BY a.visitReason")

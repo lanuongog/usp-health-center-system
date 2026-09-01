@@ -24,13 +24,16 @@ public class DoctorController {
     private final AppointmentRepository appointmentRepository;
     private final CheckInRepository checkInRepository;
     private final DoctorScheduleRepository scheduleRepository;
+    private final UserRepository userRepository;
 
     public DoctorController(AppointmentRepository appointmentRepository,
                            CheckInRepository checkInRepository,
-                           DoctorScheduleRepository scheduleRepository) {
+                           DoctorScheduleRepository scheduleRepository,
+                           UserRepository userRepository) {
         this.appointmentRepository = appointmentRepository;
         this.checkInRepository = checkInRepository;
         this.scheduleRepository = scheduleRepository;
+        this.userRepository = userRepository;
     }
 
     // Lower number = seen sooner
@@ -69,10 +72,36 @@ public class DoctorController {
         return appointmentRepository.findByStatus("BOOKED");
     }
 
-    // View all appointments for the doctor dashboard overview
+    // View all appointments for the doctor dashboard overview, most recently
+    // booked/scheduled dates first, enriched with the student's full name
+    // (Appointment.studentName holds the student ID used to log in).
     @GetMapping("/all")
-    public List<Appointment> getAllAppointments() {
-        return appointmentRepository.findAll();
+    public List<Map<String, Object>> getAllAppointments() {
+        List<Appointment> appointments = appointmentRepository.findAll().stream()
+                .sorted(Comparator
+                        .comparing((Appointment a) -> a.getAppointmentDate(), Comparator.nullsLast(Comparator.reverseOrder()))
+                        .thenComparing(a -> a.getId(), Comparator.reverseOrder()))
+                .collect(Collectors.toList());
+
+        Map<String, String> fullNamesByUsername = userRepository.findAll().stream()
+                .filter(u -> u.getFullName() != null && !u.getFullName().isBlank())
+                .collect(Collectors.toMap(User::getUsername, User::getFullName, (a, b) -> a));
+
+        return appointments.stream().map(a -> {
+            Map<String, Object> map = new LinkedHashMap<>();
+            map.put("id", a.getId());
+            map.put("studentId", a.getStudentName());
+            map.put("studentName", fullNamesByUsername.getOrDefault(a.getStudentName(), a.getStudentName()));
+            map.put("appointmentDate", a.getAppointmentDate() != null ? a.getAppointmentDate().toString() : "");
+            map.put("timeSlot", a.getTimeSlot());
+            map.put("visitReason", a.getVisitReason());
+            map.put("urgencyLevel", a.getUrgencyLevel());
+            map.put("status", a.getStatus());
+            map.put("diagnosis", a.getDiagnosis());
+            map.put("consultationNotes", a.getConsultationNotes());
+            map.put("consultedByDoctor", a.getConsultedByDoctor());
+            return map;
+        }).collect(Collectors.toList());
     }
 
     // the nurse's recorded vitals and presenting complaint for the current visit
@@ -131,12 +160,10 @@ public class DoctorController {
 
         Appointment saved = appointmentRepository.save(appointment);
 
-        // Free up the schedule slot so other students can book it again if desired
-        if (saved.getScheduleSlotId() != null) {
-            scheduleRepository.findById(saved.getScheduleSlotId()).ifPresent(slot -> {
-                slot.setBooked(false);
-                scheduleRepository.save(slot);
-            });
+        // Free up the schedule slot (every doctor's row for this date+time, since a
+        // time slot is booked as a unit) so other students can book it again if desired
+        if (saved.getAppointmentDate() != null && saved.getTimeSlot() != null) {
+            scheduleRepository.setBookedForTimeSlot(saved.getAppointmentDate(), saved.getTimeSlot(), false);
         }
 
         return saved;

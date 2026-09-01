@@ -72,15 +72,10 @@ opacity: 0.85; margin-right: 4px;
 
 /* App layout */
 .layout {
-display: grid;
-grid-template-columns: 1fr 380px;
-gap: 20px;
+display: block;
 padding: 22px 24px;
 max-width: 1180px;
 margin: 0 auto;
-}
-@media (max-width: 860px) {
-.layout { grid-template-columns: 1fr; }
 }
 
 
@@ -129,9 +124,11 @@ box-shadow: 0 1px 3px rgba(0,0,0,0.1);
 .queue-search-box {
 padding: 10px 18px;
 border-bottom: 1px solid var(--line);
+display: flex;
+gap: 8px;
 }
 .queue-search-box input {
-width: 100%;
+flex: 1;
 padding: 8px 10px;
 border: 1px solid var(--line);
 border-radius: 6px;
@@ -139,6 +136,46 @@ font-size: 13px;
 font-family: inherit;
 box-sizing: border-box;
 }
+.queue-search-box select {
+padding: 8px 10px;
+border: 1px solid var(--line);
+border-radius: 6px;
+font-size: 13px;
+font-family: inherit;
+background: #fff;
+color: var(--ink);
+}
+
+
+/* All Records table */
+.records-table {
+width: 100%;
+border-collapse: collapse;
+font-size: 13px;
+}
+.records-table th {
+text-align: left;
+padding: 10px 16px;
+font-size: 11px;
+text-transform: uppercase;
+letter-spacing: 0.4px;
+color: var(--ink-soft);
+border-bottom: 1px solid var(--line);
+background: #FAFCFC;
+}
+.records-table td {
+padding: 11px 16px;
+border-bottom: 1px solid var(--line);
+}
+.records-table tbody tr { cursor: pointer; transition: background 0.12s; }
+.records-table tbody tr:last-child td { border-bottom: none; }
+.records-table tbody tr:hover { background: var(--brand-soft); }
+.records-table .student-id { color: var(--ink-soft); font-size: 12.5px; }
+.badge.BOOKED { background: var(--routine-bg); color: var(--routine); }
+.badge.CHECKED_IN { background: var(--urgent-bg); color: var(--urgent); }
+.badge.COMPLETED { background: #E4F1E8; color: var(--ok); }
+.badge.CANCELLED { background: var(--emergency-bg); color: var(--emergency); }
+.badge.NO_SHOW { background: #EDEDED; color: var(--ink-soft); }
 
 
 /* Queue rows — triage board styling */
@@ -196,8 +233,38 @@ font-size: 13.5px;
 }
 
 
-/* Detail panel */
-#detail-panel .panel-body { padding: 18px; }
+/* Detail modal */
+.modal-overlay {
+position: fixed;
+inset: 0;
+background: rgba(20, 33, 61, 0.45);
+display: flex;
+align-items: flex-start;
+justify-content: center;
+padding: 40px 16px;
+overflow-y: auto;
+z-index: 100;
+}
+.modal-overlay[hidden] { display: none; }
+.modal-box {
+background: var(--panel);
+border-radius: 10px;
+width: 100%;
+max-width: 460px;
+box-shadow: 0 12px 32px rgba(20, 33, 61, 0.25);
+}
+.modal-box .panel-head { display: flex; align-items: center; }
+.modal-close {
+background: transparent;
+border: none;
+font-size: 18px;
+line-height: 1;
+color: var(--ink-soft);
+cursor: pointer;
+padding: 4px;
+}
+.modal-close:hover { color: var(--ink); }
+.modal-box .panel-body { padding: 18px; }
 .detail-placeholder {
 padding: 40px 20px;
 text-align: center;
@@ -304,19 +371,28 @@ min-height: 16px;
 </div>
 <div class="queue-search-box" id="queue-search-box" style="display:none;">
 <input type="text" id="queue-search-input" aria-label="Search by student name or ID" placeholder="Search by student name or ID..." oninput="onQueueSearch(this.value)" />
+<select id="status-filter-select" aria-label="Filter by status" onchange="onStatusFilterChange(this.value)">
+<option value="">All statuses</option>
+<option value="BOOKED">Booked</option>
+<option value="CHECKED_IN">Checked-in</option>
+<option value="COMPLETED">Completed</option>
+<option value="CANCELLED">Cancelled</option>
+<option value="NO_SHOW">No-show</option>
+</select>
 </div>
 <div id="queue-list"></div>
 </div>
+</div>
+</div>
 
 
-<div class="panel" id="detail-panel">
+<div class="modal-overlay" id="detail-modal-overlay" hidden onclick="if (event.target === this) closeDetailModal()">
+<div class="modal-box">
 <div class="panel-head">
 <h2>Consultation</h2>
+<button class="modal-close" aria-label="Close" onclick="closeDetailModal()">✕</button>
 </div>
-<div class="panel-body" id="detail-body">
-<div class="detail-placeholder">Select a patient from the queue or scheduled list to view details and record a consultation.</div>
-</div>
-</div>
+<div class="panel-body" id="detail-body"></div>
 </div>
 </div>
 
@@ -328,6 +404,7 @@ let selectedAppointment = null;
 let currentQueue = [];
 let fullQueue = [];
 let queueSearchTerm = '';
+let statusFilter = '';
 let currentDoctorTab = 'queue'; // 'queue', 'booked', 'all'
 
 
@@ -355,8 +432,10 @@ function switchDoctorTab(tab) {
   document.getElementById('tab-btn-all').classList.toggle('active', tab === 'all');
 
   queueSearchTerm = '';
+  statusFilter = '';
   document.getElementById('queue-search-input').value = '';
-  document.getElementById('queue-search-box').style.display = tab === 'all' ? 'block' : 'none';
+  document.getElementById('status-filter-select').value = '';
+  document.getElementById('queue-search-box').style.display = tab === 'all' ? 'flex' : 'none';
 
   refreshQueue();
 }
@@ -364,6 +443,12 @@ function switchDoctorTab(tab) {
 
 function onQueueSearch(term) {
   queueSearchTerm = term;
+  renderQueue(fullQueue);
+}
+
+
+function onStatusFilterChange(status) {
+  statusFilter = status;
   renderQueue(fullQueue);
 }
 
@@ -394,9 +479,14 @@ function refreshQueue() {
 
 function renderQueue(rawQueue) {
   const term = queueSearchTerm.trim().toLowerCase();
-  const queue = term
-    ? rawQueue.filter(appt => (appt.studentName || '').toLowerCase().includes(term))
+  let queue = term
+    ? rawQueue.filter(appt =>
+        (appt.studentName || '').toLowerCase().includes(term) ||
+        (appt.studentId || '').toLowerCase().includes(term))
     : rawQueue;
+  if (currentDoctorTab === 'all' && statusFilter) {
+    queue = queue.filter(appt => appt.status === statusFilter);
+  }
   currentQueue = queue;
 
   const listEl = document.getElementById('queue-list');
@@ -406,24 +496,53 @@ function renderQueue(rawQueue) {
   if (queue.length === 0) {
     let msg = 'No patients in active triage queue.';
     if (currentDoctorTab === 'booked') msg = 'No un-checked-in booked appointments.';
-    else if (currentDoctorTab === 'all') msg = term ? 'No records match your search.' : 'No appointment records found.';
+    else if (currentDoctorTab === 'all') msg = (term || statusFilter) ? 'No records match your filters.' : 'No appointment records found.';
     listEl.innerHTML = `<div class="empty-state">${msg}</div>`;
     return;
   }
 
-  listEl.innerHTML = queue.map(appt => `
+  listEl.innerHTML = currentDoctorTab === 'all' ? renderRecordsTable(queue) : renderQueueRows(queue);
+}
+
+
+function renderQueueRows(queue) {
+  return `<div>${queue.map(appt => `
       <div class="queue-row ${selectedAppointment && selectedAppointment.id === appt.id ? 'selected' : ''}"
            onclick="selectPatientById(${appt.id})">
         <div class="flag ${appt.urgencyLevel}"></div>
         <div class="row-body">
           <div class="row-main">
             <div class="name">👤 ${escapeHtml(appt.studentName)}</div>
-            <div class="reason">${escapeHtml(appt.visitReason)} · ${escapeHtml(appt.consultedByDoctor || 'Unassigned')} · <em>${escapeHtml(appt.status)}</em></div>
+            <div class="reason">${escapeHtml(appt.appointmentDate)} · ${escapeHtml(appt.timeSlot)}</div>
+            <div class="reason">${escapeHtml(appt.visitReason)}${appt.consultedByDoctor ? ' · ' + escapeHtml(appt.consultedByDoctor) : ''} · <em>${escapeHtml(appt.status)}</em></div>
           </div>
           <span class="badge ${appt.urgencyLevel}">${appt.urgencyLevel}</span>
         </div>
       </div>
-  `).join('');
+  `).join('')}</div>`;
+}
+
+
+// Latest-first order comes from the backend; this just renders the columns.
+function renderRecordsTable(queue) {
+  return `
+    <table class="records-table">
+      <thead>
+        <tr><th>Name</th><th>Student ID</th><th>Date</th><th>Time</th><th>Status</th></tr>
+      </thead>
+      <tbody>
+        ${queue.map(appt => `
+          <tr onclick="selectPatientById(${appt.id})">
+            <td>${escapeHtml(appt.studentName)}</td>
+            <td class="student-id">${escapeHtml(appt.studentId)}</td>
+            <td>${escapeHtml(appt.appointmentDate) || '—'}</td>
+            <td>${escapeHtml(appt.timeSlot) || '—'}</td>
+            <td><span class="badge ${appt.status}">${escapeHtml(appt.status)}</span></td>
+          </tr>
+        `).join('')}
+      </tbody>
+    </table>
+  `;
 }
 
 
@@ -432,9 +551,27 @@ function selectPatientById(id) {
   if (appt) selectPatient(appt);
 }
 
+function openDetailModal() {
+  document.getElementById('detail-modal-overlay').hidden = false;
+}
+
+function closeDetailModal() {
+  document.getElementById('detail-modal-overlay').hidden = true;
+  document.getElementById('detail-body').innerHTML = '';
+  selectedAppointment = null;
+  refreshQueue();
+}
+
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape' && !document.getElementById('detail-modal-overlay').hidden) {
+    closeDetailModal();
+  }
+});
+
 function selectPatient(appt) {
   selectedAppointment = appt;
   refreshQueue();
+  openDetailModal();
 
   const body = document.getElementById('detail-body');
   const consultationSection = appt.status === 'COMPLETED'
@@ -459,7 +596,7 @@ function selectPatient(appt) {
 
   body.innerHTML = `
       <div class="detail-name">${escapeHtml(appt.studentName)}</div>
-      <div class="detail-sub">${escapeHtml(appt.visitReason)} · ${escapeHtml(appt.urgencyLevel)} · ${escapeHtml(appt.consultedByDoctor || 'Unassigned')}</div>
+      <div class="detail-sub">${escapeHtml(appt.visitReason)} · ${escapeHtml(appt.urgencyLevel)}${appt.consultedByDoctor ? ' · ' + escapeHtml(appt.consultedByDoctor) : ''}</div>
 
       <div class="section-label">Vitals &amp; Presenting Complaint</div>
       <div id="vitals-box"><div class="history-loading">Loading vitals…</div></div>
@@ -494,21 +631,37 @@ function selectPatient(appt) {
         '<div class="history-empty">Unable to load vitals.</div>';
     });
 
-  fetch('/doctor/history/' + encodeURIComponent(appt.studentName), { headers: { 'Authorization': authHeader } })
+  fetch('/doctor/history/' + encodeURIComponent(appt.studentId || appt.studentName), { headers: { 'Authorization': authHeader } })
     .then(res => res.json())
     .then(history => {
       const box = document.getElementById('history-box');
-      const past = history.filter(h => h.id !== appt.id);
+      // Only past clinical encounters belong in a patient's history for another
+      // doctor to review - an appointment that's still booked or mid-visit isn't
+      // history yet, so those statuses are left out here.
+      const past = history.filter(h => h.id !== appt.id && h.status !== 'BOOKED' && h.status !== 'CHECKED_IN');
       if (past.length === 0) {
         box.innerHTML = '<div class="history-empty">No previous visits on record.</div>';
         return;
       }
-      box.innerHTML = past.map(h => `
+      box.innerHTML = past.map(h => {
+        let meta;
+        if (h.status === 'COMPLETED') {
+          meta = 'Seen by ' + escapeHtml(h.consultedByDoctor || 'unknown doctor');
+          if (h.diagnosis) meta += ' · ' + escapeHtml(h.diagnosis);
+        } else if (h.status === 'CANCELLED') {
+          meta = 'Cancelled';
+        } else if (h.status === 'NO_SHOW') {
+          meta = 'No-show';
+        } else {
+          meta = escapeHtml(h.status);
+        }
+        return `
           <div class="history-item">
-            <div class="h-top"><span>${escapeHtml(h.visitReason)}</span><span>${escapeHtml(h.appointmentDate)}</span></div>
-            <div class="h-meta">${escapeHtml(h.status)}${h.diagnosis ? ' · ' + escapeHtml(h.diagnosis) : ''}</div>
+            <div class="h-top"><span>${escapeHtml(h.visitReason)}</span><span>${escapeHtml(h.appointmentDate)} · ${escapeHtml(h.timeSlot)}</span></div>
+            <div class="h-meta">${meta}</div>
           </div>
-      `).join('');
+        `;
+      }).join('');
     })
     .catch(() => {
       document.getElementById('history-box').innerHTML =
@@ -550,11 +703,7 @@ function recordConsultation(appointmentId) {
     toast.textContent = 'Saved. Patient marked as completed.';
     toast.className = 'toast ok';
     selectedAppointment = null;
-    setTimeout(() => {
-      document.getElementById('detail-body').innerHTML =
-        '<div class="detail-placeholder">Select a patient from the queue to view their details and record a consultation.</div>';
-      refreshQueue();
-    }, 900);
+    setTimeout(closeDetailModal, 900);
   })
   .catch(err => {
     toast.textContent = err.message;

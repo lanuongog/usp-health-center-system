@@ -78,6 +78,27 @@ width: 100%; padding: 8px; border: 1px solid #d1d5db; border-radius: 6px; font-s
 table { width: 100%; border-collapse: collapse; font-size: 13px; }
 th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid #eee; }
 th { color: #6b7280; font-weight: 600; }
+
+.tab-bar { display: flex; gap: 4px; background: #EBF1F5; padding: 4px; border-radius: 8px; margin-bottom: 16px; }
+.tab-btn {
+flex: 1; padding: 8px 10px; border: none; background: transparent; border-radius: 6px;
+font-size: 13px; font-weight: 600; color: var(--ink-soft); cursor: pointer;
+}
+.tab-btn.active { background: #fff; color: var(--brand); box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+
+.search-box input {
+width: 100%; padding: 8px 10px; border: 1px solid var(--line); border-radius: 6px;
+font-size: 13px; margin-bottom: 14px; box-sizing: border-box;
+}
+
+.status-tag { padding: 2px 8px; border-radius: 10px; font-size: 11px; font-weight: 600; }
+.status-tag.BOOKED { background: #DCEBFA; color: #17324A; }
+.status-tag.CHECKED_IN { background: #FFF4E5; color: #8A4B12; }
+.status-tag.COMPLETED { background: #E1F0E5; color: #3C7A4E; }
+.status-tag.CANCELLED { background: #FDEAEA; color: #B03A2E; }
+.status-tag.NO_SHOW { background: #ECECEC; color: #6b7280; }
+
+.records-table tbody tr:hover { background: var(--brand-soft); }
 </style>
 </head>
 <body>
@@ -94,9 +115,25 @@ th { color: #6b7280; font-weight: 600; }
 
 <div id="pageError" style="background:#FDEAEA;color:#B03A2E;border:1px solid #f2b8b8;border-radius:6px;padding:10px 14px;font-size:13px;margin-bottom:16px;display:none;"></div>
 
-<div class="panel">
+<div class="tab-bar">
+<button id="tab-btn-queue" class="tab-btn active" onclick="switchNurseTab('queue')">Waiting Queue</button>
+<button id="tab-btn-all" class="tab-btn" onclick="switchNurseTab('all')">All Records</button>
+</div>
+
+<div class="panel" id="queue-panel">
 <h3>Students Waiting to be Checked In</h3>
 <div id="queueList"></div>
+</div>
+
+<div class="panel" id="all-panel" style="display:none;">
+<h3>All Appointment Records</h3>
+<div class="search-box">
+<input type="text" id="recordsSearchInput" aria-label="Search by student name or ID" placeholder="Search by student name or ID..." oninput="onRecordsSearch(this.value)" />
+</div>
+<table class="records-table">
+<thead><tr><th>Name</th><th>Student ID</th><th>Date</th><th>Time</th><th>Status</th><th></th></tr></thead>
+<tbody id="recordsTableBody"></tbody>
+</table>
 </div>
 
 <div id="checkinForm">
@@ -128,6 +165,9 @@ th { color: #6b7280; font-weight: 600; }
 
 <script>
 let authHeader = null;
+let currentNurseTab = 'queue';
+let allRecords = [];
+let recordsSearchTerm = '';
 
 window.addEventListener('DOMContentLoaded', () => {
   const storedAuth = localStorage.getItem('authHeader');
@@ -142,6 +182,70 @@ window.addEventListener('DOMContentLoaded', () => {
   loadQueue();
   loadCheckIns();
 });
+
+function switchNurseTab(tab) {
+  currentNurseTab = tab;
+  document.getElementById('tab-btn-queue').classList.toggle('active', tab === 'queue');
+  document.getElementById('tab-btn-all').classList.toggle('active', tab === 'all');
+  document.getElementById('queue-panel').style.display = tab === 'queue' ? 'block' : 'none';
+  document.getElementById('all-panel').style.display = tab === 'all' ? 'block' : 'none';
+
+  if (tab === 'all') loadAllRecords();
+}
+
+async function loadAllRecords() {
+  try {
+    const res = await fetch('/nurse/all', { headers: { 'Authorization': authHeader } });
+    if (!res.ok) {
+      const err = await res.json();
+      showPageError(err.message || 'Unable to load appointment records');
+      return;
+    }
+    showPageError(null);
+    allRecords = await res.json();
+    renderRecordsTable();
+  } catch (e) {
+    showPageError('Service temporarily unavailable');
+  }
+}
+
+function onRecordsSearch(term) {
+  recordsSearchTerm = term;
+  renderRecordsTable();
+}
+
+function renderRecordsTable() {
+  const term = recordsSearchTerm.trim().toLowerCase();
+  const records = term
+    ? allRecords.filter(r =>
+        (r.studentName || '').toLowerCase().includes(term) ||
+        (r.studentId || '').toLowerCase().includes(term))
+    : allRecords;
+
+  const body = document.getElementById('recordsTableBody');
+
+  if (records.length === 0) {
+    body.innerHTML = `<tr><td colspan="6" style="color:#9ca3af;">${term ? 'No records match your search.' : 'No appointment records found.'}</td></tr>`;
+    return;
+  }
+
+  body.innerHTML = records.map(r => {
+    const canCheckIn = r.status === 'BOOKED' || r.status === 'NO_SHOW';
+    const actionCell = canCheckIn
+      ? `<button onclick="startCheckIn(${r.id}, this.dataset.name)" data-name="${escapeHtml(r.studentName)}">Check In</button>`
+      : '';
+    return `
+      <tr>
+        <td>${escapeHtml(r.studentName)}</td>
+        <td>${escapeHtml(r.studentId)}</td>
+        <td>${escapeHtml(r.appointmentDate) || '—'}</td>
+        <td>${escapeHtml(r.timeSlot) || '—'}</td>
+        <td><span class="status-tag ${escapeHtml(r.status)}">${escapeHtml(r.status)}</span></td>
+        <td>${actionCell}</td>
+      </tr>
+    `;
+  }).join('');
+}
 
 function logout() {
   localStorage.clear();
@@ -179,9 +283,13 @@ async function loadQueue() {
         <div class="info">
           <strong>${escapeHtml(a.studentName)}</strong>
           <span class="urgency-tag ${escapeHtml(a.urgencyLevel)}">${escapeHtml(a.urgencyLevel)}</span>
+          <div>${escapeHtml(a.appointmentDate)} · ${escapeHtml(a.timeSlot)}</div>
           <div>${escapeHtml(a.visitReason)}</div>
         </div>
-        <button onclick="startCheckIn(${a.id}, this.dataset.name)" data-name="${escapeHtml(a.studentName)}">Check In</button>
+        <div style="display:flex;gap:8px;">
+          <button onclick="startCheckIn(${a.id}, this.dataset.name)" data-name="${escapeHtml(a.studentName)}">Check In</button>
+          <button class="secondary" onclick="markNoShow(${a.id}, this.dataset.name)" data-name="${escapeHtml(a.studentName)}">No Show</button>
+        </div>
       `;
       list.appendChild(item);
     }
@@ -203,6 +311,30 @@ function startCheckIn(appointmentId, studentName) {
 
 function cancelCheckIn() {
   document.getElementById('checkinForm').style.display = 'none';
+}
+
+async function markNoShow(appointmentId, studentName) {
+  if (!confirm(`Mark ${studentName} as a no-show for this appointment?`)) return;
+
+  try {
+    const res = await fetch('/nurse/no-show', {
+      method: 'POST',
+      headers: { 'Authorization': authHeader, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ appointmentId })
+    });
+
+    if (!res.ok) {
+      const err = await res.json();
+      showPageError(err.message || 'Unable to mark as no-show.');
+      return;
+    }
+
+    showPageError(null);
+    loadQueue();
+    if (currentNurseTab === 'all') loadAllRecords();
+  } catch (e) {
+    showPageError('Service temporarily unavailable');
+  }
 }
 
 function showFormError(message) {
@@ -246,6 +378,7 @@ async function submitCheckIn() {
     document.getElementById('checkinForm').style.display = 'none';
     loadQueue();
     loadCheckIns();
+    if (currentNurseTab === 'all') loadAllRecords();
   } catch (e) {
     showFormError('Service temporarily unavailable');
   }
