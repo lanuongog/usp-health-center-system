@@ -67,4 +67,3 @@ git push
 
 **Connection refused to PostgreSQL** - confirm the PostgreSQL service is running (Windows Services -> `postgresql-x64-18` -> should say "Running") and that the port in `application.properties` matches what `netstat` shows.
 
-end

@@ -21,8 +21,8 @@ public class Appointment {
     private LocalDate appointmentDate;
     private String timeSlot;
     private String visitReason;
-    private String urgencyLevel; // e.g. "Routine", "Urgent", "Emergency"
-    private String status; // e.g. "PENDING", "COMPLETED", "NO_SHOW", "CANCELLED"
+    private String urgencyLevel; 
+    private String status; 
     private Long scheduleSlotId;
     private String diagnosis;
     private String consultationNotes;

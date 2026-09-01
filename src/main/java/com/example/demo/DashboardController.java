@@ -1,9 +1,16 @@
 package com.example.demo;
 
-import org.springframework.web.bind.annotation.*;
-import org.springframework.format.annotation.DateTimeFormat;
 import java.time.LocalDate;
-import java.util.*;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+
+import org.springframework.format.annotation.DateTimeFormat;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
 
 @RestController
 public class DashboardController {
@@ -14,7 +21,7 @@ public class DashboardController {
         this.appointmentRepository = appointmentRepository;
     }
 
-    // NOTE: A raw "list all appointments" endpoint was intentionally removed from here.
+    
     // REQ 63 requires Admin to see aggregate statistics only, never individual patient
     // records (name, reason, urgency per student). Only the summary endpoints below
     // are exposed to the ADMIN role.
