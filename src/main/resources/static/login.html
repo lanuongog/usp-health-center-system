@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>USP Health Center — Portal Login & Student Registration</title>
+<title>Laucala Health Center — Portal Login & Student Registration</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600;700&display=swap" rel="stylesheet">
@@ -291,7 +291,7 @@ text-align: center;
 
 <div class="header-brand">
 <div class="emblem">🏥</div>
-<h1>USP Health Center</h1>
+<h1>Laucala Health Center</h1>
 <p>Hospital &amp; Clinical Management Information System</p>
 </div>
 
@@ -326,7 +326,7 @@ text-align: center;
 </form>
 
 <!-- STUDENT REGISTER FORM -->
-<form id="registerForm" style="display:none;" onsubmit="handleRegister(event)">
+<form id="registerForm" style="display:none;" onsubmit="handleRegister(event)" enctype="multipart/form-data">
 <div class="field-group">
 <label for="regFullName">Full Name</label>
 <div class="input-wrapper">
@@ -370,9 +370,11 @@ text-align: center;
 
 <div class="fee-preview" id="feePreview"></div>
 
-<div class="checkbox-row">
-<input type="checkbox" id="regFeePaid" required />
-<label for="regFeePaid">I have paid my USP Health Services Fee for this semester</label>
+<div class="field-group">
+<label for="regReceipt">Payment Receipt (PDF)</label>
+<div class="input-wrapper">
+<input type="file" id="regReceipt" accept="application/pdf" required />
+</div>
 </div>
 
 <button type="submit" class="btn-submit" id="regBtn" style="background:#2e8b57;">
@@ -387,7 +389,7 @@ text-align: center;
 </div>
 
 <div class="footer-note">
-&copy; 2026 USP Health Center System. Secure Multi-Role Portal.
+&copy; 2026 Laucala Health Center. Secure Multi-Role Portal.
 </div>
 
 <script>
@@ -434,7 +436,7 @@ function updateFeePreview() {
   }
   const isLocal = country === feeSchedule.localCountry;
   const amount = isLocal ? feeSchedule.localFee : feeSchedule.regionalFee;
-  preview.innerHTML = `USP Health Services Fee: <strong>FJ$${amount.toFixed(2)}</strong> (${isLocal ? 'Local' : 'Regional'} student rate)`;
+  preview.innerHTML = `Laucala Health Services Fee: <strong>FJ$${amount.toFixed(2)}</strong> (${isLocal ? 'Local' : 'Regional'} student rate)`;
   preview.classList.add('show');
 }
 
@@ -524,7 +526,7 @@ async function handleRegister(e) {
   const password = document.getElementById('regPassword').value;
   const maritalStatus = document.getElementById('regMaritalStatus').value;
   const country = document.getElementById('regCountry').value;
-  const feePaid = document.getElementById('regFeePaid').checked;
+  const receiptFile = document.getElementById('regReceipt').files[0];
   const btn = document.getElementById('regBtn');
 
   if (!fullName || !studentId || !password) {
@@ -539,8 +541,12 @@ async function handleRegister(e) {
     showAlert('Please select your country.');
     return;
   }
-  if (!feePaid) {
-    showAlert('You must confirm that you have paid your USP Health Services Fee before registering.');
+  if (!receiptFile) {
+    showAlert('Please attach a PDF receipt to prove you have paid your Laucala Health Services Fee before registering.');
+    return;
+  }
+  if (receiptFile.type !== 'application/pdf') {
+    showAlert('The payment receipt must be a PDF file.');
     return;
   }
 
@@ -548,10 +554,17 @@ async function handleRegister(e) {
   btn.innerHTML = '<span>Creating Account...</span>';
 
   try {
+    const formData = new FormData();
+    formData.append('studentId', studentId);
+    formData.append('password', password);
+    formData.append('fullName', fullName);
+    formData.append('maritalStatus', maritalStatus);
+    formData.append('country', country);
+    formData.append('receipt', receiptFile);
+
     const res = await fetch('/student/register', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ studentId, password, fullName, maritalStatus, country, feePaid })
+      body: formData
     });
 
     const data = await res.json();

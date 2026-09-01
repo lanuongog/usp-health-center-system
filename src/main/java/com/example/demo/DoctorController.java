@@ -52,7 +52,7 @@ public class DoctorController {
                 .orElse(LocalDateTime.MAX);
     }
 
-    // FR-04-43 to FR-04-45: checked-in students, ordered by urgency then check-in time
+    // checked-in students, ordered by urgency then check-in time
     @GetMapping("/queue")
     public List<Appointment> getQueue() {
         List<Appointment> checkedIn = appointmentRepository.findByStatus("CHECKED_IN");
@@ -75,7 +75,7 @@ public class DoctorController {
         return appointmentRepository.findAll();
     }
 
-    // FR-04-49: the nurse's recorded vitals and presenting complaint for the current visit
+    // the nurse's recorded vitals and presenting complaint for the current visit
     @GetMapping("/checkin/{appointmentId}")
     public Map<String, Object> getCheckIn(@PathVariable Long appointmentId) {
         CheckIn checkIn = checkInRepository.findByAppointmentId(appointmentId)
@@ -89,7 +89,7 @@ public class DoctorController {
         return result;
     }
 
-    // FR-04-48/49: a student's visit history
+    // a student's visit history
     @GetMapping("/history/{studentName}")
     public List<Appointment> getMedicalHistory(@PathVariable String studentName) {
         List<Appointment> history = appointmentRepository.findByStudentName(studentName);
@@ -105,19 +105,19 @@ public class DoctorController {
         public String consultationNotes;
     }
 
-    // FR-04-52 to FR-04-57: record diagnosis/notes, mark completed, exit the queue
+    // record diagnosis/notes, mark completed, exit the queue
     @PostMapping("/consultation")
     public Appointment recordConsultation(@RequestBody ConsultationRequest request, Authentication auth) {
         Appointment appointment = appointmentRepository.findById(request.appointmentId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Medical record not found"));
 
-        // 4.4.3.4: required consultation information is missing
+        // required consultation information is missing
         if (isBlank(request.diagnosis) || isBlank(request.consultationNotes)) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
                     "Display validation messages for incomplete fields");
         }
 
-        // FR-04-57: prevent a doctor from editing another doctor's submitted consultation
+        // prevent a doctor from editing another doctor's submitted consultation
         if (appointment.getConsultedByDoctor() != null &&
                 !appointment.getConsultedByDoctor().equals(auth.getName())) {
             throw new ResponseStatusException(HttpStatus.CONFLICT,

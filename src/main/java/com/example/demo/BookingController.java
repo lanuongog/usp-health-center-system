@@ -17,13 +17,16 @@ public class BookingController {
     private final DoctorScheduleRepository scheduleRepository;
     private final AppointmentRepository appointmentRepository;
     private final CheckInRepository checkInRepository;
+    private final UserRepository userRepository;
 
     public BookingController(DoctorScheduleRepository scheduleRepository,
                             AppointmentRepository appointmentRepository,
-                            CheckInRepository checkInRepository) {
+                            CheckInRepository checkInRepository,
+                            UserRepository userRepository) {
         this.scheduleRepository = scheduleRepository;
         this.appointmentRepository = appointmentRepository;
         this.checkInRepository = checkInRepository;
+        this.userRepository = userRepository;
     }
 
     public static class BookingRequest {
@@ -64,9 +67,13 @@ public class BookingController {
                 .toList();
     }
 
-    // FR-01-09 to 14: book an available slot, tied to the logged-in student
+    // book an available slot, tied to the logged-in student
     @PostMapping("/book")
     public Object bookAppointment(@RequestBody BookingRequest request, Authentication auth) {
+        User student = userRepository.findByUsername(auth.getName()).orElse(null);
+        if (student == null || !student.isFeePaid()) {
+            return Map.of("error", "Your payment receipt is still pending verification by an admin. Please wait for approval before booking an appointment.");
+        }
         if (request.visitReason == null || request.visitReason.isBlank()) {
             return Map.of("error", "Reason for visit is required.");
         }
@@ -79,7 +86,7 @@ public class BookingController {
             return Map.of("error", "This slot is no longer available.");
         }
 
-        // Prevents two students booking the same slot (FR-01-13)
+        // Prevents two students booking the same slot 
         synchronized (this) {
             slot = scheduleRepository.findById(request.slotId).orElse(null);
             if (slot == null || slot.isBooked()) {
@@ -110,7 +117,7 @@ public class BookingController {
         );
     }
 
-    // FR-01-15: student views their own upcoming appointments
+    // student views their own upcoming appointments
     @GetMapping("/my-appointments")
     public List<Appointment> myAppointments(Authentication auth) {
         return appointmentRepository.findByStudentNameAndStatus(auth.getName(), "BOOKED");
@@ -120,7 +127,7 @@ public class BookingController {
         public Long appointmentId;
     }
 
-    // FR-01-17, 19: cancel an upcoming appointment, freeing the slot back up
+    // cancel an upcoming appointment, freeing the slot back up
     @PostMapping("/cancel")
     public Object cancelAppointment(@RequestBody CancelRequest request, Authentication auth) {
         Appointment appointment = appointmentRepository.findById(request.appointmentId).orElse(null);
@@ -153,7 +160,7 @@ public class BookingController {
         public Long newSlotId;
     }
 
-    // FR-01-16, 18: reschedule to a new open slot, freeing the old one
+    // reschedule to a new open slot, freeing the old one
     @PostMapping("/reschedule")
     public Object rescheduleAppointment(@RequestBody RescheduleRequest request, Authentication auth) {
         Appointment appointment = appointmentRepository.findById(request.appointmentId).orElse(null);

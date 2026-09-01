@@ -1,12 +1,22 @@
 package com.example.demo;
 
-import org.springframework.http.HttpStatus;
-import org.springframework.security.crypto.password.PasswordEncoder;
-import org.springframework.web.bind.annotation.*;
-import org.springframework.web.server.ResponseStatusException;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
+
+import org.springframework.http.ContentDisposition;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.server.ResponseStatusException;
 
 @RestController
 @RequestMapping("/admin/users")
@@ -30,7 +40,7 @@ public class AdminUserController {
     }
 
     // A safe view of a user account - never exposes the password hash.
-    // FR-05-73: this endpoint only ever returns account metadata, never
+    // this endpoint only ever returns account metadata, never
     // any patient/appointment data, even though it lives under Admin.
     public static class UserView {
         public Long id;
@@ -42,6 +52,8 @@ public class AdminUserController {
         public String maritalStatus;
         public Boolean feePaid;
         public Double feeAmount;
+        public boolean hasReceipt;
+        public String receiptRejectionReason;
 
         public UserView(User u) {
             this.id = u.getId();
@@ -55,14 +67,24 @@ public class AdminUserController {
                 this.maritalStatus = u.getMaritalStatus();
                 this.feePaid = u.isFeePaid();
                 this.feeAmount = u.getFeeAmount();
+                this.hasReceipt = u.getReceiptFile() != null;
+                this.receiptRejectionReason = u.getReceiptRejectionReason();
             }
         }
     }
 
-    // FR-05-68/69: view all registered accounts and their status
+    // view all registered accounts and their status
     @GetMapping
     public List<UserView> getAllUsers() {
         return userRepository.findAll().stream().map(UserView::new).collect(Collectors.toList());
+    }
+
+    // lets the admin user-detail page load a single account
+    @GetMapping("/{id}")
+    public UserView getUser(@PathVariable Long id) {
+        User user = userRepository.findById(id)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User account not found"));
+        return new UserView(user);
     }
 
     public static class CreateUserRequest {
@@ -71,7 +93,7 @@ public class AdminUserController {
         public String role; // ADMIN, DOCTOR, or NURSE
     }
 
-    // SRS 3.1 Admin Interfaces: "the admin is able to add ... staff ... accounts"
+    // "the admin is able to add ... staff ... accounts"
     @PostMapping
     public Object createUser(@RequestBody CreateUserRequest request) {
         if (request.username == null || request.username.isBlank()
@@ -95,15 +117,19 @@ public class AdminUserController {
         public boolean confirm = false;
     }
 
-    // FR-05-70/71: activate or deactivate an account
+    // activate or deactivate an account
     @PostMapping("/{id}/toggle")
     public Map<String, Object> toggleStatus(@PathVariable Long id, @RequestBody(required = false) ToggleRequest request) {
         User user = userRepository.findById(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User account not found"));
 
+        if ("ADMIN".equals(user.getRole())) {
+            return Map.of("requiresConfirmation", false, "error", "Admin accounts cannot be activated or deactivated.");
+        }
+
         boolean confirm = request != null && request.confirm;
 
-        // 4.5.3.4: warn before deactivating an account with active dependent records
+        // warn before deactivating an account with active dependent records
         if (user.isActive() && !confirm) {
             boolean hasDependentRecords = hasDependentRecords(user.getUsername());
             if (hasDependentRecords) {
@@ -123,6 +149,69 @@ public class AdminUserController {
                 "username", user.getUsername(),
                 "active", user.isActive()
         );
+    }
+
+    // lets an admin approve a student's uploaded payment receipt, unlocking booking
+    @PostMapping("/{id}/verify-receipt")
+    public Object verifyReceipt(@PathVariable Long id) {
+        User user = userRepository.findById(id)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User account not found"));
+
+        if (user.getReceiptFile() == null) {
+            return Map.of("error", "This account has no uploaded receipt to verify.");
+        }
+
+        user.setFeePaid(true);
+        user.setReceiptRejectionReason(null);
+        userRepository.save(user);
+
+        return new UserView(user);
+    }
+
+    public static class RejectReceiptRequest {
+        public String reason;
+    }
+
+    // lets an admin reject a student's uploaded payment receipt, clearing it so
+    // the student can re-upload a corrected one from their dashboard
+    @PostMapping("/{id}/reject-receipt")
+    public Object rejectReceipt(@PathVariable Long id, @RequestBody(required = false) RejectReceiptRequest request) {
+        User user = userRepository.findById(id)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User account not found"));
+
+        if (user.getReceiptFile() == null) {
+            return Map.of("error", "This account has no uploaded receipt to reject.");
+        }
+
+        String reason = (request != null && request.reason != null && !request.reason.isBlank())
+                ? request.reason.trim()
+                : "Your receipt was rejected. Please upload a valid payment receipt.";
+
+        user.setFeePaid(false);
+        user.setReceiptFile(null);
+        user.setReceiptFileName(null);
+        user.setReceiptRejectionReason(reason);
+        userRepository.save(user);
+
+        return new UserView(user);
+    }
+
+    // lets an admin download a student's uploaded payment receipt
+    @GetMapping("/{id}/receipt")
+    public ResponseEntity<byte[]> getReceipt(@PathVariable Long id) {
+        User user = userRepository.findById(id)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User account not found"));
+
+        if (user.getReceiptFile() == null) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "No receipt has been uploaded for this account");
+        }
+
+        String fileName = user.getReceiptFileName() != null ? user.getReceiptFileName() : "receipt.pdf";
+        return ResponseEntity.ok()
+                .contentType(MediaType.APPLICATION_PDF)
+                .header(HttpHeaders.CONTENT_DISPOSITION,
+                        ContentDisposition.attachment().filename(fileName).build().toString())
+                .body(user.getReceiptFile());
     }
 
     private boolean hasDependentRecords(String username) {

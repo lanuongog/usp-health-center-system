@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Student Portal — USP Health Center</title>
+<title>Student Portal — Laucala Health Center</title>
 <style>
 :root {
 --bg: #F4F8F8;
@@ -105,6 +105,8 @@ width: 100%; background: var(--brand); color: #fff; border: none; padding: 10px;
 border-radius: 6px; font-size: 14px; font-weight: 600; cursor: pointer; margin-top: 4px;
 }
 .btn-primary:hover { background: #173C49; }
+.btn-primary:disabled { background: #9CA3AF; cursor: not-allowed; }
+.btn-primary:disabled:hover { background: #9CA3AF; }
 
 .toast { font-size: 12.5px; margin-top: 8px; min-height: 16px; }
 .toast.ok { color: var(--ok); }
@@ -123,7 +125,14 @@ border-radius: 6px; font-size: 14px; font-weight: 600; cursor: pointer; margin-t
 </div>
 </div>
 
-<div id="fee-banner" style="display:none;background:#FBEAE8;color:#B23A2E;border-bottom:1px solid #EBD3D0;padding:9px 24px;font-size:13px;text-align:center;"></div>
+<div id="fee-banner" style="display:none;background:#FBEAE8;color:#B23A2E;border-bottom:1px solid #EBD3D0;padding:9px 24px;font-size:13px;text-align:center;">
+<div id="fee-banner-text"></div>
+<div id="receipt-upload" style="display:none;margin-top:8px;">
+<input type="file" id="receipt-upload-input" accept="application/pdf" style="font-size:12px;" />
+<button onclick="uploadReceipt()" style="background:#B23A2E;color:#fff;border:none;padding:5px 12px;border-radius:5px;font-size:12px;cursor:pointer;">Upload Receipt</button>
+<div id="receipt-upload-msg" style="margin-top:4px;font-size:12px;"></div>
+</div>
+</div>
 
 <div class="layout">
 <div class="panel">
@@ -199,10 +208,70 @@ function loadFeeStatus() {
     .then(profile => {
       if (profile.error || profile.feePaid || !profile.feeAmount) return;
       const banner = document.getElementById('fee-banner');
-      banner.textContent = `⚠ Your USP Health Services Fee (FJ$${Number(profile.feeAmount).toFixed(2)}) is unpaid. Please settle it at Student Administrative Services — some services may be limited until then.`;
+      const bannerText = document.getElementById('fee-banner-text');
+      const uploadBox = document.getElementById('receipt-upload');
+
+      if (profile.receiptRejectionReason) {
+        bannerText.textContent = `⚠ Your payment receipt was rejected: "${profile.receiptRejectionReason}" Please upload a corrected receipt below.`;
+        uploadBox.style.display = 'block';
+      } else if (profile.hasReceipt) {
+        bannerText.textContent = '⚠ Your payment receipt is pending admin verification. You will be able to book appointments once it is approved.';
+        uploadBox.style.display = 'none';
+      } else {
+        bannerText.textContent = `⚠ Your Laucala Health Services Fee (FJ$${Number(profile.feeAmount).toFixed(2)}) is unpaid. Please upload your payment receipt below to proceed.`;
+        uploadBox.style.display = 'block';
+      }
       banner.style.display = 'block';
+
+      const bookBtn = document.getElementById('book-btn');
+      bookBtn.disabled = true;
+      bookBtn.title = profile.hasReceipt
+        ? 'Booking is locked until an admin verifies your payment receipt.'
+        : 'Booking is locked until your Health Services Fee is paid.';
     })
     .catch(() => {});
+}
+
+function uploadReceipt() {
+  const input = document.getElementById('receipt-upload-input');
+  const msg = document.getElementById('receipt-upload-msg');
+  const file = input.files[0];
+
+  if (!file) {
+    msg.style.color = '#B23A2E';
+    msg.textContent = 'Please choose a PDF file first.';
+    return;
+  }
+  if (file.type !== 'application/pdf') {
+    msg.style.color = '#B23A2E';
+    msg.textContent = 'The receipt must be a PDF file.';
+    return;
+  }
+
+  const formData = new FormData();
+  formData.append('receipt', file);
+
+  fetch('/student/receipt', {
+    method: 'POST',
+    headers: { 'Authorization': authHeader },
+    body: formData
+  })
+    .then(res => res.json())
+    .then(data => {
+      if (data.error) {
+        msg.style.color = '#B23A2E';
+        msg.textContent = data.error;
+        return;
+      }
+      msg.style.color = '#3D7A55';
+      msg.textContent = data.message;
+      input.value = '';
+      loadFeeStatus();
+    })
+    .catch(() => {
+      msg.style.color = '#B23A2E';
+      msg.textContent = 'Unable to reach the server.';
+    });
 }
 
 function logout() {

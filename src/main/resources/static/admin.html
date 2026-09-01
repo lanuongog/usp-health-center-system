@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>USP Health Center - Admin Reporting Dashboard</title>
+<title>Laucala Health Center - Admin Reporting Dashboard</title>
 <style>
 :root {
 --bg: #F4F8F8;
@@ -103,11 +103,11 @@ padding: 8px 10px; border: 1px solid #d1d5db; border-radius: 6px; font-size: 13p
 .fee-badge { padding: 2px 10px; border-radius: 10px; font-size: 11px; font-weight: 600; }
 .fee-badge.paid { background: #DCF3E4; color: #1E5B3A; }
 .fee-badge.unpaid { background: #FBEAE8; color: #B23A2E; }
+.fee-badge.pending { background: #FDF2D8; color: #6B4400; }
 .toggle-btn {
 background: #2C5F8A; color: white; border: none; padding: 6px 12px;
 border-radius: 6px; cursor: pointer; font-size: 12px;
 }
-.toggle-btn.deactivate { background: #B03A2E; }
 </style>
 </head>
 <body>
@@ -226,6 +226,11 @@ window.addEventListener('DOMContentLoaded', () => {
 
   authHeader = storedAuth;
   loadDashboard();
+
+  const requestedTab = new URLSearchParams(window.location.search).get('tab');
+  if (requestedTab === 'users') {
+    switchTab('users');
+  }
 });
 
 function logout() {
@@ -411,21 +416,29 @@ function renderUserTable() {
 
   body.innerHTML = users.map(u => {
       const isStudent = u.role === 'STUDENT';
+      const pending = u.hasReceipt && !u.feePaid;
+      let badgeClass = 'unpaid';
+      let badgeText = 'Unpaid';
+      if (u.feePaid) {
+        badgeClass = 'paid';
+        badgeText = 'Paid';
+      } else if (pending) {
+        badgeClass = 'pending';
+        badgeText = 'Pending Verification';
+      }
       const feeCell = isStudent
-        ? `<span class="fee-badge ${u.feePaid ? 'paid' : 'unpaid'}">${u.feePaid ? 'Paid' : 'Unpaid'}${u.feeAmount != null ? ' · FJ$' + Number(u.feeAmount).toFixed(2) : ''}</span>`
+        ? `<span class="fee-badge ${badgeClass}">${badgeText}${u.feeAmount != null ? ' · FJ$' + Number(u.feeAmount).toFixed(2) : ''}</span>`
         : '—';
       return `
       <tr>
-        <td>${escapeHtml(u.username)}</td>
+        <td><a href="/admin-user.html?id=${u.id}" style="color:var(--brand);font-weight:600;text-decoration:none;">${escapeHtml(u.username)}</a></td>
         <td>${escapeHtml(u.fullName) || '—'}</td>
         <td>${escapeHtml(u.role)}</td>
         <td>${escapeHtml(u.country) || '—'}</td>
         <td>${feeCell}</td>
         <td><span class="status-badge ${u.active ? 'active' : 'inactive'}">${u.active ? 'Active' : 'Inactive'}</span></td>
         <td>
-          <button class="toggle-btn ${u.active ? 'deactivate' : ''}" onclick="toggleUser(${u.id}, false)">
-            ${u.active ? 'Deactivate' : 'Activate'}
-          </button>
+          <button class="toggle-btn" onclick="window.location.href='/admin-user.html?id=${u.id}'">Manage</button>
         </td>
       </tr>
     `;
@@ -470,35 +483,6 @@ async function createStaffAccount() {
     msg.textContent = 'Service temporarily unavailable';
     msg.style.color = '#B03A2E';
     msg.style.display = 'block';
-  }
-}
-
-async function toggleUser(id, confirmed) {
-  try {
-    const res = await fetch(`/admin/users/${id}/toggle`, {
-      method: 'POST',
-      headers: { 'Authorization': authHeader, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ confirm: confirmed })
-    });
-
-    if (!res.ok) {
-      const err = await res.json();
-      showUserMgmtError(err.message || 'Unable to update account');
-      return;
-    }
-
-    const result = await res.json();
-    if (result.requiresConfirmation) {
-      if (window.confirm(result.message)) {
-        toggleUser(id, true);
-      }
-      return;
-    }
-
-    showUserMgmtError(null);
-    loadUsers();
-  } catch (e) {
-    showUserMgmtError('Service temporarily unavailable');
   }
 }
 

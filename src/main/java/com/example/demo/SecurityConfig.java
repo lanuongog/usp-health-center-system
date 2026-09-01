@@ -40,9 +40,9 @@ public class SecurityConfig {
         };
     }
 
-    // FR-05-72 / 4.5.3.4: when an already-authenticated user with the wrong role
+    // when an already-authenticated user with the wrong role
     // hits a protected endpoint directly (not via the login form), return the
-    // SRS's specific message instead of Spring Security's generic 403 body.
+    // specific message instead of Spring Security's generic 403 body.
     @Bean
     public AccessDeniedHandler accessDeniedHandler() {
         return (HttpServletRequest request, HttpServletResponse response, org.springframework.security.access.AccessDeniedException ex) -> {

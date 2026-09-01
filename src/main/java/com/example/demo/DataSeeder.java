@@ -36,7 +36,7 @@ public class DataSeeder {
                 System.out.println("Seeded default doctor user: doctor / doctor123");
             }
 
-            // Individual doctor logins, so consultation attribution (FR-04-57) and schedule
+            // Individual doctor logins, so consultation attribution and schedule
             // ownership checks work per-physician instead of everyone sharing "doctor".
             String[][] doctorAccounts = {
                 {"dr.patel", "patel123"},

@@ -10,14 +10,14 @@ import java.util.Map;
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
-    // Handles our deliberate, specific SRS error conditions (404, 409, 400 etc.)
+    // Handles our deliberate, specific error conditions (404, 409, 400 etc.)
     @ExceptionHandler(ResponseStatusException.class)
     public ResponseEntity<Map<String, String>> handleResponseStatus(ResponseStatusException ex) {
         return ResponseEntity.status(ex.getStatusCode())
                 .body(Map.of("message", ex.getReason()));
     }
 
-    // Catches anything unexpected (DB connection lost, etc.) and returns the SRS's
+    // Catches anything unexpected (DB connection lost, etc.) and returns the
     // required generic message rather than an ugly stack trace.
     @ExceptionHandler(Exception.class)
     public ResponseEntity<Map<String, String>> handleGeneral(Exception ex) {

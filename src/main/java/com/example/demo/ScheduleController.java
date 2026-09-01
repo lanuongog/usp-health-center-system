@@ -29,7 +29,7 @@ public class ScheduleController {
         this.scheduleRepository = scheduleRepository;
     }
 
-    // FR-02-20 to 23: students view open (unbooked) slots for a date, optionally filtered by doctor
+    // students view open (unbooked) slots for a date, optionally filtered by doctor
     @GetMapping("/available")
     public List<DoctorSchedule> getAvailable(
             @RequestParam(required = false) String doctorName,
@@ -41,7 +41,7 @@ public class ScheduleController {
 
         List<DoctorSchedule> open = slots.stream().filter(s -> !s.isBooked()).collect(Collectors.toList());
 
-        // 4.2.1.4: no appointment slots available for the selected date
+        // no appointment slots available for the selected date
         if (open.isEmpty()) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "No available appointments for the selected date");
         }
@@ -57,7 +57,7 @@ public class ScheduleController {
                 .collect(Collectors.toList());
     }
 
-    // FR-02-24: doctor/admin creates a new consultation slot
+    // doctor/admin creates a new consultation slot
     @PostMapping("/manage")
     public DoctorSchedule createSlot(@RequestBody DoctorSchedule slot, Authentication auth) {
         validateOwnership(slot.getDoctorName(), auth);
@@ -68,7 +68,7 @@ public class ScheduleController {
         return scheduleRepository.save(slot);
     }
 
-    // FR-02-25: doctor/admin updates an existing consultation slot (this endpoint did not exist before)
+    // doctor/admin updates an existing consultation slot (this endpoint did not exist before)
     @PutMapping("/manage/{id}")
     public DoctorSchedule updateSlot(@PathVariable Long id, @RequestBody DoctorSchedule updated, Authentication auth) {
         DoctorSchedule existing = scheduleRepository.findById(id)
@@ -90,7 +90,7 @@ public class ScheduleController {
         }
     }
 
-    // FR-02-26: doctor/admin removes a slot
+    // doctor/admin removes a slot
     @DeleteMapping("/manage/{id}")
     public Map<String, String> deleteSlot(@PathVariable Long id, Authentication auth) {
         DoctorSchedule existing = scheduleRepository.findById(id)
@@ -112,7 +112,7 @@ public class ScheduleController {
                 .collect(Collectors.toList());
     }
 
-    // FR-02-28: restrict schedule management to the assigned doctor or an administrator.
+    // restrict schedule management to the assigned doctor or an administrator.
     // A doctor may only manage slots under their own name; an admin may manage any doctor's slots.
     private void validateOwnership(String slotDoctorName, Authentication auth) {
         boolean isAdmin = auth.getAuthorities().stream().anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN"));
@@ -123,7 +123,7 @@ public class ScheduleController {
         }
     }
 
-    // 4.2.2.4: required schedule information is missing
+    // required schedule information is missing
     private void validateRequiredFields(DoctorSchedule slot) {
         if (isBlank(slot.getDoctorName()) || slot.getScheduleDate() == null || isBlank(slot.getTimeSlot())) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
@@ -131,7 +131,7 @@ public class ScheduleController {
         }
     }
 
-    // FR-02-27 / 4.2.2.4: prevent a new/updated slot from conflicting with an existing booked appointment
+    // prevent a new/updated slot from conflicting with an existing booked appointment
     // or duplicating another open slot for the same doctor, date, and time.
     private void validateNoConflict(DoctorSchedule slot, Long excludeSlotId) {
         boolean conflict = scheduleRepository

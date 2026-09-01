@@ -1,0 +1,346 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Manage User — Laucala Health Center</title>
+<style>
+:root {
+--bg: #F4F8F8;
+--panel: #FFFFFF;
+--ink: #14213D;
+--ink-soft: #5C7070;
+--line: #D8E6E6;
+--brand: #0D7377;
+--brand-dark: #095558;
+--brand-soft: #E3F1F1;
+}
+* { box-sizing: border-box; }
+body {
+font-family: -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+background: var(--bg);
+margin: 0;
+color: var(--ink);
+}
+header {
+background: var(--brand);
+color: white;
+padding: 18px 30px;
+font-size: 20px;
+font-weight: 600;
+}
+header a.home-link {
+color: #fff; text-decoration: none; opacity: 0.85;
+margin-right: 14px; font-size: 14px;
+}
+header a.home-link:hover { opacity: 1; text-decoration: underline; }
+.container { max-width: 640px; margin: 30px auto; padding: 0 20px; }
+
+button {
+background: var(--brand); color: white; border: none;
+padding: 10px 18px; border-radius: 6px; cursor: pointer; font-size: 14px;
+}
+button:hover { background: var(--brand-dark); }
+#pageError {
+background: #FDEAEA; color: #B03A2E; border: 1px solid #f2b8b8;
+border-radius: 6px; padding: 10px 14px; font-size: 13px; margin-bottom: 16px; display: none;
+}
+#pageMsg {
+background: #E3F6EC; color: #1E5B3A; border: 1px solid #b9e6cc;
+border-radius: 6px; padding: 10px 14px; font-size: 13px; margin-bottom: 16px; display: none;
+}
+
+.topbar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+
+.panel {
+background: white; border-radius: 10px; padding: 24px; margin-bottom: 20px;
+box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+}
+.panel h3 { margin-top: 0; color: #17324A; font-size: 15px; }
+
+.info-row { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #eee; font-size: 14px; }
+.info-row:last-child { border-bottom: none; }
+.info-row .label { color: #6b7280; }
+.info-row .value { font-weight: 600; color: #17324A; }
+
+.status-badge { padding: 2px 10px; border-radius: 10px; font-size: 11px; font-weight: 600; }
+.status-badge.active { background: #DCEBFA; color: #17324A; }
+.status-badge.inactive { background: #eee; color: #666; }
+.fee-badge { padding: 2px 10px; border-radius: 10px; font-size: 11px; font-weight: 600; }
+.fee-badge.paid { background: #DCF3E4; color: #1E5B3A; }
+.fee-badge.unpaid { background: #FBEAE8; color: #B23A2E; }
+.fee-badge.pending { background: #FDF2D8; color: #6B4400; }
+
+.action-row { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 16px; }
+.btn-deactivate { background: #B03A2E; }
+.btn-deactivate:hover { background: #8f2e24; }
+.btn-approve { background: #2E8B57; }
+.btn-approve:hover { background: #256E45; }
+.btn-reject { background: #B03A2E; }
+.btn-reject:hover { background: #8f2e24; }
+.btn-secondary { background: #2C5F8A; }
+.btn-secondary:hover { background: #234c70; }
+
+.rejection-note {
+background: #FDEAEA; color: #B03A2E; border: 1px solid #f2b8b8;
+border-radius: 6px; padding: 10px 14px; font-size: 13px; margin-top: 16px;
+}
+
+.empty-state { color: #6b7280; font-size: 14px; }
+</style>
+</head>
+<body>
+
+<header><a href="/admin.html?tab=users" class="home-link">← Back to Users</a></header>
+
+<div class="container">
+<div class="topbar">
+<h2 style="color:#17324A;margin:0;">Manage User</h2>
+</div>
+
+<div id="pageError"></div>
+<div id="pageMsg"></div>
+
+<div id="content"></div>
+</div>
+
+<script>
+let authHeader = null;
+let userId = null;
+let currentUser = null;
+
+window.addEventListener('DOMContentLoaded', () => {
+  const storedAuth = localStorage.getItem('authHeader');
+  const storedRole = localStorage.getItem('userRole');
+
+  if (!storedAuth || storedRole !== 'ADMIN') {
+    window.location.href = '/login.html';
+    return;
+  }
+
+  authHeader = storedAuth;
+  userId = new URLSearchParams(window.location.search).get('id');
+
+  if (!userId) {
+    showError('No user was specified.');
+    return;
+  }
+
+  loadUser();
+});
+
+function showError(message) {
+  const box = document.getElementById('pageError');
+  box.textContent = message;
+  box.style.display = message ? 'block' : 'none';
+}
+
+function showMsg(message) {
+  const box = document.getElementById('pageMsg');
+  box.textContent = message;
+  box.style.display = message ? 'block' : 'none';
+}
+
+function escapeHtml(str) {
+  if (str === null || str === undefined) return '';
+  return String(str)
+    .replaceAll('&', '&amp;')
+    .replaceAll('<', '&lt;')
+    .replaceAll('>', '&gt;')
+    .replaceAll('"', '&quot;');
+}
+
+async function loadUser() {
+  try {
+    const res = await fetch(`/admin/users/${userId}`, { headers: { 'Authorization': authHeader } });
+    if (!res.ok) {
+      showError('Unable to load this user account.');
+      return;
+    }
+    currentUser = await res.json();
+    showError(null);
+    render();
+  } catch (e) {
+    showError('Service temporarily unavailable');
+  }
+}
+
+function render() {
+  const u = currentUser;
+  const isStudent = u.role === 'STUDENT';
+  const pending = u.hasReceipt && !u.feePaid;
+
+  let feeBadgeClass = 'unpaid';
+  let feeBadgeText = 'Unpaid';
+  if (u.feePaid) {
+    feeBadgeClass = 'paid';
+    feeBadgeText = 'Paid';
+  } else if (pending) {
+    feeBadgeClass = 'pending';
+    feeBadgeText = 'Pending Verification';
+  }
+
+  let studentSection = '';
+  if (isStudent) {
+    const receiptActions = [];
+    if (u.hasReceipt) {
+      receiptActions.push('<button class="btn-secondary" onclick="viewReceipt()">View Receipt</button>');
+    }
+    if (pending) {
+      receiptActions.push('<button class="btn-approve" onclick="approveReceipt()">Approve Payment</button>');
+      receiptActions.push('<button class="btn-reject" onclick="rejectReceipt()">Reject Receipt</button>');
+    }
+
+    const rejectionNote = u.receiptRejectionReason
+      ? `<div class="rejection-note">Last rejection reason: ${escapeHtml(u.receiptRejectionReason)}</div>`
+      : '';
+
+    studentSection = `
+      <div class="panel">
+        <h3>Payment Status</h3>
+        <div class="info-row">
+          <span class="label">Country</span>
+          <span class="value">${escapeHtml(u.country) || '—'}</span>
+        </div>
+        <div class="info-row">
+          <span class="label">Marital Status</span>
+          <span class="value">${escapeHtml(u.maritalStatus) || '—'}</span>
+        </div>
+        <div class="info-row">
+          <span class="label">Fee Amount</span>
+          <span class="value">${u.feeAmount != null ? 'FJ$' + Number(u.feeAmount).toFixed(2) : '—'}</span>
+        </div>
+        <div class="info-row">
+          <span class="label">Status</span>
+          <span class="fee-badge ${feeBadgeClass}">${feeBadgeText}</span>
+        </div>
+        <div class="info-row">
+          <span class="label">Receipt Uploaded</span>
+          <span class="value">${u.hasReceipt ? 'Yes' : 'No'}</span>
+        </div>
+        ${rejectionNote}
+        <div class="action-row">${receiptActions.join('')}</div>
+      </div>
+    `;
+  }
+
+  document.getElementById('content').innerHTML = `
+    <div class="panel">
+      <h3>Account Details</h3>
+      <div class="info-row">
+        <span class="label">Username</span>
+        <span class="value">${escapeHtml(u.username)}</span>
+      </div>
+      <div class="info-row">
+        <span class="label">Full Name</span>
+        <span class="value">${escapeHtml(u.fullName) || '—'}</span>
+      </div>
+      <div class="info-row">
+        <span class="label">Role</span>
+        <span class="value">${escapeHtml(u.role)}</span>
+      </div>
+      <div class="info-row">
+        <span class="label">Account Status</span>
+        <span class="status-badge ${u.active ? 'active' : 'inactive'}">${u.active ? 'Active' : 'Inactive'}</span>
+      </div>
+      <div class="action-row">
+        ${u.role === 'ADMIN'
+          ? '<span class="empty-state">Admin accounts cannot be activated or deactivated from here.</span>'
+          : `<button class="${u.active ? 'btn-deactivate' : ''}" onclick="toggleActive(false)">${u.active ? 'Deactivate Account' : 'Activate Account'}</button>`}
+      </div>
+    </div>
+    ${studentSection}
+  `;
+}
+
+async function toggleActive(confirmed) {
+  try {
+    const res = await fetch(`/admin/users/${userId}/toggle`, {
+      method: 'POST',
+      headers: { 'Authorization': authHeader, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ confirm: confirmed })
+    });
+
+    if (!res.ok) {
+      const err = await res.json();
+      showError(err.message || 'Unable to update account');
+      return;
+    }
+
+    const result = await res.json();
+    if (result.requiresConfirmation) {
+      if (window.confirm(result.message)) {
+        toggleActive(true);
+      }
+      return;
+    }
+
+    showError(null);
+    showMsg('Account status updated.');
+    loadUser();
+  } catch (e) {
+    showError('Service temporarily unavailable');
+  }
+}
+
+async function viewReceipt() {
+  try {
+    const res = await fetch(`/admin/users/${userId}/receipt`, { headers: { 'Authorization': authHeader } });
+    if (!res.ok) {
+      showError('Unable to load this receipt.');
+      return;
+    }
+    const blob = await res.blob();
+    const url = URL.createObjectURL(blob);
+    window.open(url, '_blank');
+  } catch (e) {
+    showError('Service temporarily unavailable');
+  }
+}
+
+async function approveReceipt() {
+  try {
+    const res = await fetch(`/admin/users/${userId}/verify-receipt`, {
+      method: 'POST',
+      headers: { 'Authorization': authHeader }
+    });
+    const data = await res.json();
+    if (!res.ok || data.error) {
+      showError(data.error || 'Unable to approve this receipt.');
+      return;
+    }
+    showError(null);
+    showMsg('Payment approved. The student can now book appointments.');
+    currentUser = data;
+    render();
+  } catch (e) {
+    showError('Service temporarily unavailable');
+  }
+}
+
+async function rejectReceipt() {
+  const reason = window.prompt('Reason for rejecting this receipt (shown to the student):', '');
+  if (reason === null) return;
+
+  try {
+    const res = await fetch(`/admin/users/${userId}/reject-receipt`, {
+      method: 'POST',
+      headers: { 'Authorization': authHeader, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ reason })
+    });
+    const data = await res.json();
+    if (!res.ok || data.error) {
+      showError(data.error || 'Unable to reject this receipt.');
+      return;
+    }
+    showError(null);
+    showMsg('Receipt rejected. The student can upload a new one.');
+    currentUser = data;
+    render();
+  } catch (e) {
+    showError('Service temporarily unavailable');
+  }
+}
+</script>
+
+</body>
+</html>

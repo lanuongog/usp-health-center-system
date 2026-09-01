@@ -20,7 +20,7 @@ public class ReportController {
         this.appointmentRepository = appointmentRepository;
     }
 
-    // FR-05-63: available report types an administrator can choose from
+    // available report types an administrator can choose from
     @GetMapping("/types")
     public List<String> getReportTypes() {
         return List.of("Appointment Summary", "Visit Reason Breakdown", "Doctor Workload");
@@ -35,8 +35,8 @@ public class ReportController {
         public Map<String, Long> data;
     }
 
-    // FR-05-63/64/65/66: select a report type + date range, generate it from aggregate data.
-    // FR-05-67: only ever aggregate counts are returned here - no student names, no
+    // select a report type + date range, generate it from aggregate data.
+    // only ever aggregate counts are returned here - no student names, no
     // individual visit details - same privacy boundary as the rest of Admin Reporting.
     @GetMapping
     public GeneratedReport generateReport(
@@ -44,7 +44,7 @@ public class ReportController {
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate) {
 
-        // 4.5.2.4: date range is missing
+        // date range is missing
         if (startDate == null || endDate == null) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
                     "Please provide both a start and end date for the report");
@@ -59,7 +59,7 @@ public class ReportController {
                 .filter(a -> !"CANCELLED".equalsIgnoreCase(a.getStatus()))
                 .toList();
 
-        // 4.5.2.4: no information is available
+        // no information is available
         if (appointments.isEmpty()) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND,
                     "No data available for the selected period");
@@ -92,7 +92,7 @@ public class ReportController {
         } catch (ResponseStatusException e) {
             throw e; // preserve intended 400 "Unknown report type"
         } catch (Exception e) {
-            // 4.5.2.4: a genuine failure while building the report itself
+            // a genuine failure while building the report itself
             throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Unable to generate report");
         }
 

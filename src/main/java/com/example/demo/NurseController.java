@@ -20,7 +20,7 @@ public class NurseController {
         this.checkInRepository = checkInRepository;
     }
 
-    // FR-03-29: view students with scheduled appointments who have not yet been checked in
+    // view students with scheduled appointments who have not yet been checked in
     @GetMapping("/queue")
     public List<Appointment> getQueue() {
         return appointmentRepository.findByStatus("BOOKED");
@@ -33,14 +33,14 @@ public class NurseController {
         public String presentingComplaint;
     }
 
-    // FR-03-30/31/32/37/38/39/41: check in a booked student, record vitals + complaint,
+    // check in a booked student, record vitals + complaint,
     // prevent the same student being checked in twice for the same visit
     @PostMapping("/checkin")
     public CheckIn checkInStudent(@RequestBody CheckInRequest request, Authentication auth) {
         Appointment appointment = appointmentRepository.findById(request.appointmentId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Student record not found"));
 
-        // FR-03-32: prevent duplicate check-in for the same visit
+        // prevent duplicate check-in for the same visit
         if (checkInRepository.findByAppointmentId(appointment.getId()).isPresent()) {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "This student has already been checked in");
         }
@@ -48,13 +48,13 @@ public class NurseController {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "No valid appointment found");
         }
 
-        // 4.3.3.4: required fields must be present
+        // required fields must be present
         if (isBlank(request.temperature) || isBlank(request.bloodPressure) || isBlank(request.presentingComplaint)) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
                     "Display validation messages for incomplete vital information");
         }
 
-        // FR-03-40 / 4.3.3.4: reject out-of-range or malformed vital sign values
+        // reject out-of-range or malformed vital sign values
         validateVitals(request.temperature, request.bloodPressure);
 
         CheckIn checkIn = new CheckIn();
@@ -80,11 +80,11 @@ public class NurseController {
         return s == null || s.trim().isEmpty();
     }
 
-    // FR-03-40: a plausible human body temperature in Celsius
+    // a plausible human body temperature in Celsius
     private static final double MIN_TEMP_C = 30.0;
     private static final double MAX_TEMP_C = 43.0;
 
-    // FR-03-40: plausible systolic/diastolic blood pressure bounds (mmHg)
+    // plausible systolic/diastolic blood pressure bounds (mmHg)
     private static final int MIN_SYSTOLIC = 60;
     private static final int MAX_SYSTOLIC = 250;
     private static final int MIN_DIASTOLIC = 40;

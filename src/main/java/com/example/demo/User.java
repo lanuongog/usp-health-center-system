@@ -30,6 +30,11 @@ public class User {
     private boolean feePaid = false;
     private Double feeAmount; // Health Services Fee owed, in FJD, set at registration time
 
+    @Column(columnDefinition = "bytea")
+    private byte[] receiptFile; // uploaded PDF proof of payment
+    private String receiptFileName;
+    private String receiptRejectionReason; // set by an admin when rejecting a receipt
+
     public User() {}
 
     public User(String username, String password, String role) {
@@ -68,4 +73,13 @@ public class User {
 
     public Double getFeeAmount() { return feeAmount; }
     public void setFeeAmount(Double feeAmount) { this.feeAmount = feeAmount; }
+
+    public byte[] getReceiptFile() { return receiptFile; }
+    public void setReceiptFile(byte[] receiptFile) { this.receiptFile = receiptFile; }
+
+    public String getReceiptFileName() { return receiptFileName; }
+    public void setReceiptFileName(String receiptFileName) { this.receiptFileName = receiptFileName; }
+
+    public String getReceiptRejectionReason() { return receiptRejectionReason; }
+    public void setReceiptRejectionReason(String receiptRejectionReason) { this.receiptRejectionReason = receiptRejectionReason; }
 }
