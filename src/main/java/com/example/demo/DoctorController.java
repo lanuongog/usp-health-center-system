@@ -55,15 +55,41 @@ public class DoctorController {
                 .orElse(LocalDateTime.MAX);
     }
 
-    // checked-in students, ordered by urgency then check-in time
+    private String getCheckedInBy(Long appointmentId) {
+        return checkInRepository.findByAppointmentId(appointmentId)
+                .map(CheckIn::getCheckedInBy)
+                .orElse(null);
+    }
+
+    // checked-in students, ordered by urgency then check-in time, with the
+    // checking-in nurse's full name so the doctor can see who checked them in
     @GetMapping("/queue")
-    public List<Appointment> getQueue() {
-        List<Appointment> checkedIn = appointmentRepository.findByStatus("CHECKED_IN");
-        return checkedIn.stream()
+    public List<Map<String, Object>> getQueue() {
+        List<Appointment> checkedIn = appointmentRepository.findByStatus("CHECKED_IN").stream()
                 .sorted(Comparator
                         .comparingInt((Appointment a) -> urgencyRank(a.getUrgencyLevel()))
                         .thenComparing(a -> getCheckInTime(a.getId())))
                 .collect(Collectors.toList());
+
+        Map<String, String> fullNamesByUsername = userRepository.findAll().stream()
+                .filter(u -> u.getFullName() != null && !u.getFullName().isBlank())
+                .collect(Collectors.toMap(User::getUsername, User::getFullName, (a, b) -> a));
+
+        return checkedIn.stream().map(a -> {
+            String checkedInByUsername = getCheckedInBy(a.getId());
+            Map<String, Object> map = new LinkedHashMap<>();
+            map.put("id", a.getId());
+            map.put("studentId", a.getStudentName());
+            map.put("studentName", fullNamesByUsername.getOrDefault(a.getStudentName(), a.getStudentName()));
+            map.put("appointmentDate", a.getAppointmentDate() != null ? a.getAppointmentDate().toString() : "");
+            map.put("timeSlot", a.getTimeSlot());
+            map.put("visitReason", a.getVisitReason());
+            map.put("urgencyLevel", a.getUrgencyLevel());
+            map.put("status", a.getStatus());
+            map.put("consultedByDoctor", a.getConsultedByDoctor());
+            map.put("checkedInBy", fullNamesByUsername.getOrDefault(checkedInByUsername, checkedInByUsername));
+            return map;
+        }).collect(Collectors.toList());
     }
 
     // View all booked / scheduled appointments that have not yet been checked in by nurse
@@ -110,11 +136,18 @@ public class DoctorController {
         CheckIn checkIn = checkInRepository.findByAppointmentId(appointmentId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "This student has not been checked in yet"));
 
+        String checkedInByUsername = checkIn.getCheckedInBy();
+        String checkedInByFullName = userRepository.findByUsername(checkedInByUsername)
+                .map(User::getFullName)
+                .filter(name -> name != null && !name.isBlank())
+                .orElse(checkedInByUsername);
+
         Map<String, Object> result = new LinkedHashMap<>();
         result.put("temperature", checkIn.getTemperature());
         result.put("bloodPressure", checkIn.getBloodPressure());
         result.put("presentingComplaint", checkIn.getPresentingComplaint());
         result.put("checkInTime", checkIn.getCheckInTime() != null ? checkIn.getCheckInTime().toString() : null);
+        result.put("checkedInBy", checkedInByFullName);
         return result;
     }
 

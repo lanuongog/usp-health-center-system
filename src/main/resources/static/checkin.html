@@ -155,7 +155,7 @@ font-size: 13px; margin-bottom: 14px; box-sizing: border-box;
 <div class="panel">
 <h3>Completed Check-ins Today</h3>
 <table>
-<thead><tr><th>Student</th><th>Temp</th><th>BP</th><th>Complaint</th><th>Time</th></tr></thead>
+<thead><tr><th>Student</th><th>Temp</th><th>BP</th><th>Complaint</th><th>Time</th><th>Checked In By</th></tr></thead>
 <tbody id="checkinTableBody"></tbody>
 </table>
 </div>
@@ -393,20 +393,20 @@ async function loadCheckIns() {
     body.innerHTML = '';
 
     if (checkins.length === 0) {
-      body.innerHTML = '<tr><td colspan="5" style="color:#9ca3af;">No check-ins completed yet.</td></tr>';
+      body.innerHTML = '<tr><td colspan="6" style="color:#9ca3af;">No check-ins completed today.</td></tr>';
       return;
     }
 
     for (const c of checkins) {
       const row = document.createElement('tr');
-      const name = c.appointment ? c.appointment.studentName : 'Unknown';
       const time = c.checkInTime ? new Date(c.checkInTime).toLocaleTimeString() : '';
       row.innerHTML = `
-        <td>${escapeHtml(name)}</td>
+        <td>${escapeHtml(c.studentName)}</td>
         <td>${escapeHtml(c.temperature)}</td>
         <td>${escapeHtml(c.bloodPressure)}</td>
         <td>${escapeHtml(c.presentingComplaint)}</td>
         <td>${escapeHtml(time)}</td>
+        <td>${escapeHtml(c.checkedInBy)}</td>
       `;
       body.appendChild(row);
     }

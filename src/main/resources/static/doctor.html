@@ -515,6 +515,7 @@ function renderQueueRows(queue) {
             <div class="name">👤 ${escapeHtml(appt.studentName)}</div>
             <div class="reason">${escapeHtml(appt.appointmentDate)} · ${escapeHtml(appt.timeSlot)}</div>
             <div class="reason">${escapeHtml(appt.visitReason)}${appt.consultedByDoctor ? ' · ' + escapeHtml(appt.consultedByDoctor) : ''} · <em>${escapeHtml(appt.status)}</em></div>
+            ${appt.checkedInBy ? `<div class="reason">Checked in by: ${escapeHtml(appt.checkedInBy)}</div>` : ''}
           </div>
           <span class="badge ${appt.urgencyLevel}">${appt.urgencyLevel}</span>
         </div>
@@ -623,6 +624,7 @@ function selectPatient(appt) {
           <div class="history-item">
             <div class="h-top"><span>Temp: ${escapeHtml(vitals.temperature)}</span><span>BP: ${escapeHtml(vitals.bloodPressure)}</span></div>
             <div class="h-meta">${escapeHtml(vitals.presentingComplaint)}</div>
+            <div class="h-meta">Checked in by: ${escapeHtml(vitals.checkedInBy) || 'Unknown'}</div>
           </div>
       `;
     })

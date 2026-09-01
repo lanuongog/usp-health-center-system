@@ -4,6 +4,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.Comparator;
 import java.util.LinkedHashMap;
@@ -110,9 +111,32 @@ public class NurseController {
         return checkInRepository.save(checkIn);
     }
 
+    // today's completed check-ins, enriched with the student's and nurse's
+    // full names so a doctor can see at a glance who checked a student in
     @GetMapping("/checkins")
-    public List<CheckIn> getAllCheckIns() {
-        return checkInRepository.findAll();
+    public List<Map<String, Object>> getAllCheckIns() {
+        LocalDate today = LocalDate.now();
+
+        Map<String, String> fullNamesByUsername = userRepository.findAll().stream()
+                .filter(u -> u.getFullName() != null && !u.getFullName().isBlank())
+                .collect(Collectors.toMap(User::getUsername, User::getFullName, (a, b) -> a));
+
+        return checkInRepository.findAll().stream()
+                .filter(c -> c.getCheckInTime() != null && c.getCheckInTime().toLocalDate().equals(today))
+                .sorted(Comparator.comparing(CheckIn::getCheckInTime).reversed())
+                .map(c -> {
+                    String studentUsername = c.getAppointment() != null ? c.getAppointment().getStudentName() : null;
+                    Map<String, Object> map = new LinkedHashMap<>();
+                    map.put("id", c.getId());
+                    map.put("studentName", fullNamesByUsername.getOrDefault(studentUsername, studentUsername));
+                    map.put("temperature", c.getTemperature());
+                    map.put("bloodPressure", c.getBloodPressure());
+                    map.put("presentingComplaint", c.getPresentingComplaint());
+                    map.put("checkInTime", c.getCheckInTime() != null ? c.getCheckInTime().toString() : null);
+                    map.put("checkedInBy", fullNamesByUsername.getOrDefault(c.getCheckedInBy(), c.getCheckedInBy()));
+                    return map;
+                })
+                .collect(Collectors.toList());
     }
 
     public static class NoShowRequest {
