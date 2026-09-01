@@ -58,7 +58,8 @@ git add .
 git commit -m "Working prototype: reporting dashboard with login-protected access"
 git push
 ```
-
+'''
+'''
 ## Troubleshooting
 
 **"Invalid character constant" error on startup** - a file got corrupted during editing. Delete the file mentioned in the error and recreate it fresh by copying from this package.
@@ -67,3 +68,4 @@ git push
 
 **Connection refused to PostgreSQL** - confirm the PostgreSQL service is running (Windows Services -> `postgresql-x64-18` -> should say "Running") and that the port in `application.properties` matches what `netstat` shows.
 
+end
