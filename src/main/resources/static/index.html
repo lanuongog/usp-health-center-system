@@ -4,6 +4,9 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Laucala Health Center</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,500;8..60,600;8..60,700&family=Public+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <style>
 :root {
 --bg: #F4F8F8;
@@ -16,24 +19,26 @@
 --brand-soft: #E3F1F1;
 --footer-bg: #0F2B2E;
 --footer-text: #C7DBDB;
+--serif: 'Source Serif 4', Georgia, 'Times New Roman', serif;
+--sans: 'Public Sans', -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
 }
 * { box-sizing: border-box; }
 html { scroll-behavior: smooth; }
 body {
 margin: 0;
-font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+font-family: var(--sans);
 background: var(--bg);
 color: var(--ink);
 }
+img { max-width: 100%; }
 
+/* ===== HEADER ===== */
 header {
 background: var(--brand);
-padding: 12px 28px;
+padding: 14px 32px;
 display: flex;
 align-items: center;
-justify-content: space-between;
 gap: 16px;
-flex-wrap: wrap;
 }
 header a.logo-link { display: flex; align-items: center; gap: 12px; text-decoration: none; }
 header .logo-chip {
@@ -44,68 +49,201 @@ display: flex;
 align-items: center;
 }
 header img.logo { height: 32px; display: block; }
-header .site-name { font-size: 15px; font-weight: 700; color: #fff; }
+header .site-name { font-family: var(--serif); font-size: 17px; font-weight: 600; color: #fff; letter-spacing: 0.2px; }
+
+/* ===== HERO + SIDEBAR ===== */
+.hero-wrap {
+max-width: 1180px;
+margin: 0 auto;
+padding: 28px 28px 0;
+display: grid;
+grid-template-columns: 1.65fr 1fr;
+align-items: stretch;
+gap: 22px;
+}
+@media (max-width: 880px) { .hero-wrap { grid-template-columns: 1fr; padding: 20px 18px 0; } }
+
+.hero-col { display: flex; flex-direction: column; min-width: 0; }
 
 .hero {
 position: relative;
-height: 220px;
+border-radius: 16px;
 overflow: hidden;
+min-height: 380px;
+flex: 1;
+display: flex;
+align-items: flex-end;
 }
-.hero .banner {
+.hero img.banner {
+position: absolute;
+inset: 0;
 width: 100%;
 height: 100%;
 object-fit: cover;
 display: block;
 }
-.hero .overlay {
+/* soft, full-height tone over the whole photo so the top of the image
+   (often bright sky) reads as an intentional wash, not a raw crop */
+.hero-scrim {
 position: absolute;
 inset: 0;
-background: linear-gradient(180deg, rgba(13,115,119,0.20), rgba(9,25,30,0.78));
+background: linear-gradient(180deg, rgba(9,25,30,0.32) 0%, rgba(9,25,30,0.12) 22%, rgba(9,25,30,0.18) 55%, rgba(9,25,30,0.82) 100%);
+pointer-events: none;
+}
+.hero .overlay {
+position: relative;
+z-index: 1;
+width: 100%;
+padding: 32px;
+}
+.hero h1 {
+font-family: var(--serif);
+color: #fff;
+font-size: clamp(28px, 4vw, 42px);
+font-weight: 600;
+line-height: 1.12;
+margin: 0 0 10px;
+text-wrap: balance;
+max-width: 15ch;
+opacity: 0;
+animation: fadeUp 0.6s ease-out 0.15s forwards;
+}
+.hero p {
+color: #E7F3F3;
+font-size: 15px;
+line-height: 1.55;
+margin: 0 0 20px;
+max-width: 42ch;
+opacity: 0;
+animation: fadeUp 0.6s ease-out 0.25s forwards;
+}
+.hero .cta-row { display: flex; gap: 12px; flex-wrap: wrap; opacity: 0; animation: fadeUp 0.6s ease-out 0.35s forwards; }
+.hero .cta-btn {
+display: inline-block;
+background: #fff;
+color: var(--brand-dark);
+font-weight: 700;
+font-size: 14px;
+padding: 12px 22px;
+border-radius: 8px;
+text-decoration: none;
+transition: transform 0.15s, box-shadow 0.15s;
+}
+.hero .cta-btn:hover { transform: translateY(-1px); box-shadow: 0 6px 16px rgba(0,0,0,0.22); }
+
+@keyframes fadeUp {
+from { opacity: 0; transform: translateY(8px); }
+to { opacity: 1; transform: translateY(0); }
+}
+@media (prefers-reduced-motion: reduce) {
+.hero-eyebrow, .hero h1, .hero p, .hero .cta-row { animation: none; opacity: 1; }
+}
+
+/* campus wordmark back on the photo overlay, above the headline */
+.hero-eyebrow {
+margin: 0 0 14px;
+opacity: 0;
+animation: fadeUp 0.5s ease-out 0.05s forwards;
+}
+.hero-eyebrow .campus-name {
+display: block;
+font-family: var(--serif);
+font-size: clamp(22px, 2.6vw, 28px);
+font-weight: 600;
+line-height: 1.1;
+color: #fff;
+letter-spacing: 0.2px;
+margin: 0;
+}
+.hero-eyebrow .campus-tagline {
+display: block;
+margin-top: 4px;
+font-size: 12px;
+font-weight: 700;
+letter-spacing: 1.6px;
+text-transform: uppercase;
+color: var(--brand-soft);
+}
+
+/* ===== SIDEBAR CARDS ===== */
+.sidebar { display: flex; flex-direction: column; gap: 14px; }
+.info-card {
+border-radius: 14px;
+padding: 20px 22px;
+color: #fff;
 display: flex;
 flex-direction: column;
-align-items: center;
+gap: 6px;
+min-height: 108px;
 justify-content: center;
-text-align: center;
-padding: 20px;
+position: relative;
+overflow: hidden;
 }
-.hero h1 { color: #fff; font-size: 26px; margin: 0 0 6px; }
-.hero p { color: #DCF0F0; font-size: 14px; margin: 0; max-width: 460px; }
-
-.eligibility-bar {
-background: var(--brand-soft);
-color: var(--brand-dark);
-text-align: center;
-font-size: 12.5px;
-padding: 9px 16px;
+a.info-card { text-decoration: none; transition: transform 0.15s, box-shadow 0.15s; }
+a.info-card:hover { transform: translateY(-2px); box-shadow: 0 10px 24px rgba(0,0,0,0.16); }
+.info-card::after {
+content: "";
+position: absolute;
+right: -30px; top: -30px;
+width: 110px; height: 110px;
+border-radius: 50%;
+background: rgba(255,255,255,0.08);
 }
+.info-card .card-label {
+font-size: 11px;
+font-weight: 700;
+letter-spacing: 1px;
+text-transform: uppercase;
+opacity: 0.75;
+}
+.info-card .card-title { font-family: var(--serif); font-size: 19px; font-weight: 600; }
+.info-card .card-detail { font-size: 12.5px; line-height: 1.5; opacity: 0.92; font-family: var(--sans); }
+.info-card.hours { background: var(--brand); min-height: 0; align-items: stretch; }
+.info-card.contact { background: var(--brand-dark); }
+.info-card.book { background: var(--ink); }
 
-main { max-width: 1120px; margin: 0 auto; padding: 30px 32px 16px; }
+.hours-rows { display: flex; flex-direction: column; gap: 9px; margin-top: 4px; }
+.hours-row { display: flex; flex-direction: column; gap: 1px; }
+.hours-row .h-key {
+font-size: 10.5px;
+font-weight: 700;
+letter-spacing: 0.6px;
+text-transform: uppercase;
+opacity: 0.72;
+}
+.hours-row .h-val { font-size: 12.5px; line-height: 1.45; font-family: var(--sans); }
+
+main { max-width: 1180px; margin: 0 auto; padding: 40px 28px 16px; }
+@media (max-width: 880px) { main { padding: 34px 18px 16px; } }
 
 .section-title {
+font-family: var(--serif);
 text-align: center;
-font-size: 18px;
-font-weight: 700;
-margin: 0 0 4px;
+font-size: 24px;
+font-weight: 600;
+margin: 40px 0 4px;
+text-wrap: balance;
 }
+main .section-title:first-child { margin-top: 0; }
 .section-sub {
 text-align: center;
 color: var(--ink-soft);
-font-size: 13px;
-margin: 0 0 20px;
+font-size: 13.5px;
+margin: 0 0 24px;
 }
 
+/* ===== SERVICES ===== */
 .services {
 display: grid;
 grid-template-columns: repeat(5, 1fr);
-gap: 18px;
-margin-bottom: 36px;
+gap: 16px;
+margin-bottom: 10px;
 }
-@media (max-width: 760px) { .services { grid-template-columns: repeat(2, 1fr); } }
-
+@media (max-width: 880px) { .services { grid-template-columns: repeat(2, 1fr); } }
 .service-card {
 background: var(--panel);
 border: 1px solid var(--line);
-border-radius: 10px;
+border-radius: 12px;
 padding: 24px 16px;
 text-align: center;
 display: block;
@@ -114,79 +252,55 @@ color: inherit;
 transition: box-shadow 0.15s, transform 0.15s, border-color 0.15s;
 }
 .service-card:hover {
-box-shadow: 0 4px 14px rgba(0,0,0,0.08);
+box-shadow: 0 8px 20px rgba(20,33,61,0.08);
 transform: translateY(-2px);
 border-color: var(--brand);
 }
 .service-card .icon-md {
-width: 40px;
-height: 40px;
+width: 40px; height: 40px;
 margin: 0 auto 10px;
 border-radius: 9px;
 background: var(--brand-soft);
-display: flex;
-align-items: center;
-justify-content: center;
+display: flex; align-items: center; justify-content: center;
 }
 .service-card .icon-md svg { width: 20px; height: 20px; stroke: var(--brand); }
 .service-card .title { font-weight: 700; font-size: 13.5px; margin-bottom: 4px; }
 .service-card .desc { font-size: 12px; color: var(--ink-soft); line-height: 1.4; }
 
-/* ===== ACCESS / LOGIN PROMPT ===== */
-.access-section {
-background: var(--brand-soft);
-border: 1px solid var(--line);
-border-radius: 14px;
-padding: 40px 32px;
-max-width: 680px;
-margin: 0 auto 36px;
-text-align: center;
-box-shadow: 0 4px 18px rgba(0,0,0,0.05);
-}
-.access-section .emblem {
-display: inline-flex;
-align-items: center;
-justify-content: center;
-width: 52px;
-height: 52px;
-background: var(--panel);
-border-radius: 14px;
-margin-bottom: 14px;
-font-size: 24px;
-}
-.access-section h2 {
-font-size: 22px;
+/* ===== HOURS OF OPERATION (full detail, inside the sidebar card) ===== */
+.card-subhead {
+font-size: 11px;
 font-weight: 700;
-margin: 0 0 4px;
-color: var(--ink);
-}
-.access-section .subtitle {
-font-size: 13.5px;
-color: var(--ink-soft);
-margin: 0 0 18px;
-}
-.access-section p {
-font-size: 14.5px;
-line-height: 1.6;
-color: var(--ink);
-max-width: 520px;
-margin: 0 auto 22px;
-}
-.access-section .cta-btn {
-display: inline-block;
-background: var(--brand);
+letter-spacing: 0.6px;
+text-transform: uppercase;
 color: #fff;
-font-weight: 700;
-font-size: 14.5px;
-padding: 12px 28px;
-border-radius: 8px;
-text-decoration: none;
-transition: background 0.15s;
+opacity: 0.85;
+margin: 18px 0 8px;
 }
-.access-section .cta-btn:hover {
-background: var(--brand-dark);
+.card-subblock:first-of-type .card-subhead:first-child { margin-top: 4px; }
+.card-plain-hours { list-style: none; margin: 0; padding: 0; font-size: 12.5px; line-height: 1.6; color: #fff; }
+.card-plain-hours .note { opacity: 0.75; font-style: italic; font-size: 11.5px; }
+.card-tablabel { font-size: 11.5px; font-weight: 600; color: #fff; opacity: 0.9; margin: 10px 0 4px; }
+.card-tablabel .muted { font-weight: 400; opacity: 0.8; text-transform: none; }
+.card-hours-table { width: 100%; border-collapse: collapse; font-size: 11.5px; margin-bottom: 6px; border-radius: 6px; overflow: hidden; }
+.card-hours-table th {
+background: rgba(255,255,255,0.16);
+color: #fff;
+text-align: left;
+font-size: 10px;
+font-weight: 700;
+letter-spacing: 0.3px;
+text-transform: uppercase;
+padding: 6px 9px;
+}
+.card-hours-table td {
+background: rgba(255,255,255,0.06);
+color: #fff;
+padding: 7px 9px;
+border-top: 1px solid rgba(255,255,255,0.14);
 }
 
+/* ===== FIND US ===== */
 .map-wrap {
 border: 1px solid var(--line);
 border-radius: 12px;
@@ -200,6 +314,7 @@ border: 0;
 display: block;
 }
 
+/* ===== FOOTER ===== */
 footer {
 margin-top: 36px;
 background: var(--footer-bg);
@@ -209,7 +324,7 @@ font-size: 12.5px;
 color: var(--footer-text);
 }
 footer .line { margin-bottom: 4px; }
-footer .line strong { color: #fff; }
+footer .line strong { font-family: var(--serif); color: #fff; font-size: 14px; }
 footer .back-to-top {
 display: inline-block;
 margin-top: 14px;
@@ -231,22 +346,80 @@ footer .back-to-top:hover { color: #fff; text-decoration: underline; }
 </a>
 </header>
 
+<div class="hero-wrap">
+<div class="hero-col">
 <div class="hero">
-<img class="banner" src="/images/healthcenter.jpg" alt="Laucala Health Center" />
+<img class="banner" src="/images/healthcenter-hero.jpg" alt="Laucala Health Center" />
+<div class="hero-scrim"></div>
 <div class="overlay">
-<h1>Book your visit online</h1>
-<p>Check availability, book, or manage your visit — all in one place.</p>
+<div class="hero-eyebrow">
+<p class="campus-name">Laucala Campus</p>
+<p class="campus-tagline">Student Health &amp; Wellness</p>
+</div>
+<h1>Book your visit online, in a few taps</h1>
+<p>Check availability, book, or manage your visit — all in one place. Registered students can access the Health Portal 24/7.</p>
+<div class="cta-row">
+<a class="cta-btn" id="loginCta" href="/login.html">Log in to Health Portal →</a>
+</div>
+</div>
 </div>
 </div>
 
-<div class="eligibility-bar">
-  Open to registered students on Laucala Campus only
+<div class="sidebar">
+<div class="info-card hours">
+<span class="card-label">Hours of Operation</span>
+
+<div class="card-subblock">
+<p class="card-subhead">Clinic Opening Hours</p>
+<ul class="card-plain-hours">
+<li>Semester (Mon–Fri): 7:30 AM – 6:30 PM</li>
+<li>Mid-Semester Break &amp; Semester Break (Mon–Fri): 8:00 AM – 4:30 PM</li>
+<li class="note">Closed 1:00 PM – 2:00 PM daily for lunch</li>
+</ul>
+</div>
+
+<div class="card-subblock">
+<p class="card-subhead">Doctors' Working Hours</p>
+
+<p class="card-tablabel">Semester</p>
+<table class="card-hours-table">
+<thead><tr><th>Day</th><th>Start</th><th>End</th></tr></thead>
+<tbody>
+<tr><td>Mon–Thu</td><td>9:00 AM</td><td>6:30 PM</td></tr>
+<tr><td>Friday</td><td>9:00 AM</td><td>5:00 PM</td></tr>
+</tbody>
+</table>
+
+<p class="card-tablabel">Mid-Semester Break</p>
+<table class="card-hours-table">
+<thead><tr><th>Days</th><th>Time</th></tr></thead>
+<tbody><tr><td>Mon–Fri</td><td>9:00 AM – 1:00 PM</td></tr></tbody>
+</table>
+
+<p class="card-tablabel">Semester Break <span class="muted">(first week only)</span></p>
+<table class="card-hours-table">
+<thead><tr><th>Days</th><th>Time</th></tr></thead>
+<tbody><tr><td>Mon–Fri</td><td>9:00 AM – 1:00 PM</td></tr></tbody>
+</table>
+</div>
+</div>
+<a class="info-card contact" href="tel:3231618">
+<span class="card-label">Contact Us</span>
+<span class="card-title">3231618</span>
+<span class="card-detail">Laucala Campus, Suva<br />Call for appointments &amp; enquiries</span>
+</a>
+<a class="info-card book" id="bookCardCta" href="/login.html">
+<span class="card-label">Health Portal</span>
+<span class="card-title">Book an Appointment</span>
+<span class="card-detail">View queue status, results &amp; records online</span>
+</a>
+</div>
 </div>
 
 <main>
 
-<p class="section-title">Our Services</p>
-<p class="section-sub">What the Health & Wellness Center provides on Laucala Campus</p>
+<p class="section-title" id="services">Our Services</p>
+<p class="section-sub">What the Health &amp; Wellness Center provides on Laucala Campus</p>
 <div class="services">
 <a class="service-card" href="/services.html#consultations">
 <div class="icon-md">
@@ -295,25 +468,11 @@ footer .back-to-top:hover { color: #fff; text-decoration: underline; }
 </a>
 </div>
 
-<!-- ===== ACCESS SECTION ===== -->
-<div class="access-section">
-<div class="emblem">🏥</div>
-<h2>Laucala Health Center</h2>
-
-
-<p>
-  Laucala Health Services provide student-focused primary healthcare at the Laucala Campus clinic.
-  Registered students, spouses and children under 18 can book appointments, view their queue status, 
-  and access medical records online through the Health Portal.
-</p>
-
-<a class="cta-btn" id="loginCta" href="/login.html">Log in to Health Portal →</a>
-</div>
-
 <p class="section-title">Find Us</p>
 <p class="section-sub">Laucala Campus, Suva</p>
 <div class="map-wrap">
 <iframe
+title="Map showing Laucala Health Center location"
 src="https://www.google.com/maps?q=-18.14997014420256,178.44378066812286&z=17&output=embed"
 loading="lazy"
 referrerpolicy="no-referrer-when-downgrade">
@@ -340,10 +499,15 @@ window.addEventListener('DOMContentLoaded', () => {
     NURSE: '/checkin.html',
     ADMIN: '/admin.html'
   };
+  const dest = portalPaths[storedRole] || '/student.html';
 
-  const cta = document.getElementById('loginCta');
-  cta.href = portalPaths[storedRole] || '/student.html';
-  cta.textContent = 'Go to your profile →';
+  const heroCta = document.getElementById('loginCta');
+  heroCta.href = dest;
+  heroCta.textContent = 'Go to your profile →';
+
+  const bookCard = document.getElementById('bookCardCta');
+  bookCard.href = dest;
+  bookCard.querySelector('.card-title').textContent = 'Go to your profile';
 });
 </script>
 
