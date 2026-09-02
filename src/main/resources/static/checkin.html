@@ -131,7 +131,7 @@ font-size: 13px; margin-bottom: 14px; box-sizing: border-box;
 <input type="text" id="recordsSearchInput" aria-label="Search by student name or ID" placeholder="Search by student name or ID..." oninput="onRecordsSearch(this.value)" />
 </div>
 <table class="records-table">
-<thead><tr><th>Name</th><th>Student ID</th><th>Date</th><th>Time</th><th>Status</th><th></th></tr></thead>
+<thead><tr><th>Name</th><th>Student ID</th><th>Date</th><th>Time</th><th>Status</th><th>Checked In By</th><th></th></tr></thead>
 <tbody id="recordsTableBody"></tbody>
 </table>
 </div>
@@ -234,6 +234,12 @@ function renderRecordsTable() {
     const actionCell = canCheckIn
       ? `<button onclick="startCheckIn(${r.id}, this.dataset.name)" data-name="${escapeHtml(r.studentName)}">Check In</button>`
       : '';
+    let checkedInCell = '<span style="color:#9ca3af;">—</span>';
+    if (r.checkedInBy) {
+      checkedInCell = r.checkedInDirect
+        ? `${escapeHtml(r.checkedInBy)} <span style="color:#8A4B12;font-size:11px;">(seen directly, no nurse check-in)</span>`
+        : escapeHtml(r.checkedInBy);
+    }
     return `
       <tr>
         <td>${escapeHtml(r.studentName)}</td>
@@ -241,6 +247,7 @@ function renderRecordsTable() {
         <td>${escapeHtml(r.appointmentDate) || '—'}</td>
         <td>${escapeHtml(r.timeSlot) || '—'}</td>
         <td><span class="status-tag ${escapeHtml(r.status)}">${escapeHtml(r.status)}</span></td>
+        <td>${checkedInCell}</td>
         <td>${actionCell}</td>
       </tr>
     `;

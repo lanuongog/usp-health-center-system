@@ -435,7 +435,8 @@ function switchDoctorTab(tab) {
   statusFilter = '';
   document.getElementById('queue-search-input').value = '';
   document.getElementById('status-filter-select').value = '';
-  document.getElementById('queue-search-box').style.display = tab === 'all' ? 'flex' : 'none';
+  document.getElementById('queue-search-box').style.display = (tab === 'all' || tab === 'booked') ? 'flex' : 'none';
+  document.getElementById('status-filter-select').style.display = tab === 'all' ? 'inline-block' : 'none';
 
   refreshQueue();
 }

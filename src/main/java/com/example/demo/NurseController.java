@@ -60,6 +60,27 @@ public class NurseController {
             map.put("appointmentDate", a.getAppointmentDate() != null ? a.getAppointmentDate().toString() : "");
             map.put("timeSlot", a.getTimeSlot());
             map.put("status", a.getStatus());
+
+            // Who checked this student in, for the record. Normally this is the
+            // nurse who logged vitals. But a doctor can complete a consultation on
+            // a still-BOOKED appointment directly (found via Scheduled Bookings),
+            // skipping the nurse queue entirely - no CheckIn row exists for that
+            // visit, so fall back to attributing it to the treating doctor and
+            // flag it as a direct visit rather than presenting it as a real check-in.
+            String nurseCheckedInBy = checkInRepository.findByAppointmentId(a.getId())
+                    .map(CheckIn::getCheckedInBy)
+                    .orElse(null);
+            if (nurseCheckedInBy != null) {
+                map.put("checkedInBy", fullNamesByUsername.getOrDefault(nurseCheckedInBy, nurseCheckedInBy));
+                map.put("checkedInDirect", false);
+            } else if ("COMPLETED".equals(a.getStatus()) && a.getConsultedByDoctor() != null) {
+                map.put("checkedInBy", fullNamesByUsername.getOrDefault(a.getConsultedByDoctor(), a.getConsultedByDoctor()));
+                map.put("checkedInDirect", true);
+            } else {
+                map.put("checkedInBy", null);
+                map.put("checkedInDirect", false);
+            }
+
             return map;
         }).collect(Collectors.toList());
     }
@@ -106,7 +127,14 @@ public class NurseController {
         checkIn.setCheckedInBy(auth.getName());
 
         appointment.setStatus("CHECKED_IN");
-        appointmentRepository.save(appointment);
+        Appointment saved = appointmentRepository.save(appointment);
+
+        // Free up the schedule slot as soon as the student is checked in - this
+        // also covers a future-dated appointment being checked in early, so that
+        // slot doesn't stay reserved once the student is already being seen.
+        if (saved.getAppointmentDate() != null && saved.getTimeSlot() != null) {
+            scheduleRepository.setBookedForTimeSlot(saved.getAppointmentDate(), saved.getTimeSlot(), false);
+        }
 
         return checkInRepository.save(checkIn);
     }

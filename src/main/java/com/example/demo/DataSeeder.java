@@ -18,53 +18,44 @@ public class DataSeeder {
                                        DoctorScheduleRepository scheduleRepository,
                                        PasswordEncoder passwordEncoder) {
         return args -> {
-            if (userRepository.findByUsername("admin").isEmpty()) {
+            // Bootstrap default accounts only the very first time the app ever runs
+            // against an empty database. Once any user exists, this never runs again -
+            // otherwise an account intentionally deleted (e.g. via direct DB access,
+            // since there is no in-app delete) would silently come back on every restart.
+            if (userRepository.count() == 0) {
                 User admin = new User("admin", passwordEncoder.encode("admin123"), "ADMIN");
                 userRepository.save(admin);
                 System.out.println("Seeded default admin user: admin / admin123");
-            }
 
-            if (userRepository.findByUsername("nurse").isEmpty()) {
                 User nurse = new User("nurse", passwordEncoder.encode("nurse123"), "NURSE");
                 userRepository.save(nurse);
                 System.out.println("Seeded default nurse user: nurse / nurse123");
-            }
 
-            if (userRepository.findByUsername("doctor").isEmpty()) {
                 User doctor = new User("doctor", passwordEncoder.encode("doctor123"), "DOCTOR");
                 userRepository.save(doctor);
                 System.out.println("Seeded default doctor user: doctor / doctor123");
-            }
 
-            // Individual doctor logins, so consultation attribution and schedule
-            // ownership checks work per-physician instead of everyone sharing "doctor".
-            String[][] doctorAccounts = {
-                {"dr.patel", "patel123"},
-                {"dr.lee", "lee123"},
-                {"dr.sharma", "sharma123"}
-            };
-            for (String[] account : doctorAccounts) {
-                if (userRepository.findByUsername(account[0]).isEmpty()) {
+                // Individual doctor logins, so consultation attribution and schedule
+                // ownership checks work per-physician instead of everyone sharing "doctor".
+                String[][] doctorAccounts = {
+                    {"dr.patel", "patel123"},
+                    {"dr.lee", "lee123"},
+                    {"dr.sharma", "sharma123"}
+                };
+                for (String[] account : doctorAccounts) {
                     userRepository.save(new User(account[0], passwordEncoder.encode(account[1]), "DOCTOR"));
                     System.out.println("Seeded doctor user: " + account[0] + " / " + account[1]);
                 }
-            }
 
-            User student1 = userRepository.findByUsername("student1").orElse(null);
-            if (student1 == null) {
-                student1 = new User("student1", passwordEncoder.encode("student123"), "STUDENT");
-                System.out.println("Seeded default student user: student1 / student123");
-            }
-            // Backfills registration/fee details even on an existing student1 row, so demo
-            // data created before these fields existed doesn't show up blank in the admin view.
-            if (student1.getFullName() == null) {
+                User student1 = new User("student1", passwordEncoder.encode("student123"), "STUDENT");
                 student1.setFullName("Elena Prasad");
                 student1.setMaritalStatus("Single");
                 student1.setCountry("Fiji");
                 student1.setFeeAmount(50.00);
                 student1.setFeePaid(true);
+                userRepository.save(student1);
+                System.out.println("Seeded default student user: student1 / student123");
             }
-            userRepository.save(student1);
 
             // One-time migration: earlier seed data identified doctors by display name
             // (e.g. "Dr. Patel"). Individual doctor logins now use clean handles instead
@@ -134,7 +125,10 @@ public class DataSeeder {
                                 slot.setDoctorName(doctor);
                                 slot.setScheduleDate(date);
                                 slot.setTimeSlot(timeSlot);
-                                slot.setBooked(false);
+                                // Inherit the current booked state for this date+time rather than
+                                // hardcoding false, so a freshly topped-up row for one doctor can't
+                                // disagree with an already-booked row for another doctor at the same time.
+                                slot.setBooked(scheduleRepository.anyBookedForTimeSlot(date, timeSlot));
                                 scheduleRepository.save(slot);
                                 seeded++;
                             }
@@ -147,67 +141,6 @@ public class DataSeeder {
                 }
             }
 
-            if (appointmentRepository.count() == 0) {
-                Appointment a1 = new Appointment();
-                a1.setStudentName("Alice Tan");
-                a1.setDoctorName("dr.patel");
-                a1.setAppointmentDate(LocalDate.of(2026, 8, 10));
-                a1.setVisitReason("Fever");
-                a1.setUrgencyLevel("Urgent");
-                a1.setStatus("COMPLETED");
-                a1.setConsultedByDoctor("dr.patel");
-                appointmentRepository.save(a1);
-
-                Appointment a2 = new Appointment();
-                a2.setStudentName("Ben Kumar");
-                a2.setDoctorName("dr.patel");
-                a2.setAppointmentDate(LocalDate.of(2026, 8, 12));
-                a2.setVisitReason("Routine Checkup");
-                a2.setUrgencyLevel("Routine");
-                a2.setStatus("COMPLETED");
-                a2.setConsultedByDoctor("dr.patel");
-                appointmentRepository.save(a2);
-
-                Appointment a3 = new Appointment();
-                a3.setStudentName("Chen Wei");
-                a3.setDoctorName("dr.lee");
-                a3.setAppointmentDate(LocalDate.of(2026, 8, 14));
-                a3.setVisitReason("Follow-up");
-                a3.setUrgencyLevel("Routine");
-                a3.setStatus("NO_SHOW");
-                appointmentRepository.save(a3);
-
-                Appointment a4 = new Appointment();
-                a4.setStudentName("Divya Singh");
-                a4.setDoctorName("dr.lee");
-                a4.setAppointmentDate(LocalDate.of(2026, 8, 15));
-                a4.setVisitReason("Injury");
-                a4.setUrgencyLevel("Emergency");
-                a4.setStatus("COMPLETED");
-                a4.setConsultedByDoctor("dr.lee");
-                appointmentRepository.save(a4);
-
-                // Not yet checked in or seen, so no doctor is assigned -
-                // matches the real booking flow, where a doctor is only
-                // attached once they pick up and complete the consultation.
-                Appointment a5 = new Appointment();
-                a5.setStudentName("Elena Prasad");
-                a5.setAppointmentDate(LocalDate.now());
-                a5.setVisitReason("Headache");
-                a5.setUrgencyLevel("Routine");
-                a5.setStatus("BOOKED");
-                appointmentRepository.save(a5);
-
-                Appointment a6 = new Appointment();
-                a6.setStudentName("Frank Lal");
-                a6.setAppointmentDate(LocalDate.now());
-                a6.setVisitReason("Sprained Ankle");
-                a6.setUrgencyLevel("Urgent");
-                a6.setStatus("BOOKED");
-                appointmentRepository.save(a6);
-
-                System.out.println("Seeded 6 sample appointments (2 waiting in the check-in queue).");
-            }
         };
     }
 }
