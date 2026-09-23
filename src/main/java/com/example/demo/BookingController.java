@@ -1,5 +1,6 @@
 package com.example.demo;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
 
@@ -14,19 +15,25 @@ import org.springframework.web.bind.annotation.RestController;
 @RequestMapping("/student")
 public class BookingController {
 
+    private static final List<String> URGENCY_LEVELS = List.of("Routine", "Urgent", "Emergency");
+    private static final int MAX_REASON_LENGTH = 300;
+
     private final DoctorScheduleRepository scheduleRepository;
     private final AppointmentRepository appointmentRepository;
     private final CheckInRepository checkInRepository;
     private final UserRepository userRepository;
+    private final NotificationRepository notificationRepository;
 
     public BookingController(DoctorScheduleRepository scheduleRepository,
                             AppointmentRepository appointmentRepository,
                             CheckInRepository checkInRepository,
-                            UserRepository userRepository) {
+                            UserRepository userRepository,
+                            NotificationRepository notificationRepository) {
         this.scheduleRepository = scheduleRepository;
         this.appointmentRepository = appointmentRepository;
         this.checkInRepository = checkInRepository;
         this.userRepository = userRepository;
+        this.notificationRepository = notificationRepository;
     }
 
     public static class BookingRequest {
@@ -77,8 +84,17 @@ public class BookingController {
         if (request.visitReason == null || request.visitReason.isBlank()) {
             return Map.of("error", "Reason for visit is required.");
         }
+        if (request.visitReason.trim().length() > MAX_REASON_LENGTH) {
+            return Map.of("error", "Reason for visit must be " + MAX_REASON_LENGTH + " characters or fewer.");
+        }
         if (request.urgencyLevel == null || request.urgencyLevel.isBlank()) {
             return Map.of("error", "Urgency level is required.");
+        }
+        if (!URGENCY_LEVELS.contains(request.urgencyLevel)) {
+            return Map.of("error", "Urgency level must be one of: " + String.join(", ", URGENCY_LEVELS) + ".");
+        }
+        if (request.slotId == null) {
+            return Map.of("error", "Please select an available slot.");
         }
 
         DoctorSchedule slot = scheduleRepository.findById(request.slotId).orElse(null);
@@ -111,11 +127,28 @@ public class BookingController {
         // consultedByDoctor when the consultation is actually completed.
         appointment.setAppointmentDate(slot.getScheduleDate());
         appointment.setTimeSlot(slot.getTimeSlot());
-        appointment.setVisitReason(request.visitReason);
+        appointment.setVisitReason(request.visitReason.trim());
         appointment.setUrgencyLevel(request.urgencyLevel);
         appointment.setStatus("BOOKED");
         appointment.setScheduleSlotId(slot.getId());
         appointmentRepository.save(appointment);
+
+        // Urgent/Emergency bookings raise a staff alert immediately, so a nurse
+        // or doctor doesn't have to be actively browsing the queue to notice a
+        // booking that needs prompt attention.
+        if ("Urgent".equals(request.urgencyLevel) || "Emergency".equals(request.urgencyLevel)) {
+            String displayName = student.getFullName() != null && !student.getFullName().isBlank()
+                    ? student.getFullName() : auth.getName();
+            Notification notification = new Notification();
+            notification.setType("Emergency".equals(request.urgencyLevel) ? "EMERGENCY_BOOKING" : "URGENT_BOOKING");
+            notification.setStudentUsername(auth.getName());
+            notification.setStudentName(displayName);
+            notification.setAppointmentId(appointment.getId());
+            notification.setMessage(request.urgencyLevel + " booking: " + displayName + " on "
+                    + appointment.getAppointmentDate() + " at " + slot.getTimeSlot() + " — " + request.visitReason);
+            notification.setCreatedAt(LocalDateTime.now());
+            notificationRepository.save(notification);
+        }
 
         return Map.of(
                 "message", "Appointment confirmed.",

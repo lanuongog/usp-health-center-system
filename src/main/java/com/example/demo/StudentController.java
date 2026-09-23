@@ -3,11 +3,13 @@ package com.example.demo;
 import java.io.IOException;
 import java.util.List;
 import java.util.Map;
+import java.util.regex.Pattern;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -30,13 +32,21 @@ public class StudentController {
     private static final double REGIONAL_FEE = 80.00;
     private static final List<String> MARITAL_STATUSES = List.of("Single", "Married");
     private static final long MAX_RECEIPT_SIZE_BYTES = 5L * 1024 * 1024;
+    // Official USP student ID format: "S" followed by exactly 8 digits.
+    private static final Pattern STUDENT_ID_PATTERN = Pattern.compile("^S\\d{8}$");
+    private static final int MIN_PASSWORD_LENGTH = 6;
+    private static final int MAX_PASSWORD_LENGTH = 100;
+    private static final int MAX_FULL_NAME_LENGTH = 100;
 
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
+    private final NotificationRepository notificationRepository;
 
-    public StudentController(UserRepository userRepository, PasswordEncoder passwordEncoder) {
+    public StudentController(UserRepository userRepository, PasswordEncoder passwordEncoder,
+                              NotificationRepository notificationRepository) {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
+        this.notificationRepository = notificationRepository;
     }
 
     // student self-registration logic
@@ -50,8 +60,19 @@ public class StudentController {
         if (studentId == null || studentId.isBlank() || password == null || password.isBlank()) {
             return Map.of("error", "Student ID and password are required.");
         }
+        String normalizedStudentId = studentId.trim().toUpperCase();
+        if (!STUDENT_ID_PATTERN.matcher(normalizedStudentId).matches()) {
+            return Map.of("error", "Student ID must be in the format S followed by 8 digits (e.g. S12345678).");
+        }
+        studentId = normalizedStudentId;
+        if (password.length() < MIN_PASSWORD_LENGTH || password.length() > MAX_PASSWORD_LENGTH) {
+            return Map.of("error", "Password must be between " + MIN_PASSWORD_LENGTH + " and " + MAX_PASSWORD_LENGTH + " characters.");
+        }
         if (fullName == null || fullName.isBlank()) {
             return Map.of("error", "Full name is required.");
+        }
+        if (fullName.trim().length() > MAX_FULL_NAME_LENGTH) {
+            return Map.of("error", "Full name must be " + MAX_FULL_NAME_LENGTH + " characters or fewer.");
         }
         if (maritalStatus == null || !MARITAL_STATUSES.contains(maritalStatus)) {
             return Map.of("error", "Please select a valid marital status.");
@@ -148,6 +169,29 @@ public class StudentController {
         userRepository.save(student);
 
         return Map.of("message", "Receipt uploaded. It is now pending admin verification.");
+    }
+
+    // A student's own alerts - currently just "your appointment may be delayed"
+    // notices raised when a nurse/doctor registers an emergency walk-in ahead
+    // of a student's existing booking for the same day.
+    @GetMapping("/notifications")
+    public List<Notification> getMyNotifications(Authentication auth) {
+        return notificationRepository.findByRecipientUsernameOrderByCreatedAtDesc(auth.getName());
+    }
+
+    @GetMapping("/notifications/unread-count")
+    public Map<String, Long> getMyUnreadCount(Authentication auth) {
+        return Map.of("count", notificationRepository.countByRecipientUsernameAndReadFalse(auth.getName()));
+    }
+
+    @PostMapping("/notifications/{id}/read")
+    public Object markMyNotificationRead(@PathVariable Long id, Authentication auth) {
+        Notification notification = notificationRepository.findById(id).orElse(null);
+        if (notification == null || !auth.getName().equals(notification.getRecipientUsername())) {
+            return Map.of("error", "Notification not found.");
+        }
+        notification.setRead(true);
+        return notificationRepository.save(notification);
     }
 
     private String validateReceipt(MultipartFile receipt) {

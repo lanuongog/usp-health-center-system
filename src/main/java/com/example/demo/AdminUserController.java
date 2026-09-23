@@ -23,6 +23,10 @@ import org.springframework.web.server.ResponseStatusException;
 public class AdminUserController {
 
     private static final List<String> STAFF_ROLES = List.of("ADMIN", "DOCTOR", "NURSE");
+    private static final int MIN_USERNAME_LENGTH = 3;
+    private static final int MAX_USERNAME_LENGTH = 50;
+    private static final int MIN_PASSWORD_LENGTH = 6;
+    private static final int MAX_PASSWORD_LENGTH = 100;
 
     private final UserRepository userRepository;
     private final AppointmentRepository appointmentRepository;
@@ -100,17 +104,49 @@ public class AdminUserController {
                 || request.password == null || request.password.isBlank()) {
             return Map.of("error", "Username and password are required.");
         }
+        String username = request.username.trim();
+        if (username.length() < MIN_USERNAME_LENGTH || username.length() > MAX_USERNAME_LENGTH) {
+            return Map.of("error", "Username must be between " + MIN_USERNAME_LENGTH + " and " + MAX_USERNAME_LENGTH + " characters.");
+        }
+        if (request.password.length() < MIN_PASSWORD_LENGTH || request.password.length() > MAX_PASSWORD_LENGTH) {
+            return Map.of("error", "Password must be between " + MIN_PASSWORD_LENGTH + " and " + MAX_PASSWORD_LENGTH + " characters.");
+        }
         if (request.role == null || !STAFF_ROLES.contains(request.role)) {
             return Map.of("error", "Role must be one of: ADMIN, DOCTOR, NURSE.");
         }
-        if (userRepository.findByUsername(request.username).isPresent()) {
+        if (userRepository.findByUsername(username).isPresent()) {
             return Map.of("error", "This username is already registered.");
         }
+        request.username = username;
 
         User user = new User(request.username, passwordEncoder.encode(request.password), request.role);
         userRepository.save(user);
 
         return new UserView(user);
+    }
+
+    public static class ResetPasswordRequest {
+        public String newPassword;
+    }
+
+    // lets an admin set a new password for any account (e.g. a student or
+    // staff member locked out of their own account)
+    @PostMapping("/{id}/reset-password")
+    public Object resetPassword(@PathVariable Long id, @RequestBody ResetPasswordRequest request) {
+        User user = userRepository.findById(id)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User account not found"));
+
+        if (request.newPassword == null || request.newPassword.isBlank()) {
+            return Map.of("error", "A new password is required.");
+        }
+        if (request.newPassword.length() < MIN_PASSWORD_LENGTH || request.newPassword.length() > MAX_PASSWORD_LENGTH) {
+            return Map.of("error", "Password must be between " + MIN_PASSWORD_LENGTH + " and " + MAX_PASSWORD_LENGTH + " characters.");
+        }
+
+        user.setPassword(passwordEncoder.encode(request.newPassword));
+        userRepository.save(user);
+
+        return Map.of("message", "Password reset for " + user.getUsername() + ".");
     }
 
     public static class ToggleRequest {

@@ -31,10 +31,24 @@ public class NurseController {
         this.userRepository = userRepository;
     }
 
+    // Lower number = seen sooner - an emergency walk-in should visibly jump
+    // ahead of routine bookings in the waiting queue.
+    private int urgencyRank(String urgencyLevel) {
+        if (urgencyLevel == null) return 3;
+        switch (urgencyLevel) {
+            case "Emergency": return 0;
+            case "Urgent": return 1;
+            case "Routine": return 2;
+            default: return 3;
+        }
+    }
+
     // view students with scheduled appointments who have not yet been checked in
     @GetMapping("/queue")
     public List<Appointment> getQueue() {
-        return appointmentRepository.findByStatus("BOOKED");
+        return appointmentRepository.findByStatus("BOOKED").stream()
+                .sorted(Comparator.comparingInt((Appointment a) -> urgencyRank(a.getUrgencyLevel())))
+                .collect(Collectors.toList());
     }
 
     // every appointment record, most recent date first, enriched with the
@@ -113,6 +127,10 @@ public class NurseController {
         if (isBlank(request.temperature) || isBlank(request.bloodPressure) || isBlank(request.presentingComplaint)) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
                     "Display validation messages for incomplete vital information");
+        }
+        if (request.presentingComplaint.trim().length() > MAX_COMPLAINT_LENGTH) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                    "Presenting complaint must be " + MAX_COMPLAINT_LENGTH + " characters or fewer.");
         }
 
         // reject out-of-range or malformed vital sign values
@@ -195,6 +213,8 @@ public class NurseController {
     private boolean isBlank(String s) {
         return s == null || s.trim().isEmpty();
     }
+
+    private static final int MAX_COMPLAINT_LENGTH = 500;
 
     // a plausible human body temperature in Celsius
     private static final double MIN_TEMP_C = 30.0;

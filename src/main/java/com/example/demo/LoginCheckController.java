@@ -8,6 +8,8 @@ import java.util.Map;
 @RequestMapping("/api")
 public class LoginCheckController {
 
+    private static final int MAX_FIELD_LENGTH = 200;
+
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
 
@@ -26,8 +28,11 @@ public class LoginCheckController {
     // role-specific pages and the universal login.html page.
     @PostMapping("/check-login")
     public Map<String, Object> checkLogin(@RequestBody LoginCheckRequest request) {
-        if (request.username == null || request.password == null) {
+        if (request.username == null || request.username.isBlank() || request.password == null || request.password.isBlank()) {
             return Map.of("ok", false, "message", "Username and password are required.");
+        }
+        if (request.username.length() > MAX_FIELD_LENGTH || request.password.length() > MAX_FIELD_LENGTH) {
+            return Map.of("ok", false, "message", "Invalid username or password.");
         }
 
         var userOpt = userRepository.findByUsername(request.username);
