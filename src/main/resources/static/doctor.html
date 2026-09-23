@@ -341,6 +341,90 @@ min-height: 16px;
 }
 .toast.ok { color: var(--ok); }
 .toast.err { color: var(--emergency); }
+
+#notif-wrap { position: relative; }
+#notif-badge {
+display: none; background: var(--emergency); color: #fff; border-radius: 10px;
+padding: 1px 7px; font-size: 11px; margin-left: 4px; vertical-align: middle;
+}
+#notif-panel {
+position: absolute; right: 0; top: 130%; width: 320px; background: var(--panel);
+border: 1px solid var(--line); border-radius: 8px; box-shadow: 0 6px 20px rgba(0,0,0,0.2);
+z-index: 200; max-height: 380px; overflow-y: auto; padding: 10px; text-align: left; color: var(--ink);
+}
+#notif-panel[hidden] { display: none; }
+.notif-item { border-bottom: 1px solid var(--line); padding: 8px 2px; font-size: 12.5px; cursor: pointer; }
+.notif-item:last-child { border-bottom: none; }
+.notif-item .notif-time { font-size: 11px; color: var(--ink-soft); margin-top: 2px; }
+
+#account-menu-wrap { position: relative; }
+#account-menu {
+position: absolute; right: 0; top: 130%; background: var(--panel); border: 1px solid var(--line);
+border-radius: 8px; box-shadow: 0 6px 20px rgba(20,33,61,0.2); min-width: 170px; z-index: 250; overflow: hidden; text-align: left;
+}
+#account-menu[hidden] { display: none; }
+#account-menu button {
+display: block; width: 100%; text-align: left; background: var(--panel); color: var(--ink);
+border: none; padding: 10px 14px; font-size: 13px; cursor: pointer;
+}
+#account-menu button:hover { background: var(--brand-soft); }
+
+.modal-actions { margin-top: 16px; display: flex; gap: 8px; flex-wrap: wrap; }
+.btn-book-slot {
+background: var(--ok); color: #fff; border: none; padding: 10px 16px;
+border-radius: 6px; font-size: 13.5px; font-weight: 600; cursor: pointer;
+}
+.btn-book-slot:hover { background: #2F5F42; }
+.topbar .btn-emergency-fab {
+background: rgba(255,255,255,0.15); border: 1px solid rgba(255,255,255,0.4); color: #fff;
+padding: 5px 12px; border-radius: 5px; font-size: 12px; cursor: pointer;
+}
+.topbar .btn-emergency-fab:hover { background: rgba(255,255,255,0.25); }
+.topbar .btn-emergency-priority {
+background: var(--emergency); border: 2px solid #fff; color: #fff;
+padding: 7px 16px; border-radius: 5px; font-size: 13px; font-weight: 800; cursor: pointer;
+box-shadow: 0 2px 8px rgba(0,0,0,0.25);
+}
+.topbar .btn-emergency-priority:hover { background: #8f2d23; }
+
+.fee-badge { display: inline-block; padding: 2px 9px; border-radius: 10px; font-size: 11px; font-weight: 700; }
+.fee-badge.paid { background: #E4F1E8; color: var(--ok); }
+.fee-badge.pending { background: var(--urgent-bg); color: var(--urgent); }
+.fee-badge.unpaid { background: var(--emergency-bg); color: var(--emergency); }
+#walkinPaymentStatus { margin: -6px 0 6px; min-height: 16px; }
+
+.report-controls { display: flex; gap: 14px; flex-wrap: wrap; align-items: flex-end; margin-bottom: 18px; }
+.field-report label { display: block; font-size: 12px; color: var(--ink-soft); margin-bottom: 5px; }
+.field-report select, .field-report input {
+padding: 9px 10px; border: 1px solid var(--line); border-radius: 6px;
+font-size: 13px; font-family: inherit; background: #fff; color: var(--ink);
+}
+.report-summary { display: flex; gap: 14px; flex-wrap: wrap; margin-bottom: 20px; }
+.report-stat {
+background: var(--brand-soft); border-radius: 8px; padding: 12px 18px; min-width: 140px;
+}
+.report-stat .stat-value { font-size: 22px; font-weight: 700; color: var(--brand-dark); }
+.report-stat .stat-label { font-size: 11.5px; color: var(--ink-soft); margin-top: 2px; }
+.bar-row { display: flex; align-items: center; margin-bottom: 10px; font-size: 13px; }
+.bar-label { width: 180px; flex-shrink: 0; color: var(--ink); }
+.bar-track { flex: 1; background: #E5E7EB; border-radius: 4px; height: 18px; margin: 0 10px; overflow: hidden; }
+.bar-fill { background: var(--brand); height: 100%; border-radius: 4px; }
+.bar-count { width: 34px; text-align: right; font-weight: 600; color: var(--brand-dark); }
+
+.report-row { display: flex; justify-content: space-between; gap: 12px; padding: 7px 0; border-bottom: 1px solid var(--line); font-size: 13px; }
+.report-row:last-child { border-bottom: none; }
+.report-row span { color: var(--ink-soft); flex-shrink: 0; }
+.report-row strong { text-align: right; }
+.report-section-label { font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; color: var(--ink-soft); font-weight: 700; margin: 16px 0 6px; }
+.report-section-label:first-child { margin-top: 0; }
+
+@media print {
+  body * { visibility: hidden; }
+  #consultation-report-body, #consultation-report-body *,
+  #printable-report, #printable-report * { visibility: visible; }
+  #consultation-report-body, #printable-report { position: absolute; left: 0; top: 0; width: 100%; padding: 20px; }
+  #report-modal-actions, .modal-close, .modal-actions { display: none !important; }
+}
 </style>
 </head>
 <body>
@@ -352,8 +436,55 @@ min-height: 16px;
 <a href="/" class="home-link">← Home</a>
 <h1>Doctor Dashboard</h1>
 <div class="who">
-<span id="who-label"></span>
+<button class="btn-emergency-priority" onclick="openEmergencyModal()">🚨 EMERGENCY</button>
+<div id="notif-wrap">
+<button id="notif-bell" onclick="toggleNotifPanel()">🔔 Alerts<span id="notif-badge"></span></button>
+<div id="notif-panel" hidden></div>
+</div>
+<div id="account-menu-wrap">
+<button id="account-menu-btn" class="btn-emergency-fab" onclick="toggleAccountMenu()">👤 <span id="who-label"></span> ▾</button>
+<div id="account-menu" hidden>
+<button onclick="closeAccountMenu(); openChangePasswordModal();">🔑 Change Password</button>
 <button onclick="logout()">Log out</button>
+</div>
+</div>
+</div>
+</div>
+
+<div class="modal-overlay" id="emergency-modal-overlay" hidden onclick="if (event.target === this) closeEmergencyModal()">
+<div class="modal-box" style="max-width:420px;border:3px solid var(--emergency);">
+<div class="panel-head"><h2 style="color:var(--emergency);">🚨 Emergency Check-in</h2><button class="modal-close" aria-label="Close" onclick="closeEmergencyModal()">✕</button></div>
+<div class="panel-body">
+<p class="hint">For a patient who needs to see a doctor immediately. This checks them in directly at the top of the queue, alerts every doctor, and warns other waiting students of a delay.</p>
+<label for="emergencyStudentId">Student ID</label>
+<input type="text" id="emergencyStudentId" placeholder="e.g. S12345678" />
+<label for="emergencyReason">What's happening (brief)</label>
+<input type="text" id="emergencyReason" placeholder="e.g. Severe allergic reaction" maxlength="300" />
+<div class="toast" id="emergencyResult"></div>
+<div class="modal-actions">
+<button class="btn-emergency-priority" onclick="submitEmergencyCheckIn()">🚨 Check In Now</button>
+<button class="btn-small neutral" onclick="closeEmergencyModal()">Cancel</button>
+</div>
+</div>
+</div>
+</div>
+
+<div class="modal-overlay" id="change-password-modal-overlay" hidden onclick="if (event.target === this) closeChangePasswordModal()">
+<div class="modal-box" style="max-width:400px;">
+<div class="panel-head"><h2>Change Password</h2><button class="modal-close" aria-label="Close" onclick="closeChangePasswordModal()">✕</button></div>
+<div class="panel-body">
+<label for="cpCurrentPassword">Current Password</label>
+<input type="password" id="cpCurrentPassword" />
+<label for="cpNewPassword">New Password (min 6 characters)</label>
+<input type="password" id="cpNewPassword" minlength="6" maxlength="100" />
+<label for="cpConfirmPassword">Confirm New Password</label>
+<input type="password" id="cpConfirmPassword" minlength="6" maxlength="100" />
+<div class="toast" id="cpResult"></div>
+<div class="modal-actions">
+<button class="btn-book-slot" onclick="submitChangePassword()">Change Password</button>
+<button class="btn-small neutral" onclick="closeChangePasswordModal()">Cancel</button>
+</div>
+</div>
 </div>
 </div>
 
@@ -368,6 +499,8 @@ min-height: 16px;
 <button id="tab-btn-queue" class="tab-filter-btn active" onclick="switchDoctorTab('queue')">Active Triage (Checked In)</button>
 <button id="tab-btn-booked" class="tab-filter-btn" onclick="switchDoctorTab('booked')">Scheduled Bookings</button>
 <button id="tab-btn-all" class="tab-filter-btn" onclick="switchDoctorTab('all')">All Records</button>
+<button id="tab-btn-directory" class="tab-filter-btn" onclick="switchDoctorTab('directory')">Student Directory</button>
+<button id="tab-btn-reports" class="tab-filter-btn" onclick="switchDoctorTab('reports')">My Reports</button>
 </div>
 <div class="queue-search-box" id="queue-search-box" style="display:none;">
 <input type="text" id="queue-search-input" aria-label="Search by student name or ID" placeholder="Search by student name or ID..." oninput="onQueueSearch(this.value)" />
@@ -381,6 +514,26 @@ min-height: 16px;
 </select>
 </div>
 <div id="queue-list"></div>
+
+<div id="reports-panel" style="display:none;padding:18px;">
+<div class="report-controls">
+<div class="field-report">
+<label for="report-type-select">Report Type</label>
+<select id="report-type-select"></select>
+</div>
+<div class="field-report">
+<label for="report-start-date">From</label>
+<input type="date" id="report-start-date" />
+</div>
+<div class="field-report">
+<label for="report-end-date">To</label>
+<input type="date" id="report-end-date" />
+</div>
+<button class="btn-book-slot" style="margin-top:18px;" onclick="generateDoctorReport()">Generate Report</button>
+</div>
+<div id="report-error" class="toast err"></div>
+<div id="report-results"></div>
+</div>
 </div>
 </div>
 </div>
@@ -396,6 +549,22 @@ min-height: 16px;
 </div>
 </div>
 
+<div class="modal-overlay" id="report-modal-overlay" hidden onclick="if (event.target === this) closeConsultationReport()">
+<div class="modal-box" style="max-width:500px;">
+<div class="panel-head" id="report-modal-head">
+<h2>Consultation Report</h2>
+<button class="modal-close" aria-label="Close" onclick="closeConsultationReport()">✕</button>
+</div>
+<div class="panel-body">
+<div id="consultation-report-body"></div>
+<div class="modal-actions" id="report-modal-actions">
+<button class="btn-book-slot" onclick="window.print()">🖨 Print / Save as PDF</button>
+<button class="btn-small neutral" onclick="closeConsultationReport()">Close</button>
+</div>
+</div>
+</div>
+</div>
+
 
 <script>
 let authHeader = null;
@@ -405,7 +574,7 @@ let currentQueue = [];
 let fullQueue = [];
 let queueSearchTerm = '';
 let statusFilter = '';
-let currentDoctorTab = 'queue'; // 'queue', 'booked', 'all'
+let currentDoctorTab = 'queue'; // 'queue', 'booked', 'all', 'directory'
 
 
 window.addEventListener('DOMContentLoaded', () => {
@@ -422,6 +591,8 @@ window.addEventListener('DOMContentLoaded', () => {
   currentUsername = storedUser;
   document.getElementById('who-label').textContent = currentUsername;
   refreshQueue();
+  pollNotifCount();
+  setInterval(pollNotifCount, 20000);
 });
 
 
@@ -430,15 +601,312 @@ function switchDoctorTab(tab) {
   document.getElementById('tab-btn-queue').classList.toggle('active', tab === 'queue');
   document.getElementById('tab-btn-booked').classList.toggle('active', tab === 'booked');
   document.getElementById('tab-btn-all').classList.toggle('active', tab === 'all');
+  document.getElementById('tab-btn-directory').classList.toggle('active', tab === 'directory');
+  document.getElementById('tab-btn-reports').classList.toggle('active', tab === 'reports');
 
   queueSearchTerm = '';
   statusFilter = '';
   document.getElementById('queue-search-input').value = '';
   document.getElementById('status-filter-select').value = '';
-  document.getElementById('queue-search-box').style.display = (tab === 'all' || tab === 'booked') ? 'flex' : 'none';
+  document.getElementById('queue-search-box').style.display = (tab === 'all' || tab === 'booked' || tab === 'directory') ? 'flex' : 'none';
   document.getElementById('status-filter-select').style.display = tab === 'all' ? 'inline-block' : 'none';
 
+  document.getElementById('queue-list').style.display = tab === 'reports' ? 'none' : 'block';
+  document.getElementById('reports-panel').style.display = tab === 'reports' ? 'block' : 'none';
+
+  if (tab === 'reports') {
+    initReportsTab();
+    return;
+  }
   refreshQueue();
+}
+
+
+function pollNotifCount() {
+  fetch('/notifications/unread-count', { headers: { 'Authorization': authHeader } })
+    .then(res => res.ok ? res.json() : null)
+    .then(data => {
+      const badge = document.getElementById('notif-badge');
+      if (!data || !data.count) { badge.style.display = 'none'; return; }
+      badge.textContent = data.count;
+      badge.style.display = 'inline-block';
+    })
+    .catch(() => {});
+}
+
+function toggleNotifPanel() {
+  const panel = document.getElementById('notif-panel');
+  if (!panel.hidden) { panel.hidden = true; return; }
+  loadNotifPanel();
+  panel.hidden = false;
+}
+
+let lastNotifItems = [];
+
+function loadNotifPanel() {
+  const panel = document.getElementById('notif-panel');
+  panel.innerHTML = '<div style="font-size:12.5px;color:var(--ink-soft);">Loading…</div>';
+  fetch('/notifications', { headers: { 'Authorization': authHeader } })
+    .then(res => res.json())
+    .then(items => {
+      lastNotifItems = items;
+      if (!items.length) {
+        panel.innerHTML = '<div style="font-size:12.5px;color:var(--ink-soft);">No alerts.</div>';
+        return;
+      }
+      panel.innerHTML =
+        '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">' +
+          '<strong style="font-size:12.5px;">Alerts</strong>' +
+          '<button style="padding:3px 8px;font-size:11px;" onclick="markAllNotifRead()">Mark all read</button>' +
+        '</div>' +
+        items.map((n, i) => `
+          <div class="notif-item" style="${n.read ? 'opacity:0.55;' : 'font-weight:600;'}" onclick="handleNotifClick(${i})" title="${n.appointmentId ? 'Click to open this patient' : ''}">
+            <div>${escapeHtml(n.message)}</div>
+            <div class="notif-time">${n.createdAt ? new Date(n.createdAt).toLocaleString() : ''}</div>
+          </div>
+        `).join('');
+    })
+    .catch(() => { panel.innerHTML = '<div style="font-size:12.5px;color:var(--emergency);">Unable to load alerts.</div>'; });
+}
+
+function markNotifRead(id) {
+  fetch('/notifications/' + id + '/read', { method: 'POST', headers: { 'Authorization': authHeader } })
+    .then(() => { loadNotifPanel(); pollNotifCount(); })
+    .catch(() => {});
+}
+
+// Clicking an alert marks it read and, if it's tied to a specific student's
+// appointment (an emergency booking/walk-in), immediately opens that
+// patient's screen so staff can act on it without hunting for the record.
+function handleNotifClick(index) {
+  const n = lastNotifItems[index];
+  if (!n) return;
+  fetch('/notifications/' + n.id + '/read', { method: 'POST', headers: { 'Authorization': authHeader } })
+    .then(() => pollNotifCount())
+    .catch(() => {});
+  document.getElementById('notif-panel').hidden = true;
+  if (n.appointmentId) openAppointmentById(n.appointmentId);
+}
+
+function openAppointmentById(appointmentId) {
+  fetch('/doctor/all', { headers: { 'Authorization': authHeader } })
+    .then(res => res.json())
+    .then(all => {
+      const appt = all.find(a => a.id === appointmentId);
+      if (appt) selectPatient(appt);
+    })
+    .catch(() => {});
+}
+
+function markAllNotifRead() {
+  fetch('/notifications/read-all', { method: 'POST', headers: { 'Authorization': authHeader } })
+    .then(() => { loadNotifPanel(); pollNotifCount(); })
+    .catch(() => {});
+}
+
+
+let reportTypesLoaded = false;
+
+function initReportsTab() {
+  const errEl = document.getElementById('report-error');
+  errEl.className = 'toast err';
+  errEl.textContent = '';
+  document.getElementById('report-results').innerHTML = '';
+
+  if (!reportTypesLoaded) {
+    fetch('/doctor/reports/types', { headers: { 'Authorization': authHeader } })
+      .then(res => res.json())
+      .then(types => {
+        const select = document.getElementById('report-type-select');
+        select.innerHTML = types.map(t => `<option value="${escapeHtml(t)}">${escapeHtml(t)}</option>`).join('');
+        reportTypesLoaded = true;
+      })
+      .catch(() => {});
+  }
+
+  const startInput = document.getElementById('report-start-date');
+  const endInput = document.getElementById('report-end-date');
+  if (!startInput.value || !endInput.value) {
+    const today = new Date();
+    const monthAgo = new Date();
+    monthAgo.setDate(monthAgo.getDate() - 30);
+    startInput.value = monthAgo.toISOString().split('T')[0];
+    endInput.value = today.toISOString().split('T')[0];
+  }
+}
+
+function generateDoctorReport() {
+  const type = document.getElementById('report-type-select').value;
+  const startDate = document.getElementById('report-start-date').value;
+  const endDate = document.getElementById('report-end-date').value;
+  const errEl = document.getElementById('report-error');
+  const resultsEl = document.getElementById('report-results');
+
+  errEl.textContent = '';
+  errEl.className = 'toast err';
+  resultsEl.innerHTML = '';
+
+  if (!type) { errEl.textContent = 'Select a report type.'; return; }
+  if (!startDate || !endDate) { errEl.textContent = 'Select both a start and end date.'; return; }
+
+  const params = new URLSearchParams({ type, startDate, endDate });
+  fetch('/doctor/reports?' + params.toString(), { headers: { 'Authorization': authHeader } })
+    .then(res => res.ok ? res.json() : res.json().then(err => { throw new Error(err.message || 'Unable to generate report'); }))
+    .then(report => renderDoctorReport(report))
+    .catch(err => { errEl.textContent = err.message; });
+}
+
+function renderDoctorReport(report) {
+  const resultsEl = document.getElementById('report-results');
+  const entries = Object.entries(report.data || {});
+  const max = entries.length ? Math.max(...entries.map(([, v]) => v)) : 0;
+
+  resultsEl.innerHTML = `
+    <div id="printable-report">
+      <h2 style="margin:0 0 4px;">${escapeHtml(report.reportType)}</h2>
+      <div style="font-size:12.5px;color:var(--ink-soft);margin-bottom:14px;">${escapeHtml(report.dateRangeStart)} → ${escapeHtml(report.dateRangeEnd)} · Generated ${new Date(report.generatedAt).toLocaleString()} by Dr. ${escapeHtml(currentUsername)}</div>
+      <div class="report-summary">
+        <div class="report-stat">
+          <div class="stat-value">${report.totalConsultations}</div>
+          <div class="stat-label">Total Consultations</div>
+        </div>
+      </div>
+      <div id="report-bars"></div>
+    </div>
+    <div class="modal-actions" style="margin-top:16px;">
+      <button class="btn-book-slot" onclick="window.print()">🖨 Print / Save as PDF</button>
+    </div>
+  `;
+
+  const barsEl = document.getElementById('report-bars');
+  if (entries.length === 0) {
+    barsEl.innerHTML = '<div class="empty-state">No data to display.</div>';
+    return;
+  }
+
+  barsEl.innerHTML = entries.map(([key, count]) => {
+    const pct = max === 0 ? 0 : (count / max * 100);
+    return `
+      <div class="bar-row">
+        <div class="bar-label">${escapeHtml(key)}</div>
+        <div class="bar-track"><div class="bar-fill" style="width:${pct}%"></div></div>
+        <div class="bar-count">${count}</div>
+      </div>
+    `;
+  }).join('');
+}
+
+
+
+function openEmergencyModal() {
+  document.getElementById('emergencyStudentId').value = '';
+  document.getElementById('emergencyReason').value = '';
+  document.getElementById('emergencyResult').textContent = '';
+  document.getElementById('emergencyResult').className = 'toast';
+  document.getElementById('emergency-modal-overlay').hidden = false;
+}
+
+function closeEmergencyModal() {
+  document.getElementById('emergency-modal-overlay').hidden = true;
+}
+
+function submitEmergencyCheckIn() {
+  const studentId = document.getElementById('emergencyStudentId').value.trim();
+  const reason = document.getElementById('emergencyReason').value.trim();
+  const resultEl = document.getElementById('emergencyResult');
+
+  if (!studentId) {
+    resultEl.className = 'toast err';
+    resultEl.textContent = 'Student ID is required.';
+    return;
+  }
+
+  fetch('/emergency/checkin', {
+    method: 'POST',
+    headers: { 'Authorization': authHeader, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ studentId, reason })
+  })
+  .then(res => res.json())
+  .then(data => {
+    if (data.error) {
+      resultEl.className = 'toast err';
+      resultEl.textContent = data.error;
+      return;
+    }
+    resultEl.className = 'toast ok';
+    resultEl.textContent = data.message;
+    refreshQueue();
+    setTimeout(closeEmergencyModal, 2500);
+  })
+  .catch(() => {
+    resultEl.className = 'toast err';
+    resultEl.textContent = 'Unable to reach the server.';
+  });
+}
+
+function toggleAccountMenu() {
+  document.getElementById('account-menu').hidden = !document.getElementById('account-menu').hidden;
+}
+
+function closeAccountMenu() {
+  document.getElementById('account-menu').hidden = true;
+}
+
+document.addEventListener('click', (e) => {
+  const wrap = document.getElementById('account-menu-wrap');
+  if (wrap && !wrap.contains(e.target)) closeAccountMenu();
+});
+
+function openChangePasswordModal() {
+  document.getElementById('cpCurrentPassword').value = '';
+  document.getElementById('cpNewPassword').value = '';
+  document.getElementById('cpConfirmPassword').value = '';
+  document.getElementById('cpResult').textContent = '';
+  document.getElementById('cpResult').className = 'toast';
+  document.getElementById('change-password-modal-overlay').hidden = false;
+}
+
+function closeChangePasswordModal() {
+  document.getElementById('change-password-modal-overlay').hidden = true;
+}
+
+function submitChangePassword() {
+  const currentPassword = document.getElementById('cpCurrentPassword').value;
+  const newPassword = document.getElementById('cpNewPassword').value;
+  const confirmPassword = document.getElementById('cpConfirmPassword').value;
+  const resultEl = document.getElementById('cpResult');
+
+  if (!currentPassword || !newPassword) {
+    resultEl.className = 'toast err';
+    resultEl.textContent = 'Both fields are required.';
+    return;
+  }
+  if (newPassword !== confirmPassword) {
+    resultEl.className = 'toast err';
+    resultEl.textContent = 'New password and confirmation do not match.';
+    return;
+  }
+
+  fetch('/account/change-password', {
+    method: 'POST',
+    headers: { 'Authorization': authHeader, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ currentPassword, newPassword })
+  })
+  .then(res => res.json())
+  .then(data => {
+    if (data.error) {
+      resultEl.className = 'toast err';
+      resultEl.textContent = data.error;
+      return;
+    }
+    resultEl.className = 'toast ok';
+    resultEl.textContent = data.message;
+    setTimeout(closeChangePasswordModal, 1500);
+  })
+  .catch(() => {
+    resultEl.className = 'toast err';
+    resultEl.textContent = 'Unable to reach the server.';
+  });
 }
 
 
@@ -464,11 +932,16 @@ function refreshQueue() {
   let endpoint = '/doctor/queue';
   if (currentDoctorTab === 'booked') endpoint = '/doctor/booked';
   else if (currentDoctorTab === 'all') endpoint = '/doctor/all';
+  else if (currentDoctorTab === 'directory') endpoint = '/directory/students';
 
   fetch(endpoint, { headers: { 'Authorization': authHeader } })
     .then(res => res.json())
     .then(data => {
-      fullQueue = data;
+      // Directory entries use fullName/studentId rather than studentName - alias
+      // studentName so the existing search-by-name-or-ID filter keeps working.
+      fullQueue = currentDoctorTab === 'directory'
+        ? data.map(s => ({ ...s, studentName: s.fullName }))
+        : data;
       renderQueue(fullQueue);
     })
     .catch(() => {
@@ -498,11 +971,45 @@ function renderQueue(rawQueue) {
     let msg = 'No patients in active triage queue.';
     if (currentDoctorTab === 'booked') msg = 'No un-checked-in booked appointments.';
     else if (currentDoctorTab === 'all') msg = (term || statusFilter) ? 'No records match your filters.' : 'No appointment records found.';
+    else if (currentDoctorTab === 'directory') msg = term ? 'No students match your search.' : 'No registered students found.';
     listEl.innerHTML = `<div class="empty-state">${msg}</div>`;
     return;
   }
 
-  listEl.innerHTML = currentDoctorTab === 'all' ? renderRecordsTable(queue) : renderQueueRows(queue);
+  if (currentDoctorTab === 'directory') {
+    listEl.innerHTML = renderDirectoryTable(queue);
+  } else {
+    listEl.innerHTML = currentDoctorTab === 'all' ? renderRecordsTable(queue) : renderQueueRows(queue);
+  }
+}
+
+
+function renderDirectoryTable(students) {
+  return `
+    <table class="records-table">
+      <thead>
+        <tr><th>Full Name</th><th>Student ID</th><th>Country</th><th>Marital Status</th><th>Fee Paid</th><th>Account Status</th></tr>
+      </thead>
+      <tbody>
+        ${students.map(s => `
+          <tr>
+            <td>${escapeHtml(s.fullName) || '—'}</td>
+            <td class="student-id">${escapeHtml(s.studentId)}</td>
+            <td>${escapeHtml(s.country) || '—'}</td>
+            <td>${escapeHtml(s.maritalStatus) || '—'}</td>
+            <td>${renderFeeBadge(s)}</td>
+            <td>${s.active ? 'Active' : 'Deactivated'}</td>
+          </tr>
+        `).join('')}
+      </tbody>
+    </table>
+  `;
+}
+
+function renderFeeBadge(s) {
+  if (s.feePaid) return '<span class="fee-badge paid">✓ Paid &amp; Verified</span>';
+  if (s.hasReceipt) return '<span class="fee-badge pending">⏳ Pending Verification</span>';
+  return '<span class="fee-badge unpaid">✗ Not Paid</span>';
 }
 
 
@@ -568,6 +1075,9 @@ document.addEventListener('keydown', e => {
   if (e.key === 'Escape' && !document.getElementById('detail-modal-overlay').hidden) {
     closeDetailModal();
   }
+  if (e.key === 'Escape' && !document.getElementById('report-modal-overlay').hidden) {
+    closeConsultationReport();
+  }
 });
 
 function selectPatient(appt) {
@@ -587,11 +1097,12 @@ function selectPatient(appt) {
         <div class="h-top"><span>Notes</span></div>
         <div class="h-meta">${escapeHtml(appt.consultationNotes)}</div>
       </div>
+      <button class="btn-record" onclick="generateConsultationReport(${appt.id})">🖨 Generate Consultation Report</button>
     `
     : `
       <div class="section-label">Record Consultation</div>
-      <input class="diag-input" id="diagnosis-input" placeholder="Diagnosis" />
-      <textarea id="notes-input" placeholder="Consultation notes"></textarea>
+      <input class="diag-input" id="diagnosis-input" placeholder="Diagnosis" maxlength="200" />
+      <textarea id="notes-input" placeholder="Consultation notes" maxlength="2000"></textarea>
       <button class="btn-record" id="record-btn" onclick="recordConsultation(${appt.id})">Save & complete consultation</button>
       <div class="toast" id="record-toast"></div>
     `;
@@ -672,6 +1183,49 @@ function selectPatient(appt) {
     });
 }
 
+
+function generateConsultationReport(appointmentId) {
+  fetch('/doctor/consultation-report/' + appointmentId, { headers: { 'Authorization': authHeader } })
+    .then(res => {
+      if (!res.ok) return res.json().then(err => { throw new Error(err.message || 'Unable to generate report'); });
+      return res.json();
+    })
+    .then(showConsultationReport)
+    .catch(err => alert(err.message));
+}
+
+function showConsultationReport(r) {
+  const body = document.getElementById('consultation-report-body');
+  body.innerHTML = `
+    <div class="detail-name">${escapeHtml(r.studentName)}</div>
+    <div class="detail-sub">Student ID: ${escapeHtml(r.studentId)}</div>
+
+    <div class="report-section-label">Visit</div>
+    <div class="report-row"><span>Date</span><strong>${escapeHtml(r.appointmentDate)}${r.timeSlot ? ' · ' + escapeHtml(r.timeSlot) : ''}</strong></div>
+    <div class="report-row"><span>Reason for Visit</span><strong>${escapeHtml(r.visitReason)}</strong></div>
+    <div class="report-row"><span>Urgency</span><strong>${escapeHtml(r.urgencyLevel)}</strong></div>
+
+    <div class="report-section-label">Nurse Triage</div>
+    <div class="report-row"><span>Checked in by</span><strong>${escapeHtml(r.checkedInBy) || '—'}</strong></div>
+    <div class="report-row"><span>Check-in time</span><strong>${r.checkInTime ? new Date(r.checkInTime).toLocaleString() : '—'}</strong></div>
+    <div class="report-row"><span>Temperature</span><strong>${escapeHtml(r.temperature) || '—'}</strong></div>
+    <div class="report-row"><span>Blood Pressure</span><strong>${escapeHtml(r.bloodPressure) || '—'}</strong></div>
+    <div class="report-row"><span>Presenting Complaint</span><strong>${escapeHtml(r.presentingComplaint) || '—'}</strong></div>
+
+    <div class="report-section-label">Doctor Consultation</div>
+    <div class="report-row"><span>Diagnosis</span><strong>${escapeHtml(r.diagnosis)}</strong></div>
+    <div class="report-row"><span>Notes</span><strong>${escapeHtml(r.consultationNotes)}</strong></div>
+    <div class="report-row"><span>Consulted By</span><strong>${escapeHtml(r.consultedByDoctor)}</strong></div>
+
+    <div class="report-section-label">Report</div>
+    <div class="report-row"><span>Generated</span><strong>${new Date(r.generatedAt).toLocaleString()}</strong></div>
+  `;
+  document.getElementById('report-modal-overlay').hidden = false;
+}
+
+function closeConsultationReport() {
+  document.getElementById('report-modal-overlay').hidden = true;
+}
 
 function recordConsultation(appointmentId) {
   const diagnosis = document.getElementById('diagnosis-input').value.trim();

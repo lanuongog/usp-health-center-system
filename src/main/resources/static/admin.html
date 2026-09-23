@@ -108,18 +108,55 @@ padding: 8px 10px; border: 1px solid #d1d5db; border-radius: 6px; font-size: 13p
 background: #2C5F8A; color: white; border: none; padding: 6px 12px;
 border-radius: 6px; cursor: pointer; font-size: 12px;
 }
+
+.modal-overlay {
+position: fixed; inset: 0; background: rgba(20, 33, 61, 0.45);
+display: flex; align-items: flex-start; justify-content: center;
+padding: 40px 16px; overflow-y: auto; z-index: 100;
+}
+.modal-overlay[hidden] { display: none; }
+.modal-box { background: #fff; border-radius: 10px; width: 100%; max-width: 400px; padding: 20px; box-shadow: 0 12px 32px rgba(20,33,61,0.25); }
+.modal-box h3 { margin-top: 0; color: #17324A; }
+.modal-box label { display: block; font-size: 13px; color: #374151; margin-top: 12px; margin-bottom: 4px; }
+.modal-box input { width: 100%; padding: 8px; border: 1px solid #d1d5db; border-radius: 6px; font-size: 14px; box-sizing: border-box; }
+.modal-actions { margin-top: 16px; display: flex; gap: 10px; }
+.toast { font-size: 12.5px; margin-top: 10px; min-height: 16px; }
+.toast.ok { color: #1E5B3A; }
+.toast.err { color: #B23A2E; }
 </style>
 </head>
 <body>
 
 <header><a href="/" class="home-link">← Home</a></header>
 
+<div class="modal-overlay" id="change-password-modal-overlay" hidden onclick="if (event.target === this) closeChangePasswordModal()">
+<div class="modal-box">
+<h3>Change Password</h3>
+<label>Current Password</label>
+<input type="password" id="cpCurrentPassword" />
+<label>New Password (min 6 characters)</label>
+<input type="password" id="cpNewPassword" minlength="6" maxlength="100" />
+<label>Confirm New Password</label>
+<input type="password" id="cpConfirmPassword" minlength="6" maxlength="100" />
+<div class="toast" id="cpResult"></div>
+<div class="modal-actions">
+<button onclick="submitChangePassword()">Change Password</button>
+<button class="secondary" onclick="closeChangePasswordModal()" style="background:#9ca3af;">Cancel</button>
+</div>
+</div>
+</div>
+
 <div class="container">
 
 <div id="dashboard">
 <div class="topbar">
 <h2 style="color:#17324A;margin:0;">Reporting &amp; Analytics Dashboard</h2>
+<div style="display:flex;gap:10px;align-items:center;">
+<a href="/checkin.html" style="background:#2C5F8A;color:#fff;border:none;padding:10px 16px;border-radius:6px;font-size:14px;text-decoration:none;">Check-in / Triage</a>
+<a href="/schedule.html" style="background:#2C5F8A;color:#fff;border:none;padding:10px 16px;border-radius:6px;font-size:14px;text-decoration:none;">Manage Schedule</a>
+<button onclick="openChangePasswordModal()">🔑 Change Password</button>
 <button id="logoutBtn" onclick="logout()">Log Out</button>
+</div>
 </div>
 
 <div id="pageError"></div>
@@ -185,8 +222,8 @@ border-radius: 6px; cursor: pointer; font-size: 12px;
 <div id="userMgmtError" style="color:#B03A2E;font-size:13px;margin-bottom:12px;display:none;"></div>
 
 <div class="addUserBar">
-<input type="text" id="newUsername" placeholder="Username" />
-<input type="password" id="newPassword" placeholder="Password" />
+<input type="text" id="newUsername" placeholder="Username" minlength="3" maxlength="50" />
+<input type="password" id="newPassword" placeholder="Password (min 6 characters)" minlength="6" maxlength="100" />
 <select id="newRole">
 <option value="DOCTOR">Doctor</option>
 <option value="NURSE">Nurse</option>
@@ -236,6 +273,57 @@ window.addEventListener('DOMContentLoaded', () => {
 function logout() {
   localStorage.clear();
   window.location.href = '/login.html';
+}
+
+function openChangePasswordModal() {
+  document.getElementById('cpCurrentPassword').value = '';
+  document.getElementById('cpNewPassword').value = '';
+  document.getElementById('cpConfirmPassword').value = '';
+  document.getElementById('cpResult').textContent = '';
+  document.getElementById('change-password-modal-overlay').hidden = false;
+}
+
+function closeChangePasswordModal() {
+  document.getElementById('change-password-modal-overlay').hidden = true;
+}
+
+function submitChangePassword() {
+  const currentPassword = document.getElementById('cpCurrentPassword').value;
+  const newPassword = document.getElementById('cpNewPassword').value;
+  const confirmPassword = document.getElementById('cpConfirmPassword').value;
+  const resultEl = document.getElementById('cpResult');
+
+  if (!currentPassword || !newPassword) {
+    resultEl.className = 'toast err';
+    resultEl.textContent = 'Both fields are required.';
+    return;
+  }
+  if (newPassword !== confirmPassword) {
+    resultEl.className = 'toast err';
+    resultEl.textContent = 'New password and confirmation do not match.';
+    return;
+  }
+
+  fetch('/account/change-password', {
+    method: 'POST',
+    headers: { 'Authorization': authHeader, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ currentPassword, newPassword })
+  })
+  .then(res => res.json())
+  .then(data => {
+    if (data.error) {
+      resultEl.className = 'toast err';
+      resultEl.textContent = data.error;
+      return;
+    }
+    resultEl.className = 'toast ok';
+    resultEl.textContent = data.message;
+    setTimeout(closeChangePasswordModal, 1500);
+  })
+  .catch(() => {
+    resultEl.className = 'toast err';
+    resultEl.textContent = 'Unable to reach the server.';
+  });
 }
 
 function showPageError(message) {

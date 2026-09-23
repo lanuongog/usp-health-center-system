@@ -117,6 +117,65 @@ border-radius: 6px; font-size: 14px; font-weight: 600; cursor: pointer; margin-t
 .toast { font-size: 12.5px; margin-top: 8px; min-height: 16px; }
 .toast.ok { color: var(--ok); }
 .toast.err { color: var(--emergency); }
+
+.modal-overlay {
+position: fixed; inset: 0; background: rgba(20, 33, 61, 0.45);
+display: flex; align-items: flex-start; justify-content: center;
+padding: 40px 16px; overflow-y: auto; z-index: 100;
+}
+.modal-overlay[hidden] { display: none; }
+.modal-box {
+background: var(--panel); border-radius: 10px; width: 100%; max-width: 420px;
+box-shadow: 0 12px 32px rgba(20, 33, 61, 0.25);
+}
+.modal-box .panel-head { display: flex; align-items: center; }
+.modal-close {
+background: transparent; border: none; font-size: 18px; line-height: 1;
+color: var(--ink-soft); cursor: pointer; padding: 4px;
+}
+.modal-close:hover { color: var(--ink); }
+.confirm-row { display: flex; justify-content: space-between; padding: 7px 0; border-bottom: 1px solid var(--line); font-size: 13px; }
+.confirm-row:last-of-type { border-bottom: none; }
+.confirm-row span { color: var(--ink-soft); }
+
+.mini-tab-bar { display: flex; gap: 4px; background: var(--brand-soft); padding: 4px; margin: 0 18px; border-radius: 6px; }
+.mini-tab-btn { flex: 1; padding: 6px 8px; border: none; background: transparent; border-radius: 5px; font-size: 12px; font-weight: 600; color: var(--ink-soft); cursor: pointer; font-family: inherit; }
+.mini-tab-btn.active { background: #fff; color: var(--brand); box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+.history-card { border: 1px solid var(--line); border-radius: 8px; padding: 12px 14px; margin-bottom: 10px; }
+.history-card .h-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px; }
+.history-card .h-date { font-weight: 600; font-size: 13.5px; }
+.history-card .h-detail { font-size: 12.5px; color: var(--ink-soft); margin-top: 3px; }
+.status-tag { font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: 10px; }
+.status-tag.COMPLETED { background: #E1F0E5; color: var(--ok); }
+.status-tag.CANCELLED { background: var(--emergency-bg); color: var(--emergency); }
+.status-tag.NO_SHOW { background: #ECECEC; color: var(--ink-soft); }
+
+#account-menu-wrap { position: relative; }
+#account-menu {
+position: absolute; right: 0; top: 130%; background: var(--panel); border: 1px solid var(--line);
+border-radius: 8px; box-shadow: 0 6px 20px rgba(20,33,61,0.2); min-width: 170px; z-index: 250; overflow: hidden;
+}
+#account-menu[hidden] { display: none; }
+#account-menu button {
+display: block; width: 100%; text-align: left; background: var(--panel); color: var(--ink);
+border: none; padding: 10px 14px; font-size: 13px; cursor: pointer;
+}
+#account-menu button:hover { background: var(--brand-soft); }
+
+#notif-wrap { position: relative; }
+#notif-badge {
+display: none; background: var(--emergency); color: #fff; border-radius: 10px;
+padding: 1px 7px; font-size: 11px; margin-left: 4px; vertical-align: middle;
+}
+#notif-panel {
+position: absolute; right: 0; top: 130%; width: 320px; background: var(--panel);
+border: 1px solid var(--line); border-radius: 8px; box-shadow: 0 6px 20px rgba(20,33,61,0.2);
+z-index: 200; max-height: 380px; overflow-y: auto; padding: 10px; text-align: left; color: var(--ink);
+}
+#notif-panel[hidden] { display: none; }
+.notif-item { border-bottom: 1px solid var(--line); padding: 8px 2px; font-size: 12.5px; cursor: pointer; }
+.notif-item:last-child { border-bottom: none; }
+.notif-item .notif-time { font-size: 11px; color: var(--ink-soft); margin-top: 2px; }
 </style>
 </head>
 <body>
@@ -126,8 +185,17 @@ border-radius: 6px; font-size: 14px; font-weight: 600; cursor: pointer; margin-t
 <a href="/" class="home-link">← Home</a>
 <h1>Student Portal</h1>
 <div class="who">
-<span id="who-label"></span>
+<div id="notif-wrap">
+<button id="notif-bell" onclick="toggleNotifPanel()">🔔 Alerts<span id="notif-badge"></span></button>
+<div id="notif-panel" hidden></div>
+</div>
+<div id="account-menu-wrap">
+<button id="account-menu-btn" onclick="toggleAccountMenu()">👤 <span id="who-label"></span> ▾</button>
+<div id="account-menu" hidden>
+<button onclick="closeAccountMenu(); openChangePasswordModal();">🔑 Change Password</button>
 <button onclick="logout()">Log out</button>
+</div>
+</div>
 </div>
 </div>
 
@@ -154,7 +222,7 @@ border-radius: 6px; font-size: 14px; font-weight: 600; cursor: pointer; margin-t
 <div class="field-row">
 <div class="field">
 <label for="reason-input">Reason for visit</label>
-<input id="reason-input" type="text" placeholder="e.g. Fever" />
+<input id="reason-input" type="text" placeholder="e.g. Fever" maxlength="300" />
 </div>
 <div class="field">
 <label for="urgency-input">Urgency</label>
@@ -175,7 +243,78 @@ border-radius: 6px; font-size: 14px; font-weight: 600; cursor: pointer; margin-t
 <h2>My Appointments</h2>
 <span class="count" id="appt-count"></span>
 </div>
+<div class="mini-tab-bar">
+<button id="tab-btn-upcoming" class="mini-tab-btn active" onclick="switchApptTab('upcoming')">Upcoming</button>
+<button id="tab-btn-history" class="mini-tab-btn" onclick="switchApptTab('history')">Medical History</button>
+</div>
 <div class="panel-body" id="appt-list"></div>
+<div class="panel-body" id="history-list" style="display:none;"></div>
+</div>
+</div>
+</div>
+
+<div class="modal-overlay" id="confirm-modal-overlay" hidden onclick="if (event.target === this) closeConfirmModal()">
+<div class="modal-box">
+<div class="panel-head"><h2>Confirm Your Booking</h2><button class="modal-close" aria-label="Close" onclick="closeConfirmModal()">✕</button></div>
+<div class="panel-body">
+<div class="confirm-row"><span>Date</span><strong id="confirm-date"></strong></div>
+<div class="confirm-row"><span>Time</span><strong id="confirm-time"></strong></div>
+<div class="confirm-row"><span>Reason</span><strong id="confirm-reason"></strong></div>
+<div class="confirm-row"><span>Urgency</span><strong id="confirm-urgency"></strong></div>
+<p style="font-size:12.5px;color:var(--ink-soft);margin-top:14px;">Please double-check these details before confirming. This will reserve the slot.</p>
+<div style="display:flex;gap:8px;margin-top:14px;">
+<button class="btn-primary" style="margin-top:0;" onclick="submitBooking()">Yes, Confirm Booking</button>
+<button class="btn-small neutral" onclick="closeConfirmModal()">Cancel</button>
+</div>
+<div class="toast" id="confirm-toast"></div>
+</div>
+</div>
+</div>
+
+<div class="modal-overlay" id="reschedule-modal-overlay" hidden onclick="if (event.target === this) closeRescheduleModal()">
+<div class="modal-box">
+<div class="panel-head"><h2>Reschedule Appointment</h2><button class="modal-close" aria-label="Close" onclick="closeRescheduleModal()">✕</button></div>
+<div class="panel-body">
+<div class="confirm-row"><span>Current</span><strong id="reschedule-current"></strong></div>
+<div class="field" style="margin-top:12px;">
+<label for="reschedule-date-input">New Date</label>
+<input id="reschedule-date-input" type="date" onchange="loadRescheduleSlots()" />
+</div>
+<div id="reschedule-slot-container">
+<div class="empty-state">Pick a date to see open slots.</div>
+</div>
+<div class="confirm-row" id="reschedule-new-row" style="display:none;"><span>New Time</span><strong id="reschedule-new-time"></strong></div>
+<p style="font-size:12.5px;color:var(--ink-soft);margin-top:10px;">Please confirm before saving. Your original appointment stays unchanged unless you confirm.</p>
+<div style="display:flex;gap:8px;margin-top:14px;">
+<button class="btn-primary" style="margin-top:0;" id="reschedule-confirm-btn" onclick="confirmReschedule()" disabled>Confirm Reschedule</button>
+<button class="btn-small neutral" onclick="closeRescheduleModal()">Keep Original</button>
+</div>
+<div class="toast" id="reschedule-toast"></div>
+</div>
+</div>
+</div>
+
+<div class="modal-overlay" id="change-password-modal-overlay" hidden onclick="if (event.target === this) closeChangePasswordModal()">
+<div class="modal-box">
+<div class="panel-head"><h2>Change Password</h2><button class="modal-close" aria-label="Close" onclick="closeChangePasswordModal()">✕</button></div>
+<div class="panel-body">
+<div class="field">
+<label for="cpCurrentPassword">Current Password</label>
+<input type="password" id="cpCurrentPassword" />
+</div>
+<div class="field">
+<label for="cpNewPassword">New Password (min 6 characters)</label>
+<input type="password" id="cpNewPassword" minlength="6" maxlength="100" />
+</div>
+<div class="field">
+<label for="cpConfirmPassword">Confirm New Password</label>
+<input type="password" id="cpConfirmPassword" minlength="6" maxlength="100" />
+</div>
+<div class="toast" id="cpResult"></div>
+<div style="display:flex;gap:8px;margin-top:6px;">
+<button class="btn-primary" style="margin-top:0;" onclick="submitChangePassword()">Change Password</button>
+<button class="btn-small neutral" onclick="closeChangePasswordModal()">Cancel</button>
+</div>
 </div>
 </div>
 </div>
@@ -184,6 +323,7 @@ border-radius: 6px; font-size: 14px; font-weight: 600; cursor: pointer; margin-t
 let authHeader = null;
 let currentStudentId = null;
 let selectedSlot = null;
+let selectedSlotTime = null;
 
 window.addEventListener('DOMContentLoaded', () => {
   const storedAuth = localStorage.getItem('authHeader');
@@ -206,7 +346,54 @@ window.addEventListener('DOMContentLoaded', () => {
   loadSlots();
   refreshAppointments();
   loadFeeStatus();
+  pollNotifCount();
+  setInterval(pollNotifCount, 20000);
 });
+
+function pollNotifCount() {
+  fetch('/student/notifications/unread-count', { headers: { 'Authorization': authHeader } })
+    .then(res => res.ok ? res.json() : null)
+    .then(data => {
+      const badge = document.getElementById('notif-badge');
+      if (!data || !data.count) { badge.style.display = 'none'; return; }
+      badge.textContent = data.count;
+      badge.style.display = 'inline-block';
+    })
+    .catch(() => {});
+}
+
+function toggleNotifPanel() {
+  const panel = document.getElementById('notif-panel');
+  if (!panel.hidden) { panel.hidden = true; return; }
+  loadNotifPanel();
+  panel.hidden = false;
+}
+
+function loadNotifPanel() {
+  const panel = document.getElementById('notif-panel');
+  panel.innerHTML = '<div style="font-size:12.5px;color:var(--ink-soft);">Loading…</div>';
+  fetch('/student/notifications', { headers: { 'Authorization': authHeader } })
+    .then(res => res.json())
+    .then(items => {
+      if (!items.length) {
+        panel.innerHTML = '<div style="font-size:12.5px;color:var(--ink-soft);">No alerts.</div>';
+        return;
+      }
+      panel.innerHTML = items.map(n => `
+        <div class="notif-item" style="${n.read ? 'opacity:0.55;' : 'font-weight:600;'}" onclick="markNotifRead(${n.id})">
+          <div>${escapeHtml(n.message)}</div>
+          <div class="notif-time">${n.createdAt ? new Date(n.createdAt).toLocaleString() : ''}</div>
+        </div>
+      `).join('');
+    })
+    .catch(() => { panel.innerHTML = '<div style="font-size:12.5px;color:var(--emergency);">Unable to load alerts.</div>'; });
+}
+
+function markNotifRead(id) {
+  fetch('/student/notifications/' + id + '/read', { method: 'POST', headers: { 'Authorization': authHeader } })
+    .then(() => { loadNotifPanel(); pollNotifCount(); })
+    .catch(() => {});
+}
 
 function loadFeeStatus() {
   fetch('/student/profile', { headers: { 'Authorization': authHeader } })
@@ -342,10 +529,14 @@ function loadSlots() {
 
 function pickSlot(slotId, el) {
   selectedSlot = slotId;
+  selectedSlotTime = el.querySelector('.time').textContent;
   document.querySelectorAll('.slot-option').forEach(o => o.classList.remove('selected'));
   el.classList.add('selected');
 }
 
+// Step 1: validate inputs and show a confirmation summary before anything is
+// sent to the server - the actual booking only happens once the student
+// confirms the details in the modal (submitBooking()).
 function bookAppointment() {
   const toast = document.getElementById('book-toast');
   const reason = document.getElementById('reason-input').value.trim();
@@ -362,6 +553,26 @@ function bookAppointment() {
     return;
   }
 
+  toast.textContent = '';
+  document.getElementById('confirm-date').textContent = document.getElementById('date-input').value;
+  document.getElementById('confirm-time').textContent = selectedSlotTime || '';
+  document.getElementById('confirm-reason').textContent = reason;
+  document.getElementById('confirm-urgency').textContent = urgency;
+  document.getElementById('confirm-toast').textContent = '';
+  document.getElementById('confirm-modal-overlay').hidden = false;
+}
+
+function closeConfirmModal() {
+  document.getElementById('confirm-modal-overlay').hidden = true;
+}
+
+// Step 2: the student has reviewed and confirmed - now actually book it.
+function submitBooking() {
+  const toast = document.getElementById('book-toast');
+  const confirmToast = document.getElementById('confirm-toast');
+  const reason = document.getElementById('reason-input').value.trim();
+  const urgency = document.getElementById('urgency-input').value;
+
   fetch('/student/book', {
     method: 'POST',
     headers: { 'Authorization': authHeader, 'Content-Type': 'application/json' },
@@ -370,21 +581,65 @@ function bookAppointment() {
   .then(res => res.json())
   .then(data => {
     if (data.error) {
-      toast.textContent = data.error;
-      toast.className = 'toast err';
+      confirmToast.textContent = data.error;
+      confirmToast.className = 'toast err';
       return;
     }
+    closeConfirmModal();
     toast.textContent = 'Appointment confirmed for ' + data.timeSlot + '.';
     toast.className = 'toast ok';
     document.getElementById('reason-input').value = '';
     selectedSlot = null;
+    selectedSlotTime = null;
     loadSlots();
     refreshAppointments();
   })
   .catch(() => {
-    toast.textContent = 'Unable to reach the server.';
-    toast.className = 'toast err';
+    confirmToast.textContent = 'Unable to reach the server.';
+    confirmToast.className = 'toast err';
   });
+}
+
+function switchApptTab(tab) {
+  document.getElementById('tab-btn-upcoming').classList.toggle('active', tab === 'upcoming');
+  document.getElementById('tab-btn-history').classList.toggle('active', tab === 'history');
+  document.getElementById('appt-list').style.display = tab === 'upcoming' ? 'block' : 'none';
+  document.getElementById('history-list').style.display = tab === 'history' ? 'block' : 'none';
+  if (tab === 'history') loadHistory();
+}
+
+function loadHistory() {
+  const listEl = document.getElementById('history-list');
+  listEl.innerHTML = '<div class="empty-state">Loading…</div>';
+  fetch('/student/history', { headers: { 'Authorization': authHeader } })
+    .then(res => res.json())
+    .then(history => {
+      // Only past encounters belong here - upcoming/in-progress visits
+      // already show under the Upcoming tab.
+      const past = history.filter(h => h.status !== 'BOOKED' && h.status !== 'CHECKED_IN');
+      if (past.length === 0) {
+        listEl.innerHTML = '<div class="empty-state">No past visits on record.</div>';
+        return;
+      }
+      listEl.innerHTML = past.map(h => {
+        let detail = '';
+        if (h.status === 'COMPLETED') {
+          detail = (h.diagnosis ? 'Diagnosis: ' + escapeHtml(h.diagnosis) : '') +
+                   (h.consultedByDoctor ? ' · Seen by ' + escapeHtml(h.consultedByDoctor) : '');
+        }
+        return `
+          <div class="history-card">
+            <div class="h-top">
+              <span class="h-date">${escapeHtml(h.appointmentDate)}${h.timeSlot ? ' · ' + escapeHtml(h.timeSlot) : ''}</span>
+              <span class="status-tag ${escapeHtml(h.status)}">${escapeHtml(h.status)}</span>
+            </div>
+            <div class="h-detail">${escapeHtml(h.visitReason)} · ${escapeHtml(h.urgencyLevel)}</div>
+            ${detail ? `<div class="h-detail">${detail}</div>` : ''}
+          </div>
+        `;
+      }).join('');
+    })
+    .catch(() => { listEl.innerHTML = '<div class="empty-state">Unable to load medical history.</div>'; });
 }
 
 function refreshAppointments() {
@@ -412,6 +667,7 @@ function renderAppointments(appointments) {
       </div>
       <div class="appt-meta">${escapeHtml(a.visitReason)}</div>
       <div class="appt-actions">
+        <button class="btn-small neutral" onclick="openRescheduleModal(${a.id}, '${escapeHtml(a.appointmentDate)}', '${escapeHtml(a.timeSlot || '')}')">Reschedule</button>
         <button class="btn-small danger" onclick="cancelAppointment(${a.id})">Cancel</button>
       </div>
     </div>
@@ -432,6 +688,181 @@ function cancelAppointment(appointmentId) {
     loadSlots();
   })
   .catch(() => {});
+}
+
+let rescheduleAppointmentId = null;
+let rescheduleSelectedSlotId = null;
+
+function openRescheduleModal(appointmentId, date, timeSlot) {
+  rescheduleAppointmentId = appointmentId;
+  rescheduleSelectedSlotId = null;
+  document.getElementById('reschedule-current').textContent = date + (timeSlot ? ' · ' + timeSlot : '');
+  document.getElementById('reschedule-new-row').style.display = 'none';
+  document.getElementById('reschedule-confirm-btn').disabled = true;
+  document.getElementById('reschedule-toast').textContent = '';
+
+  const dateInput = document.getElementById('reschedule-date-input');
+  const tomorrow = new Date();
+  tomorrow.setDate(tomorrow.getDate() + 1);
+  dateInput.value = tomorrow.toISOString().split('T')[0];
+  loadRescheduleSlots();
+  document.getElementById('reschedule-modal-overlay').hidden = false;
+}
+
+function closeRescheduleModal() {
+  document.getElementById('reschedule-modal-overlay').hidden = true;
+}
+
+// Loads real-time availability for the chosen new date - always fetched
+// fresh from the server, so a slot someone else just took shows as booked.
+function loadRescheduleSlots() {
+  const date = document.getElementById('reschedule-date-input').value;
+  const container = document.getElementById('reschedule-slot-container');
+  rescheduleSelectedSlotId = null;
+  document.getElementById('reschedule-new-row').style.display = 'none';
+  document.getElementById('reschedule-confirm-btn').disabled = true;
+  if (!date) return;
+
+  fetch('/schedule/available?date=' + date)
+    .then(res => {
+      if (res.status === 404) return [];
+      if (!res.ok) throw new Error();
+      return res.json();
+    })
+    .then(slots => {
+      if (!Array.isArray(slots) || slots.length === 0) {
+        container.innerHTML = '<div class="empty-state">No available appointments for the selected date.</div>';
+        return;
+      }
+      const seenTimes = new Set();
+      const uniqueSlots = slots.filter(s => {
+        if (seenTimes.has(s.timeSlot)) return false;
+        seenTimes.add(s.timeSlot);
+        return true;
+      });
+      uniqueSlots.sort((a, b) => timeSlotSortKey(a.timeSlot) - timeSlotSortKey(b.timeSlot));
+
+      container.innerHTML = '<div class="slot-list">' + uniqueSlots.map(s => `
+        <div class="slot-option${s.booked ? ' booked' : ''}" data-id="${s.id}"
+             ${s.booked ? '' : `onclick='pickRescheduleSlot(${s.id}, this)'`}>
+          <span class="time">${escapeHtml(s.timeSlot)}</span>
+          ${s.booked ? '<span class="badge Booked">Booked</span>' : ''}
+        </div>
+      `).join('') + '</div>';
+    })
+    .catch(() => {
+      container.innerHTML = '<div class="empty-state">Unable to load availability.</div>';
+    });
+}
+
+function pickRescheduleSlot(slotId, el) {
+  rescheduleSelectedSlotId = slotId;
+  document.querySelectorAll('#reschedule-slot-container .slot-option').forEach(o => o.classList.remove('selected'));
+  el.classList.add('selected');
+
+  const date = document.getElementById('reschedule-date-input').value;
+  const time = el.querySelector('.time').textContent;
+  document.getElementById('reschedule-new-time').textContent = date + ' · ' + time;
+  document.getElementById('reschedule-new-row').style.display = 'flex';
+  document.getElementById('reschedule-confirm-btn').disabled = false;
+}
+
+// The explicit confirm step: nothing changes on the server until this is
+// clicked - closing the modal or picking "Keep Original" leaves the
+// existing appointment untouched.
+function confirmReschedule() {
+  const toast = document.getElementById('reschedule-toast');
+  const btn = document.getElementById('reschedule-confirm-btn');
+  btn.disabled = true;
+
+  fetch('/student/reschedule', {
+    method: 'POST',
+    headers: { 'Authorization': authHeader, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ appointmentId: rescheduleAppointmentId, newSlotId: rescheduleSelectedSlotId })
+  })
+  .then(res => res.json())
+  .then(data => {
+    if (data.error) {
+      toast.textContent = data.error;
+      toast.className = 'toast err';
+      btn.disabled = false;
+      return;
+    }
+    toast.textContent = 'Appointment rescheduled to ' + data.newDate + ' at ' + data.newTimeSlot + '.';
+    toast.className = 'toast ok';
+    refreshAppointments();
+    loadSlots();
+    setTimeout(closeRescheduleModal, 1500);
+  })
+  .catch(() => {
+    toast.textContent = 'Unable to reach the server.';
+    toast.className = 'toast err';
+    btn.disabled = false;
+  });
+}
+
+function toggleAccountMenu() {
+  document.getElementById('account-menu').hidden = !document.getElementById('account-menu').hidden;
+}
+
+function closeAccountMenu() {
+  document.getElementById('account-menu').hidden = true;
+}
+
+document.addEventListener('click', (e) => {
+  const wrap = document.getElementById('account-menu-wrap');
+  if (wrap && !wrap.contains(e.target)) closeAccountMenu();
+});
+
+function openChangePasswordModal() {
+  document.getElementById('cpCurrentPassword').value = '';
+  document.getElementById('cpNewPassword').value = '';
+  document.getElementById('cpConfirmPassword').value = '';
+  document.getElementById('cpResult').textContent = '';
+  document.getElementById('change-password-modal-overlay').hidden = false;
+}
+
+function closeChangePasswordModal() {
+  document.getElementById('change-password-modal-overlay').hidden = true;
+}
+
+function submitChangePassword() {
+  const currentPassword = document.getElementById('cpCurrentPassword').value;
+  const newPassword = document.getElementById('cpNewPassword').value;
+  const confirmPassword = document.getElementById('cpConfirmPassword').value;
+  const resultEl = document.getElementById('cpResult');
+
+  if (!currentPassword || !newPassword) {
+    resultEl.className = 'toast err';
+    resultEl.textContent = 'Both fields are required.';
+    return;
+  }
+  if (newPassword !== confirmPassword) {
+    resultEl.className = 'toast err';
+    resultEl.textContent = 'New password and confirmation do not match.';
+    return;
+  }
+
+  fetch('/account/change-password', {
+    method: 'POST',
+    headers: { 'Authorization': authHeader, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ currentPassword, newPassword })
+  })
+  .then(res => res.json())
+  .then(data => {
+    if (data.error) {
+      resultEl.className = 'toast err';
+      resultEl.textContent = data.error;
+      return;
+    }
+    resultEl.className = 'toast ok';
+    resultEl.textContent = data.message;
+    setTimeout(closeChangePasswordModal, 1500);
+  })
+  .catch(() => {
+    resultEl.className = 'toast err';
+    resultEl.textContent = 'Unable to reach the server.';
+  });
 }
 
 function escapeHtml(str) {
