@@ -95,6 +95,22 @@ public class DataSeeder {
                 }
             }
 
+            // One-time backfill: schedule rows created before the "archived" column
+            // existed have it stored as NULL. Every "AndArchivedFalse" query used for
+            // availability/management translates to SQL `archived = false`, which does
+            // NOT match NULL under SQL's three-valued logic - so without this backfill,
+            // every pre-existing slot would silently vanish as if archived.
+            {
+                List<DoctorSchedule> needsBackfill = scheduleRepository.findAll().stream()
+                        .filter(s -> s.getArchivedRaw() == null)
+                        .collect(java.util.stream.Collectors.toList());
+                if (!needsBackfill.isEmpty()) {
+                    needsBackfill.forEach(s -> s.setArchived(false));
+                    scheduleRepository.saveAll(needsBackfill);
+                    System.out.println("Backfilled archived=false on " + needsBackfill.size() + " pre-existing schedule slot(s).");
+                }
+            }
+
             // Tops up a rolling window of open slots (today -> +6 days) on every startup.
             // A one-time "count == 0" seed would only ever populate slots for the date the
             // app first ran, so restarting days later (or after testers book everything out)

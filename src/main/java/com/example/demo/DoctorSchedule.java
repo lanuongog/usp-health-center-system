@@ -20,6 +20,15 @@ public class DoctorSchedule {
     private LocalDate scheduleDate;
     private String timeSlot; // e.g. "09:00 AM - 09:30 AM"
     private boolean booked = false;
+    // Slots are archived (soft-removed) rather than hard-deleted, so removed
+    // slots stay in the database for audit purposes but are hidden from
+    // students/staff and excluded from availability and conflict checks.
+    // Nullable Boolean (not a primitive) so Hibernate adds this as a nullable
+    // column on an existing table - a NOT NULL column can't be added to a
+    // table that already has rows without a default, which breaks ddl-auto
+    // on every pre-existing database. isArchived() treats null as false, so
+    // pre-existing rows are correctly treated as not archived.
+    private Boolean archived = Boolean.FALSE;
 
     public DoctorSchedule() {}
 
@@ -37,4 +46,11 @@ public class DoctorSchedule {
 
     public boolean isBooked() { return booked; }
     public void setBooked(boolean booked) { this.booked = booked; }
+
+    public boolean isArchived() { return archived != null && archived; }
+    public void setArchived(boolean archived) { this.archived = archived; }
+
+    // Package-visible raw accessor (may be null for rows that predate this
+    // column) used only by DataSeeder's one-time backfill migration.
+    Boolean getArchivedRaw() { return archived; }
 }

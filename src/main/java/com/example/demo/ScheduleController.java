@@ -37,8 +37,8 @@ public class ScheduleController {
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date) {
 
         List<DoctorSchedule> slots = (doctorName != null)
-                ? scheduleRepository.findByDoctorNameAndScheduleDate(doctorName, date)
-                : scheduleRepository.findByScheduleDate(date);
+                ? scheduleRepository.findByDoctorNameAndScheduleDateAndArchivedFalse(doctorName, date)
+                : scheduleRepository.findByScheduleDateAndArchivedFalse(date);
 
         // no appointment slots scheduled at all for the selected date
         if (slots.isEmpty()) {
@@ -51,6 +51,7 @@ public class ScheduleController {
     @GetMapping("/doctors")
     public List<String> getDoctorNames() {
         return scheduleRepository.findAll().stream()
+                .filter(d -> !d.isArchived())
                 .map((DoctorSchedule d) -> d.getDoctorName())
                 .distinct()
                 .collect(Collectors.toList());
@@ -92,23 +93,35 @@ public class ScheduleController {
         }
     }
 
-    // doctor/admin removes a slot
+    // doctor/admin removes a slot - archived (soft-removed), never hard-deleted,
+    // so the record is preserved for audit purposes and simply hidden from
+    // availability, management, and conflict checks going forward.
     @DeleteMapping("/manage/{id}")
-    public Map<String, String> deleteSlot(@PathVariable Long id, Authentication auth) {
+    public Map<String, String> archiveSlot(@PathVariable Long id, Authentication auth) {
         DoctorSchedule existing = scheduleRepository.findById(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Schedule slot not found"));
 
         validateOwnership(existing.getDoctorName(), auth);
 
-        scheduleRepository.deleteById(id);
+        if (existing.isBooked()) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "Cannot remove a slot that has an active booking.");
+        }
+        if (existing.isArchived()) {
+            return Map.of("message", "This slot was already removed.");
+        }
+
+        existing.setArchived(true);
+        scheduleRepository.save(existing);
         return Map.of("message", "Slot removed.");
     }
 
     // Doctors and admins need to see the FULL schedule (booked + open) to manage it,
-    // unlike /available which only shows open slots to students.
+    // unlike /available which only shows open slots to students. Archived slots are
+    // excluded - they've been removed and are no longer part of the active schedule.
     @GetMapping("/manage")
     public List<DoctorSchedule> getManagedSchedule(Authentication auth) {
         return scheduleRepository.findAll().stream()
+                .filter(s -> !s.isArchived())
                 .filter(s -> auth.getAuthorities().stream().anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN"))
                         || s.getDoctorName().equals(auth.getName()))
                 .collect(Collectors.toList());
@@ -125,11 +138,22 @@ public class ScheduleController {
         }
     }
 
-    // required schedule information is missing
+    private static final int MAX_DOCTOR_NAME_LENGTH = 100;
+    private static final int MAX_TIME_SLOT_LENGTH = 50;
+
+    // required schedule information is missing, or exceeds a sane length
     private void validateRequiredFields(DoctorSchedule slot) {
         if (isBlank(slot.getDoctorName()) || slot.getScheduleDate() == null || isBlank(slot.getTimeSlot())) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
                     "Display validation messages for the missing fields");
+        }
+        if (slot.getDoctorName().trim().length() > MAX_DOCTOR_NAME_LENGTH) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                    "Doctor name must be " + MAX_DOCTOR_NAME_LENGTH + " characters or fewer.");
+        }
+        if (slot.getTimeSlot().trim().length() > MAX_TIME_SLOT_LENGTH) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                    "Time slot must be " + MAX_TIME_SLOT_LENGTH + " characters or fewer.");
         }
     }
 
@@ -137,7 +161,7 @@ public class ScheduleController {
     // or duplicating another open slot for the same doctor, date, and time.
     private void validateNoConflict(DoctorSchedule slot, Long excludeSlotId) {
         boolean conflict = scheduleRepository
-                .findByDoctorNameAndScheduleDate(slot.getDoctorName(), slot.getScheduleDate())
+                .findByDoctorNameAndScheduleDateAndArchivedFalse(slot.getDoctorName(), slot.getScheduleDate())
                 .stream()
                 .anyMatch(s -> !s.getId().equals(excludeSlotId) && s.getTimeSlot().equals(slot.getTimeSlot()));
 
