@@ -21,6 +21,9 @@ import org.springframework.web.server.ResponseStatusException;
 @RequestMapping("/doctor")
 public class DoctorController {
 
+    private static final int MAX_DIAGNOSIS_LENGTH = 200;
+    private static final int MAX_NOTES_LENGTH = 2000;
+
     private final AppointmentRepository appointmentRepository;
     private final CheckInRepository checkInRepository;
     private final DoctorScheduleRepository scheduleRepository;
@@ -178,6 +181,14 @@ public class DoctorController {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
                     "Display validation messages for incomplete fields");
         }
+        if (request.diagnosis.trim().length() > MAX_DIAGNOSIS_LENGTH) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                    "Diagnosis must be " + MAX_DIAGNOSIS_LENGTH + " characters or fewer.");
+        }
+        if (request.consultationNotes.trim().length() > MAX_NOTES_LENGTH) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                    "Consultation notes must be " + MAX_NOTES_LENGTH + " characters or fewer.");
+        }
 
         // prevent a doctor from editing another doctor's submitted consultation
         if (appointment.getConsultedByDoctor() != null &&
@@ -200,6 +211,52 @@ public class DoctorController {
         }
 
         return saved;
+    }
+
+    // Consolidated single-visit clinical summary: reason/urgency, nurse's
+    // vitals & presenting complaint, doctor's diagnosis & notes, and the
+    // relevant timestamps, in one report an authorised doctor can view or
+    // print. Only available once the consultation is actually completed.
+    @GetMapping("/consultation-report/{appointmentId}")
+    public Map<String, Object> generateConsultationReport(@PathVariable Long appointmentId) {
+        Appointment appointment = appointmentRepository.findById(appointmentId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Visit record not found"));
+
+        if (!"COMPLETED".equals(appointment.getStatus()) || isBlank(appointment.getDiagnosis()) || isBlank(appointment.getConsultationNotes())) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Unable to generate report");
+        }
+
+        String studentFullName = userRepository.findByUsername(appointment.getStudentName())
+                .map(User::getFullName)
+                .filter(name -> name != null && !name.isBlank())
+                .orElse(appointment.getStudentName());
+
+        Map<String, Object> report = new LinkedHashMap<>();
+        report.put("appointmentId", appointment.getId());
+        report.put("studentId", appointment.getStudentName());
+        report.put("studentName", studentFullName);
+        report.put("appointmentDate", appointment.getAppointmentDate() != null ? appointment.getAppointmentDate().toString() : "");
+        report.put("timeSlot", appointment.getTimeSlot());
+        report.put("visitReason", appointment.getVisitReason());
+        report.put("urgencyLevel", appointment.getUrgencyLevel());
+        report.put("diagnosis", appointment.getDiagnosis());
+        report.put("consultationNotes", appointment.getConsultationNotes());
+        report.put("consultedByDoctor", appointment.getConsultedByDoctor());
+
+        checkInRepository.findByAppointmentId(appointmentId).ifPresent(c -> {
+            String checkedInByFullName = userRepository.findByUsername(c.getCheckedInBy())
+                    .map(User::getFullName)
+                    .filter(name -> name != null && !name.isBlank())
+                    .orElse(c.getCheckedInBy());
+            report.put("temperature", c.getTemperature());
+            report.put("bloodPressure", c.getBloodPressure());
+            report.put("presentingComplaint", c.getPresentingComplaint());
+            report.put("checkInTime", c.getCheckInTime() != null ? c.getCheckInTime().toString() : null);
+            report.put("checkedInBy", checkedInByFullName);
+        });
+
+        report.put("generatedAt", LocalDateTime.now().toString());
+        return report;
     }
 
     private boolean isBlank(String s) {
