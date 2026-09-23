@@ -246,6 +246,7 @@ function render() {
         ${u.role === 'ADMIN'
           ? '<span class="empty-state">Admin accounts cannot be activated or deactivated from here.</span>'
           : `<button class="${u.active ? 'btn-deactivate' : ''}" onclick="toggleActive(false)">${u.active ? 'Deactivate Account' : 'Activate Account'}</button>`}
+        <button class="btn-secondary" onclick="resetPassword()">Reset Password</button>
       </div>
     </div>
     ${studentSection}
@@ -312,6 +313,32 @@ async function approveReceipt() {
     showMsg('Payment approved. The student can now book appointments.');
     currentUser = data;
     render();
+  } catch (e) {
+    showError('Service temporarily unavailable');
+  }
+}
+
+async function resetPassword() {
+  const newPassword = window.prompt('Enter a new password for this account (min 6 characters):', '');
+  if (newPassword === null) return;
+  if (newPassword.length < 6) {
+    showError('Password must be at least 6 characters.');
+    return;
+  }
+
+  try {
+    const res = await fetch(`/admin/users/${userId}/reset-password`, {
+      method: 'POST',
+      headers: { 'Authorization': authHeader, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ newPassword })
+    });
+    const data = await res.json();
+    if (!res.ok || data.error) {
+      showError(data.error || 'Unable to reset password.');
+      return;
+    }
+    showError(null);
+    showMsg(data.message);
   } catch (e) {
     showError('Service temporarily unavailable');
   }
