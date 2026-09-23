@@ -20,6 +20,8 @@
 * { box-sizing: border-box; }
 body { font-family: 'Geist', -apple-system, Segoe UI, Roboto, Arial, sans-serif; background: var(--bg); margin: 0; color: var(--ink); }
 header { background: var(--brand); color: white; padding: 18px 30px; font-size: 20px; font-weight: 600; }
+header a.home-link { color: #fff; text-decoration: none; opacity: 0.85; margin-right: 14px; font-size: 14px; }
+header a.home-link:hover { opacity: 1; text-decoration: underline; }
 .container { max-width: 900px; margin: 30px auto; padding: 0 20px; }
 
 button { background: var(--brand); color: white; border: none; padding: 10px 18px; border-radius: 6px; cursor: pointer; font-size: 14px; }
@@ -51,7 +53,7 @@ th { color: var(--ink-soft); font-weight: 600; }
 </head>
 <body>
 
-<header>Laucala Online Appointment &amp; Medical Records System &mdash; Manage Schedule</header>
+<header><a href="/" id="home-link" class="home-link">← Home</a> Laucala Online Appointment &amp; Medical Records System &mdash; Manage Schedule</header>
 
 <div class="container">
 
@@ -66,9 +68,9 @@ th { color: var(--ink-soft); font-weight: 600; }
 <div class="panel">
 <h3>Add New Slot</h3>
 <div class="newSlotForm">
-<div><label>Doctor Name</label><input type="text" id="newDoctorName" placeholder="Dr. Patel"></div>
+<div><label>Doctor Name</label><input type="text" id="newDoctorName" placeholder="Dr. Patel" maxlength="100"></div>
 <div><label>Date</label><input type="date" id="newDate"></div>
-<div><label>Time Slot</label><input type="text" id="newTimeSlot" placeholder="09:00 AM - 09:30 AM"></div>
+<div><label>Time Slot</label><input type="text" id="newTimeSlot" placeholder="09:00 AM - 09:30 AM" maxlength="50"></div>
 <button onclick="createSlot()">Add Slot</button>
 </div>
 <div id="formError"></div>
@@ -95,6 +97,12 @@ window.addEventListener('DOMContentLoaded', () => {
   if (!storedAuth || (storedRole !== 'DOCTOR' && storedRole !== 'ADMIN')) {
     window.location.href = '/login.html';
     return;
+  }
+
+  if (storedRole === 'ADMIN') {
+    const homeLink = document.getElementById('home-link');
+    homeLink.href = '/admin.html';
+    homeLink.textContent = '← Back to Admin Dashboard';
   }
 
   authHeader = storedAuth;
