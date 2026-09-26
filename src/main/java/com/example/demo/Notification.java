@@ -10,11 +10,11 @@ import jakarta.persistence.Table;
 
 // Two kinds of alert live in this one table:
 //  - Staff-facing (recipientUsername == null): a student books/holds an Urgent
-//    or Emergency appointment, or a nurse/doctor registers an emergency walk-in.
-//    Shown to every nurse/doctor/admin.
+//    or Emergency appointment, sends an emergency alert, or a nurse/doctor
+//    completes an emergency check-in. Shown to every nurse/doctor/admin.
 //  - Student-facing (recipientUsername == that student's username): a "your
 //    appointment may be delayed" notice sent to students who already have a
-//    booking today when an emergency walk-in jumps the queue ahead of them.
+//    booking today when an emergency check-in jumps the queue ahead of them.
 @Entity
 @Table(name = "notifications")
 public class Notification {

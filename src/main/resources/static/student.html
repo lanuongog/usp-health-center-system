@@ -162,6 +162,14 @@ border: none; padding: 10px 14px; font-size: 13px; cursor: pointer;
 }
 #account-menu button:hover { background: var(--brand-soft); }
 
+#emergency-fab {
+position: fixed; bottom: 24px; right: 24px; z-index: 90;
+background: var(--emergency); color: #fff; border: 2px solid #fff; border-radius: 999px;
+padding: 14px 22px; font-size: 14px; font-weight: 800; cursor: pointer;
+box-shadow: 0 4px 14px rgba(178,58,46,0.45);
+}
+#emergency-fab:hover { background: #8f2d23; }
+
 #notif-wrap { position: relative; }
 #notif-badge {
 display: none; background: var(--emergency); color: #fff; border-radius: 10px;
@@ -319,6 +327,26 @@ z-index: 200; max-height: 380px; overflow-y: auto; padding: 10px; text-align: le
 </div>
 </div>
 
+<button id="emergency-fab" onclick="openEmergencyModal()" title="Alert the Health Center now">🚨 Emergency</button>
+
+<div class="modal-overlay" id="emergency-modal-overlay" hidden onclick="if (event.target === this) closeEmergencyModal()">
+<div class="modal-box" style="border:3px solid var(--emergency);">
+<div class="panel-head"><h2 style="color:var(--emergency);">🚨 Emergency Alert</h2><button class="modal-close" aria-label="Close" onclick="closeEmergencyModal()">✕</button></div>
+<div class="panel-body">
+<p style="font-size:13px;color:var(--ink-soft);margin-top:0;">If this is life-threatening, call campus security or emergency services immediately. Sending this alert notifies Health Center staff now so they can prioritize you as soon as you arrive.</p>
+<div class="field">
+<label for="emergencyReason">What's happening? (brief)</label>
+<input id="emergencyReason" type="text" placeholder="e.g. Severe allergic reaction, on my way now" maxlength="300" />
+</div>
+<div class="toast" id="emergencyResult"></div>
+<div style="display:flex;gap:8px;margin-top:6px;">
+<button class="btn-primary" style="margin-top:0;background:var(--emergency);" id="emergency-send-btn" onclick="sendEmergencyAlert()">🚨 Send Alert Now</button>
+<button class="btn-small neutral" onclick="closeEmergencyModal()">Cancel</button>
+</div>
+</div>
+</div>
+</div>
+
 <script>
 let authHeader = null;
 let currentStudentId = null;
@@ -347,7 +375,7 @@ window.addEventListener('DOMContentLoaded', () => {
   refreshAppointments();
   loadFeeStatus();
   pollNotifCount();
-  setInterval(pollNotifCount, 20000);
+  setInterval(pollNotifCount, 4000);
 });
 
 function pollNotifCount() {
@@ -862,6 +890,53 @@ function submitChangePassword() {
   .catch(() => {
     resultEl.className = 'toast err';
     resultEl.textContent = 'Unable to reach the server.';
+  });
+}
+
+function openEmergencyModal() {
+  document.getElementById('emergencyReason').value = '';
+  document.getElementById('emergencyResult').textContent = '';
+  document.getElementById('emergencyResult').className = 'toast';
+  document.getElementById('emergency-modal-overlay').hidden = false;
+}
+
+function closeEmergencyModal() {
+  document.getElementById('emergency-modal-overlay').hidden = true;
+}
+
+function sendEmergencyAlert() {
+  const reason = document.getElementById('emergencyReason').value.trim();
+  const resultEl = document.getElementById('emergencyResult');
+  const btn = document.getElementById('emergency-send-btn');
+
+  if (!reason) {
+    resultEl.className = 'toast err';
+    resultEl.textContent = "Please briefly describe what's happening.";
+    return;
+  }
+
+  btn.disabled = true;
+  fetch('/student/emergency-alert', {
+    method: 'POST',
+    headers: { 'Authorization': authHeader, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ reason })
+  })
+  .then(res => res.json())
+  .then(data => {
+    btn.disabled = false;
+    if (data.error) {
+      resultEl.className = 'toast err';
+      resultEl.textContent = data.error;
+      return;
+    }
+    resultEl.className = 'toast ok';
+    resultEl.textContent = data.message;
+    setTimeout(closeEmergencyModal, 3000);
+  })
+  .catch(() => {
+    btn.disabled = false;
+    resultEl.className = 'toast err';
+    resultEl.textContent = 'Unable to reach the server. If this is an emergency, call campus security directly.';
   });
 }
 

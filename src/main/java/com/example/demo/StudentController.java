@@ -1,6 +1,7 @@
 package com.example.demo;
 
 import java.io.IOException;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
 import java.util.regex.Pattern;
@@ -11,6 +12,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
@@ -37,6 +39,7 @@ public class StudentController {
     private static final int MIN_PASSWORD_LENGTH = 6;
     private static final int MAX_PASSWORD_LENGTH = 100;
     private static final int MAX_FULL_NAME_LENGTH = 100;
+    private static final int MAX_EMERGENCY_REASON_LENGTH = 300;
 
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
@@ -172,7 +175,7 @@ public class StudentController {
     }
 
     // A student's own alerts - currently just "your appointment may be delayed"
-    // notices raised when a nurse/doctor registers an emergency walk-in ahead
+    // notices raised when a nurse/doctor completes an emergency check-in ahead
     // of a student's existing booking for the same day.
     @GetMapping("/notifications")
     public List<Notification> getMyNotifications(Authentication auth) {
@@ -192,6 +195,41 @@ public class StudentController {
         }
         notification.setRead(true);
         return notificationRepository.save(notification);
+    }
+
+    public static class EmergencyAlertRequest {
+        public String reason;
+    }
+
+    // A quick, low-friction heads-up a student sends before they've arrived -
+    // it only notifies staff so they can prepare; it does NOT create an
+    // appointment or check the student in, since they aren't physically here
+    // yet. The actual check-in still happens through the nurse/doctor
+    // dashboard's Emergency Check-in action once the student arrives.
+    @PostMapping("/emergency-alert")
+    public Object sendEmergencyAlert(@RequestBody EmergencyAlertRequest request, Authentication auth) {
+        if (request.reason == null || request.reason.isBlank()) {
+            return Map.of("error", "Please briefly describe what's happening.");
+        }
+        if (request.reason.trim().length() > MAX_EMERGENCY_REASON_LENGTH) {
+            return Map.of("error", "Description must be " + MAX_EMERGENCY_REASON_LENGTH + " characters or fewer.");
+        }
+
+        User student = userRepository.findByUsername(auth.getName()).orElse(null);
+        String displayName = (student != null && student.getFullName() != null && !student.getFullName().isBlank())
+                ? student.getFullName() : auth.getName();
+
+        Notification alert = new Notification();
+        alert.setType("EMERGENCY_ALERT");
+        alert.setStudentUsername(auth.getName());
+        alert.setStudentName(displayName);
+        alert.setMessage("EMERGENCY ALERT from " + displayName + " (" + auth.getName() + "): " + request.reason.trim()
+                + " — not yet checked in, will need immediate attention on arrival.");
+        alert.setCreatedAt(LocalDateTime.now());
+        notificationRepository.save(alert);
+
+        return Map.of("message", "Alert sent. Health Center staff have been notified and will prioritize you on "
+                + "arrival. If this is life-threatening, also contact campus security or emergency services immediately.");
     }
 
     private String validateReceipt(MultipartFile receipt) {

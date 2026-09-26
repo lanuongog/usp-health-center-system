@@ -31,7 +31,7 @@ public class NurseController {
         this.userRepository = userRepository;
     }
 
-    // Lower number = seen sooner - an emergency walk-in should visibly jump
+    // Lower number = seen sooner - an emergency case should visibly jump
     // ahead of routine bookings in the waiting queue.
     private int urgencyRank(String urgencyLevel) {
         if (urgencyLevel == null) return 3;

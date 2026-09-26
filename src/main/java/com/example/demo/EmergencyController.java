@@ -11,12 +11,15 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-// The dedicated one-click Emergency action for a nurse/doctor: registers AND
-// checks in a student in a single step, for a walk-in that genuinely cannot
-// wait for the normal booking/queue flow.
+// The dedicated action a nurse/doctor uses to check in a student who sent an
+// emergency alert (see StudentController.sendEmergencyAlert) and has now
+// physically arrived. Registers AND checks the student in as one step,
+// landing them at the top of the doctor's active queue - the system is
+// online-booking-only, so this is purely how staff act on an emergency raised
+// through the student portal, not a general walk-in registration path.
 @RestController
 @RequestMapping("/emergency")
-public class EmergencyWalkInController {
+public class EmergencyController {
 
     private static final int MAX_REASON_LENGTH = 300;
 
@@ -25,10 +28,10 @@ public class EmergencyWalkInController {
     private final CheckInRepository checkInRepository;
     private final NotificationRepository notificationRepository;
 
-    public EmergencyWalkInController(UserRepository userRepository,
-                                      AppointmentRepository appointmentRepository,
-                                      CheckInRepository checkInRepository,
-                                      NotificationRepository notificationRepository) {
+    public EmergencyController(UserRepository userRepository,
+                                AppointmentRepository appointmentRepository,
+                                CheckInRepository checkInRepository,
+                                NotificationRepository notificationRepository) {
         this.userRepository = userRepository;
         this.appointmentRepository = appointmentRepository;
         this.checkInRepository = checkInRepository;
@@ -84,7 +87,7 @@ public class EmergencyWalkInController {
         Appointment appointment = new Appointment();
         appointment.setStudentName(studentId);
         appointment.setAppointmentDate(LocalDate.now());
-        appointment.setTimeSlot("Emergency Walk-in");
+        appointment.setTimeSlot("Emergency");
         appointment.setVisitReason(reason);
         appointment.setUrgencyLevel("Emergency");
         appointment.setStatus("CHECKED_IN");
