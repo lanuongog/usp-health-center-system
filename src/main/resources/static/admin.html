@@ -165,6 +165,7 @@ padding: 40px 16px; overflow-y: auto; z-index: 100;
 <button class="tab-btn active" id="tab-btn-dashboard" onclick="switchTab('dashboard')">Dashboard</button>
 <button class="tab-btn" id="tab-btn-reports" onclick="switchTab('reports')">Reports</button>
 <button class="tab-btn" id="tab-btn-users" onclick="switchTab('users')">User Management</button>
+<button class="tab-btn" id="tab-btn-audit" onclick="switchTab('audit')">Audit Log</button>
 </div>
 
 <div id="tab-dashboard" class="tab-panel active">
@@ -243,6 +244,17 @@ padding: 40px 16px; overflow-y: auto; z-index: 100;
 </table>
 </div>
 </div>
+
+<div id="tab-audit" class="tab-panel">
+<div class="panel">
+<h3>Medical Record Access Log</h3>
+<p style="font-size:12.5px;color:#6b7280;margin-top:-6px;">Every time a doctor views or records a student's medical/consultation record, it is logged here for accountability (NFR-PRIV-03).</p>
+<table class="user-table">
+<thead><tr><th>When</th><th>Staff Member</th><th>Role</th><th>Action</th><th>Student</th><th>Details</th></tr></thead>
+<tbody id="auditLogTableBody"></tbody>
+</table>
+</div>
+</div>
 </div>
 
 </div>
@@ -274,6 +286,23 @@ function logout() {
   localStorage.clear();
   window.location.href = '/login.html';
 }
+
+// Auth here is stateless (Basic Auth cached in localStorage), so there's no
+// server-side session to expire - this client-side idle timer is what
+// actually enforces the "auto-logoff after inactivity" requirement.
+const IDLE_TIMEOUT_MS = 20 * 60 * 1000;
+let idleTimer;
+function resetIdleTimer() {
+  clearTimeout(idleTimer);
+  idleTimer = setTimeout(() => {
+    localStorage.clear();
+    window.location.href = '/login.html?reason=idle';
+  }, IDLE_TIMEOUT_MS);
+}
+['mousemove', 'mousedown', 'keydown', 'touchstart', 'scroll'].forEach(evt =>
+  document.addEventListener(evt, resetIdleTimer, { passive: true })
+);
+resetIdleTimer();
 
 function openChangePasswordModal() {
   document.getElementById('cpCurrentPassword').value = '';
@@ -400,6 +429,44 @@ function switchTab(tab) {
 
   if (tab === 'reports') loadReportTypes();
   if (tab === 'users') loadUsers();
+  if (tab === 'audit') loadAuditLogs();
+}
+
+function escapeHtml(str) {
+  if (str === null || str === undefined) return '';
+  return String(str)
+    .replaceAll('&', '&amp;')
+    .replaceAll('<', '&lt;')
+    .replaceAll('>', '&gt;')
+    .replaceAll('"', '&quot;');
+}
+
+async function loadAuditLogs() {
+  const body = document.getElementById('auditLogTableBody');
+  try {
+    const res = await fetch('/admin/audit-logs', { headers: { 'Authorization': authHeader } });
+    if (!res.ok) {
+      body.innerHTML = '<tr><td colspan="6" style="color:#9ca3af;">Unable to load audit log.</td></tr>';
+      return;
+    }
+    const logs = await res.json();
+    if (logs.length === 0) {
+      body.innerHTML = '<tr><td colspan="6" style="color:#9ca3af;">No medical record access has been logged yet.</td></tr>';
+      return;
+    }
+    body.innerHTML = logs.map(l => `
+      <tr>
+        <td>${l.timestamp ? new Date(l.timestamp).toLocaleString() : ''}</td>
+        <td>${escapeHtml(l.actorUsername)}</td>
+        <td>${escapeHtml(l.actorRole)}</td>
+        <td>${escapeHtml(l.action)}</td>
+        <td>${escapeHtml(l.targetStudent)}</td>
+        <td>${escapeHtml(l.details)}</td>
+      </tr>
+    `).join('');
+  } catch (e) {
+    body.innerHTML = '<tr><td colspan="6" style="color:#9ca3af;">Service temporarily unavailable.</td></tr>';
+  }
 }
 
 async function loadReportTypes() {

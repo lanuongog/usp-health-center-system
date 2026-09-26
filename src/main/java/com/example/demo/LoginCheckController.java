@@ -12,10 +12,13 @@ public class LoginCheckController {
 
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
+    private final LoginAttemptService loginAttemptService;
 
-    public LoginCheckController(UserRepository userRepository, PasswordEncoder passwordEncoder) {
+    public LoginCheckController(UserRepository userRepository, PasswordEncoder passwordEncoder,
+                                 LoginAttemptService loginAttemptService) {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
+        this.loginAttemptService = loginAttemptService;
     }
 
     public static class LoginCheckRequest {
@@ -35,13 +38,21 @@ public class LoginCheckController {
             return Map.of("ok", false, "message", "Invalid username or password.");
         }
 
+        if (loginAttemptService.isLocked(request.username)) {
+            long minutes = loginAttemptService.minutesUntilUnlock(request.username);
+            return Map.of("ok", false, "message",
+                    "Too many failed login attempts. Please try again in " + minutes + " minute(s).");
+        }
+
         var userOpt = userRepository.findByUsername(request.username);
 
         if (userOpt.isEmpty() || !passwordEncoder.matches(request.password, userOpt.get().getPassword())) {
+            loginAttemptService.recordFailure(request.username);
             return Map.of("ok", false, "message", "Invalid username or password.");
         }
 
         User user = userOpt.get();
+        loginAttemptService.recordSuccess(request.username);
 
         if (!user.isActive()) {
             return Map.of("ok", false, "message", "This account has been deactivated. Contact an administrator.");

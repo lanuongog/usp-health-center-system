@@ -261,13 +261,34 @@ public class StudentController {
                 + "arrival. If this is life-threatening, also contact campus security or emergency services immediately.");
     }
 
+    private static final byte[] PDF_SIGNATURE = "%PDF-".getBytes(java.nio.charset.StandardCharsets.US_ASCII);
+
     private String validateReceipt(MultipartFile receipt) {
+        // Content-Type is a header the browser sends and can be spoofed (e.g. a
+        // renamed malicious file claiming to be "application/pdf") - the magic-byte
+        // check below is what actually confirms the file is a real PDF.
         if (!"application/pdf".equals(receipt.getContentType())) {
             return "The payment receipt must be a PDF file.";
         }
         if (receipt.getSize() > MAX_RECEIPT_SIZE_BYTES) {
             return "The payment receipt must be smaller than 5MB.";
         }
+        if (!hasPdfSignature(receipt)) {
+            return "This file does not appear to be a valid PDF. Please upload an unmodified PDF receipt.";
+        }
         return null;
+    }
+
+    private boolean hasPdfSignature(MultipartFile receipt) {
+        try {
+            byte[] header = new byte[PDF_SIGNATURE.length];
+            try (var in = receipt.getInputStream()) {
+                int read = in.readNBytes(header, 0, header.length);
+                if (read < header.length) return false;
+            }
+            return java.util.Arrays.equals(header, PDF_SIGNATURE);
+        } catch (IOException e) {
+            return false;
+        }
     }
 }

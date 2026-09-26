@@ -155,6 +155,10 @@ public class ScheduleController {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
                     "Time slot must be " + MAX_TIME_SLOT_LENGTH + " characters or fewer.");
         }
+        if (slot.getScheduleDate().isBefore(LocalDate.now())) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                    "Schedule date cannot be in the past.");
+        }
     }
 
     // prevent a new/updated slot from conflicting with an existing booked appointment

@@ -412,6 +412,10 @@ window.addEventListener('DOMContentLoaded', () => {
   const storedRole = localStorage.getItem('userRole');
   if (storedAuth && storedRole) {
     window.location.href = portalPathForRole(storedRole);
+    return;
+  }
+  if (new URLSearchParams(window.location.search).get('reason') === 'idle') {
+    showAlert('You were logged out due to inactivity. Please log in again.');
   }
 });
 

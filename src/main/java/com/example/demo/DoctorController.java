@@ -28,15 +28,18 @@ public class DoctorController {
     private final CheckInRepository checkInRepository;
     private final DoctorScheduleRepository scheduleRepository;
     private final UserRepository userRepository;
+    private final AuditLogService auditLogService;
 
     public DoctorController(AppointmentRepository appointmentRepository,
                            CheckInRepository checkInRepository,
                            DoctorScheduleRepository scheduleRepository,
-                           UserRepository userRepository) {
+                           UserRepository userRepository,
+                           AuditLogService auditLogService) {
         this.appointmentRepository = appointmentRepository;
         this.checkInRepository = checkInRepository;
         this.scheduleRepository = scheduleRepository;
         this.userRepository = userRepository;
+        this.auditLogService = auditLogService;
     }
 
     // Lower number = seen sooner
@@ -135,9 +138,13 @@ public class DoctorController {
 
     // the nurse's recorded vitals and presenting complaint for the current visit
     @GetMapping("/checkin/{appointmentId}")
-    public Map<String, Object> getCheckIn(@PathVariable Long appointmentId) {
+    public Map<String, Object> getCheckIn(@PathVariable Long appointmentId, Authentication auth) {
         CheckIn checkIn = checkInRepository.findByAppointmentId(appointmentId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "This student has not been checked in yet"));
+
+        auditLogService.recordAccess(auth, "VIEW_CHECKIN_VITALS",
+                checkIn.getAppointment() != null ? checkIn.getAppointment().getStudentName() : null,
+                "Viewed check-in vitals for appointment #" + appointmentId);
 
         String checkedInByUsername = checkIn.getCheckedInBy();
         String checkedInByFullName = userRepository.findByUsername(checkedInByUsername)
@@ -156,11 +163,13 @@ public class DoctorController {
 
     // a student's visit history
     @GetMapping("/history/{studentName}")
-    public List<Appointment> getMedicalHistory(@PathVariable String studentName) {
+    public List<Appointment> getMedicalHistory(@PathVariable String studentName, Authentication auth) {
         List<Appointment> history = appointmentRepository.findByStudentName(studentName);
         if (history.isEmpty()) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Medical record not found");
         }
+        auditLogService.recordAccess(auth, "VIEW_MEDICAL_HISTORY", studentName,
+                "Viewed full medical history (" + history.size() + " visit(s))");
         return history;
     }
 
@@ -210,6 +219,9 @@ public class DoctorController {
             scheduleRepository.setBookedForTimeSlot(saved.getAppointmentDate(), saved.getTimeSlot(), false);
         }
 
+        auditLogService.recordAccess(auth, "RECORD_CONSULTATION", saved.getStudentName(),
+                "Recorded diagnosis/notes for appointment #" + saved.getId());
+
         return saved;
     }
 
@@ -218,13 +230,16 @@ public class DoctorController {
     // relevant timestamps, in one report an authorised doctor can view or
     // print. Only available once the consultation is actually completed.
     @GetMapping("/consultation-report/{appointmentId}")
-    public Map<String, Object> generateConsultationReport(@PathVariable Long appointmentId) {
+    public Map<String, Object> generateConsultationReport(@PathVariable Long appointmentId, Authentication auth) {
         Appointment appointment = appointmentRepository.findById(appointmentId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Visit record not found"));
 
         if (!"COMPLETED".equals(appointment.getStatus()) || isBlank(appointment.getDiagnosis()) || isBlank(appointment.getConsultationNotes())) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Unable to generate report");
         }
+
+        auditLogService.recordAccess(auth, "VIEW_CONSULTATION_REPORT", appointment.getStudentName(),
+                "Generated consultation report for appointment #" + appointmentId);
 
         String studentFullName = userRepository.findByUsername(appointment.getStudentName())
                 .map(User::getFullName)
