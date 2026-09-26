@@ -58,6 +58,7 @@ public class AdminUserController {
         public Double feeAmount;
         public boolean hasReceipt;
         public String receiptRejectionReason;
+        public String receiptAutoCheckNote;
 
         public UserView(User u) {
             this.id = u.getId();
@@ -73,6 +74,7 @@ public class AdminUserController {
                 this.feeAmount = u.getFeeAmount();
                 this.hasReceipt = u.getReceiptFile() != null;
                 this.receiptRejectionReason = u.getReceiptRejectionReason();
+                this.receiptAutoCheckNote = u.getReceiptAutoCheckNote();
             }
         }
     }

@@ -34,6 +34,7 @@ public class User {
     private byte[] receiptFile; // uploaded PDF proof of payment
     private String receiptFileName;
     private String receiptRejectionReason; // set by an admin when rejecting a receipt
+    private String receiptAutoCheckNote; // system's automated amount/name check on the current receipt
 
     public User() {}
 
@@ -82,4 +83,7 @@ public class User {
 
     public String getReceiptRejectionReason() { return receiptRejectionReason; }
     public void setReceiptRejectionReason(String receiptRejectionReason) { this.receiptRejectionReason = receiptRejectionReason; }
+
+    public String getReceiptAutoCheckNote() { return receiptAutoCheckNote; }
+    public void setReceiptAutoCheckNote(String receiptAutoCheckNote) { this.receiptAutoCheckNote = receiptAutoCheckNote; }
 }

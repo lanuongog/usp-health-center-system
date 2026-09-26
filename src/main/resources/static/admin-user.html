@@ -84,6 +84,10 @@ box-shadow: 0 1px 4px rgba(0,0,0,0.06);
 background: #FDEAEA; color: #B03A2E; border: 1px solid #f2b8b8;
 border-radius: 6px; padding: 10px 14px; font-size: 13px; margin-top: 16px;
 }
+.auto-check-note {
+background: #EEF4FB; color: #2C5F8A; border: 1px solid #cfe0f0;
+border-radius: 6px; padding: 10px 14px; font-size: 12.5px; margin-top: 16px;
+}
 
 .empty-state { color: #6b7280; font-size: 14px; }
 </style>
@@ -188,10 +192,16 @@ function render() {
     if (pending) {
       receiptActions.push('<button class="btn-approve" onclick="approveReceipt()">Approve Payment</button>');
       receiptActions.push('<button class="btn-reject" onclick="rejectReceipt()">Reject Receipt</button>');
+    } else if (u.hasReceipt && u.feePaid) {
+      receiptActions.push('<button class="btn-reject" onclick="rejectReceipt()">Revoke Verification</button>');
     }
 
     const rejectionNote = u.receiptRejectionReason
       ? `<div class="rejection-note">Last rejection reason: ${escapeHtml(u.receiptRejectionReason)}</div>`
+      : '';
+
+    const autoCheckNote = u.receiptAutoCheckNote
+      ? `<div class="auto-check-note">${escapeHtml(u.receiptAutoCheckNote)}</div>`
       : '';
 
     studentSection = `
@@ -217,6 +227,7 @@ function render() {
           <span class="label">Receipt Uploaded</span>
           <span class="value">${u.hasReceipt ? 'Yes' : 'No'}</span>
         </div>
+        ${autoCheckNote}
         ${rejectionNote}
         <div class="action-row">${receiptActions.join('')}</div>
       </div>

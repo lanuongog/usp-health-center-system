@@ -44,12 +44,15 @@ public class StudentController {
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
     private final NotificationRepository notificationRepository;
+    private final ReceiptVerificationService receiptVerificationService;
 
     public StudentController(UserRepository userRepository, PasswordEncoder passwordEncoder,
-                              NotificationRepository notificationRepository) {
+                              NotificationRepository notificationRepository,
+                              ReceiptVerificationService receiptVerificationService) {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
         this.notificationRepository = notificationRepository;
+        this.receiptVerificationService = receiptVerificationService;
     }
 
     // student self-registration logic
@@ -104,19 +107,35 @@ public class StudentController {
         student.setCountry(country);
         student.setFeeAmount(feeAmount);
         student.setFeePaid(false);
+        byte[] receiptBytes;
         try {
-            student.setReceiptFile(receipt.getBytes());
+            receiptBytes = receipt.getBytes();
+            student.setReceiptFile(receiptBytes);
             student.setReceiptFileName(receipt.getOriginalFilename());
         } catch (IOException e) {
             return Map.of("error", "Unable to read the uploaded receipt. Please try again.");
         }
+
+        // Best-effort automatic check: if the receipt's own text contains the
+        // expected fee amount and the student's name, skip the admin queue
+        // entirely. Anything less certain falls back to manual review exactly
+        // as before - this never blocks registration, only speeds up the
+        // clear-cut cases.
+        ReceiptVerificationResult check = receiptVerificationService.verify(receiptBytes, feeAmount, fullName.trim());
+        student.setReceiptAutoCheckNote(check.summary());
+        student.setFeePaid(check.isAutoApproved());
+
         userRepository.save(student);
 
+        String message = student.isFeePaid()
+                ? "Registration successful! Your payment receipt was automatically verified - you can log in and book appointments right away."
+                : "Registration successful. You can now log in. Your payment receipt is pending admin verification before you can book appointments.";
+
         return Map.of(
-                "message", "Registration successful. You can now log in. Your payment receipt is pending admin verification before you can book appointments.",
+                "message", message,
                 "studentId", studentId,
                 "feeAmount", feeAmount,
-                "feePaid", false
+                "feePaid", student.isFeePaid()
         );
     }
 
@@ -161,17 +180,27 @@ public class StudentController {
             return Map.of("error", receiptError);
         }
 
+        byte[] receiptBytes;
         try {
-            student.setReceiptFile(receipt.getBytes());
+            receiptBytes = receipt.getBytes();
+            student.setReceiptFile(receiptBytes);
             student.setReceiptFileName(receipt.getOriginalFilename());
         } catch (IOException e) {
             return Map.of("error", "Unable to read the uploaded receipt. Please try again.");
         }
-        student.setFeePaid(false);
         student.setReceiptRejectionReason(null);
+
+        double feeAmount = student.getFeeAmount() != null ? student.getFeeAmount() : 0.0;
+        ReceiptVerificationResult check = receiptVerificationService.verify(receiptBytes, feeAmount, student.getFullName());
+        student.setReceiptAutoCheckNote(check.summary());
+        student.setFeePaid(check.isAutoApproved());
+
         userRepository.save(student);
 
-        return Map.of("message", "Receipt uploaded. It is now pending admin verification.");
+        String message = student.isFeePaid()
+                ? "Receipt uploaded and automatically verified - you can book appointments now."
+                : "Receipt uploaded. It is now pending admin verification.";
+        return Map.of("message", message);
     }
 
     // A student's own alerts - currently just "your appointment may be delayed"
