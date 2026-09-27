@@ -16,6 +16,8 @@ import java.util.stream.Collectors;
 @RequestMapping("/nurse")
 public class NurseController {
 
+    private static final List<String> URGENCY_LEVELS = List.of("Routine", "Urgent", "Emergency");
+
     private final AppointmentRepository appointmentRepository;
     private final CheckInRepository checkInRepository;
     private final DoctorScheduleRepository scheduleRepository;
@@ -153,14 +155,99 @@ public class NurseController {
         // Free up the schedule slot as soon as the student is checked in - this
         // also covers a future-dated appointment being checked in early, so that
         // slot doesn't stay reserved once the student is already being seen.
-        if (saved.getAppointmentDate() != null && saved.getTimeSlot() != null) {
-            scheduleRepository.setBookedForTimeSlot(saved.getAppointmentDate(), saved.getTimeSlot(), false);
-        }
+        scheduleRepository.freeSlot(saved.getScheduleSlotId());
 
         CheckIn savedCheckIn = checkInRepository.save(checkIn);
         auditLogService.recordAccess(auth, "RECORD_CHECKIN_VITALS", appointment.getStudentName(),
                 "Recorded vitals for appointment #" + appointment.getId());
         return savedCheckIn;
+    }
+
+    // Tries the ID as typed first, then upper-cased - new registrations are
+    // normalized to SXXXXXXXX, but legacy accounts predate that format.
+    private User findStudentById(String rawStudentId) {
+        if (rawStudentId == null || rawStudentId.isBlank()) return null;
+        String trimmed = rawStudentId.trim();
+        User user = userRepository.findByUsername(trimmed)
+                .filter(u -> "STUDENT".equals(u.getRole()))
+                .orElse(null);
+        if (user == null) {
+            user = userRepository.findByUsername(trimmed.toUpperCase())
+                    .filter(u -> "STUDENT".equals(u.getRole()))
+                    .orElse(null);
+        }
+        return user;
+    }
+
+    public static class WalkInCheckInRequest {
+        public String studentId;
+        public String temperature;
+        public String bloodPressure;
+        public String presentingComplaint;
+        public String urgencyLevel;
+    }
+
+    // Registers a visit on the spot for a student who arrives without a prior
+    // booking, and checks them in with vitals in the same step - the same
+    // combined check-in+vitals pattern used for booked students above, just
+    // without an existing Appointment/schedule slot to attach to.
+    @PostMapping("/walk-in-checkin")
+    public Object walkInCheckIn(@RequestBody WalkInCheckInRequest request, Authentication auth) {
+        if (request.studentId == null || request.studentId.isBlank()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Student ID is required.");
+        }
+        User student = findStudentById(request.studentId);
+        if (student == null) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Student record not found");
+        }
+        String studentId = student.getUsername();
+
+        boolean hasActiveVisit = appointmentRepository.findByStudentName(studentId).stream()
+                .anyMatch(a -> "BOOKED".equals(a.getStatus()) || "CHECKED_IN".equals(a.getStatus()));
+        if (hasActiveVisit) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "This student already has an active visit");
+        }
+
+        if (isBlank(request.temperature) || isBlank(request.bloodPressure) || isBlank(request.presentingComplaint)) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                    "Display validation messages for the missing information");
+        }
+        if (request.presentingComplaint.trim().length() > MAX_COMPLAINT_LENGTH) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                    "Presenting complaint must be " + MAX_COMPLAINT_LENGTH + " characters or fewer.");
+        }
+        if (request.urgencyLevel == null || !URGENCY_LEVELS.contains(request.urgencyLevel)) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                    "Urgency level must be one of: " + String.join(", ", URGENCY_LEVELS) + ".");
+        }
+
+        validateVitals(request.temperature, request.bloodPressure);
+
+        Appointment appointment = new Appointment();
+        appointment.setStudentName(studentId);
+        appointment.setAppointmentDate(LocalDate.now());
+        appointment.setTimeSlot("Walk-in");
+        appointment.setVisitReason(request.presentingComplaint.trim());
+        appointment.setUrgencyLevel(request.urgencyLevel);
+        appointment.setStatus("CHECKED_IN");
+        Appointment savedAppointment = appointmentRepository.save(appointment);
+
+        CheckIn checkIn = new CheckIn();
+        checkIn.setAppointment(savedAppointment);
+        checkIn.setTemperature(request.temperature);
+        checkIn.setBloodPressure(request.bloodPressure);
+        checkIn.setPresentingComplaint(request.presentingComplaint);
+        checkIn.setCheckInTime(LocalDateTime.now());
+        checkIn.setCheckedInBy(auth.getName());
+        checkInRepository.save(checkIn);
+
+        auditLogService.recordAccess(auth, "WALK_IN_CHECKIN", studentId,
+                "Walk-in check-in for appointment #" + savedAppointment.getId());
+
+        return Map.of(
+                "message", "Walk-in check-in complete. The student has been added to the doctor's queue.",
+                "appointmentId", savedAppointment.getId()
+        );
     }
 
     // today's completed check-ins, enriched with the student's and nurse's
@@ -208,10 +295,7 @@ public class NurseController {
 
         appointment.setStatus("NO_SHOW");
         Appointment saved = appointmentRepository.save(appointment);
-
-        if (saved.getAppointmentDate() != null && saved.getTimeSlot() != null) {
-            scheduleRepository.setBookedForTimeSlot(saved.getAppointmentDate(), saved.getTimeSlot(), false);
-        }
+        scheduleRepository.freeSlot(saved.getScheduleSlotId());
 
         return saved;
     }
