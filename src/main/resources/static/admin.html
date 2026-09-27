@@ -247,12 +247,20 @@ padding: 40px 16px; overflow-y: auto; z-index: 100;
 
 <div id="tab-audit" class="tab-panel">
 <div class="panel">
-<h3>Medical Record Access Log</h3>
-<p style="font-size:12.5px;color:#6b7280;margin-top:-6px;">Every time a doctor views or records a student's medical/consultation record, it is logged here for accountability (NFR-PRIV-03).</p>
+<h3>Staff Activity Overview</h3>
+<p style="font-size:12.5px;color:#6b7280;margin-top:-6px;">How much medical-record-related work each staff member has logged, for accountability (NFR-PRIV-03).</p>
 <table class="user-table">
-<thead><tr><th>When</th><th>Staff Member</th><th>Role</th><th>Action</th><th>Student</th><th>Details</th></tr></thead>
-<tbody id="auditLogTableBody"></tbody>
+<thead><tr><th>Staff Member</th><th>Role</th><th>Total Actions</th><th>Breakdown</th><th>Last Active</th></tr></thead>
+<tbody id="auditOverviewTableBody"></tbody>
 </table>
+</div>
+
+<div class="panel">
+<h3>Look Up Activity</h3>
+<p style="font-size:12.5px;color:#6b7280;margin-top:-6px;">Search for a doctor or nurse to see what they've done, or a student to see who has accessed their records.</p>
+<input type="text" id="auditSearchInput" placeholder="Search by name, username, or student ID..." oninput="onAuditSearch(this.value)" style="padding:8px;border:1px solid var(--line, #D8E6E6);border-radius:6px;width:100%;max-width:400px;">
+<div id="auditSearchResults"></div>
+<div id="auditLookupResult" style="margin-top:16px;"></div>
 </div>
 </div>
 </div>
@@ -441,32 +449,178 @@ function escapeHtml(str) {
     .replaceAll('"', '&quot;');
 }
 
+let allAuditLogs = [];
+let auditUsersByUsername = {};
+let auditAllUsers = [];
+let auditSelectedValue = '';
+
+const ACTION_LABELS = {
+  VIEW_MEDICAL_HISTORY: 'Viewed medical history',
+  VIEW_CHECKIN_VITALS: 'Viewed check-in vitals',
+  RECORD_CONSULTATION: 'Recorded a consultation',
+  VIEW_CONSULTATION_REPORT: 'Viewed a consultation report',
+  RECORD_CHECKIN_VITALS: 'Recorded check-in vitals'
+};
+function actionLabel(action) {
+  return ACTION_LABELS[action] || action;
+}
+
 async function loadAuditLogs() {
-  const body = document.getElementById('auditLogTableBody');
+  const overviewBody = document.getElementById('auditOverviewTableBody');
   try {
-    const res = await fetch('/admin/audit-logs', { headers: { 'Authorization': authHeader } });
-    if (!res.ok) {
-      body.innerHTML = '<tr><td colspan="6" style="color:#9ca3af;">Unable to load audit log.</td></tr>';
+    const [logsRes, usersRes] = await Promise.all([
+      fetch('/admin/audit-logs', { headers: { 'Authorization': authHeader } }),
+      fetch('/admin/users', { headers: { 'Authorization': authHeader } })
+    ]);
+    if (!logsRes.ok || !usersRes.ok) {
+      overviewBody.innerHTML = '<tr><td colspan="5" style="color:#9ca3af;">Unable to load audit log.</td></tr>';
       return;
     }
-    const logs = await res.json();
-    if (logs.length === 0) {
-      body.innerHTML = '<tr><td colspan="6" style="color:#9ca3af;">No medical record access has been logged yet.</td></tr>';
-      return;
-    }
-    body.innerHTML = logs.map(l => `
-      <tr>
-        <td>${l.timestamp ? new Date(l.timestamp).toLocaleString() : ''}</td>
-        <td>${escapeHtml(l.actorUsername)}</td>
-        <td>${escapeHtml(l.actorRole)}</td>
-        <td>${escapeHtml(l.action)}</td>
-        <td>${escapeHtml(l.targetStudent)}</td>
-        <td>${escapeHtml(l.details)}</td>
-      </tr>
-    `).join('');
+    allAuditLogs = await logsRes.json();
+    auditAllUsers = await usersRes.json();
+    auditUsersByUsername = {};
+    auditAllUsers.forEach(u => { auditUsersByUsername[u.username] = u; });
+
+    renderAuditOverview();
+    if (auditSelectedValue) renderAuditLookupResult(auditSelectedValue);
   } catch (e) {
-    body.innerHTML = '<tr><td colspan="6" style="color:#9ca3af;">Service temporarily unavailable.</td></tr>';
+    overviewBody.innerHTML = '<tr><td colspan="5" style="color:#9ca3af;">Service temporarily unavailable.</td></tr>';
   }
+}
+
+function onAuditSearch(term) {
+  const trimmed = term.trim().toLowerCase();
+  const box = document.getElementById('auditSearchResults');
+  if (!trimmed) {
+    box.innerHTML = '';
+    return;
+  }
+  const matches = auditAllUsers.filter(u =>
+    (u.role === 'DOCTOR' || u.role === 'NURSE' || u.role === 'STUDENT') &&
+    ((u.fullName || '').toLowerCase().includes(trimmed) || u.username.toLowerCase().includes(trimmed))
+  ).slice(0, 20);
+
+  if (matches.length === 0) {
+    box.innerHTML = '<div style="color:#9ca3af;font-size:13px;padding:8px 0;">No matching staff or students.</div>';
+    return;
+  }
+  box.innerHTML = `<div style="border:1px solid var(--line, #D8E6E6);border-radius:6px;margin-top:6px;max-width:400px;overflow:hidden;">` +
+    matches.map(u => {
+      const kind = u.role === 'STUDENT' ? 'student' : 'actor';
+      const label = u.fullName ? `${escapeHtml(u.fullName)} (${escapeHtml(u.username)})` : escapeHtml(u.username);
+      return `<div onclick="selectAuditLookup('${kind}:${escapeHtml(u.username)}')"
+                   style="padding:9px 12px;border-bottom:1px solid #eee;cursor:pointer;font-size:13.5px;"
+                   onmouseover="this.style.background='#F4F8F8'" onmouseout="this.style.background=''">
+                ${label} <span style="color:#6b7280;">— ${escapeHtml(u.role)}</span>
+              </div>`;
+    }).join('') + `</div>`;
+}
+
+function selectAuditLookup(value) {
+  document.getElementById('auditSearchInput').value = '';
+  document.getElementById('auditSearchResults').innerHTML = '';
+  auditSelectedValue = value;
+  renderAuditLookupResult(value);
+}
+
+function renderAuditOverview() {
+  const overviewBody = document.getElementById('auditOverviewTableBody');
+  const byActor = {};
+  allAuditLogs.forEach(l => {
+    if (!byActor[l.actorUsername]) {
+      byActor[l.actorUsername] = { actorUsername: l.actorUsername, actorRole: l.actorRole, total: 0, byAction: {}, lastActive: l.timestamp };
+    }
+    const entry = byActor[l.actorUsername];
+    entry.total++;
+    entry.byAction[l.action] = (entry.byAction[l.action] || 0) + 1;
+    if (!entry.lastActive || l.timestamp > entry.lastActive) entry.lastActive = l.timestamp;
+  });
+
+  const rows = Object.values(byActor).sort((a, b) => b.total - a.total);
+  if (rows.length === 0) {
+    overviewBody.innerHTML = '<tr><td colspan="5" style="color:#9ca3af;">No medical record activity has been logged yet.</td></tr>';
+    return;
+  }
+  overviewBody.innerHTML = rows.map(r => {
+    const breakdown = Object.entries(r.byAction).map(([action, count]) => `${count} × ${actionLabel(action)}`).join(', ');
+    const user = auditUsersByUsername[r.actorUsername];
+    const displayName = user && user.fullName ? `${escapeHtml(user.fullName)} (${escapeHtml(r.actorUsername)})` : escapeHtml(r.actorUsername);
+    return `
+      <tr>
+        <td>${displayName}</td>
+        <td>${escapeHtml(r.actorRole)}</td>
+        <td>${r.total}</td>
+        <td>${escapeHtml(breakdown)}</td>
+        <td>${r.lastActive ? new Date(r.lastActive).toLocaleString() : '—'}</td>
+      </tr>
+    `;
+  }).join('');
+}
+
+function renderAuditLookupResult(value) {
+  const resultBox = document.getElementById('auditLookupResult');
+  if (!value) {
+    resultBox.innerHTML = '';
+    return;
+  }
+
+  const [kind, username] = value.split(':');
+  const user = auditUsersByUsername[username];
+  const displayName = user && user.fullName ? `${escapeHtml(user.fullName)} (${escapeHtml(username)})` : escapeHtml(username);
+
+  if (kind === 'actor') {
+    const entries = allAuditLogs.filter(l => l.actorUsername === username)
+      .sort((a, b) => (b.timestamp || '').localeCompare(a.timestamp || ''));
+    const byAction = {};
+    entries.forEach(l => { byAction[l.action] = (byAction[l.action] || 0) + 1; });
+    const breakdown = Object.entries(byAction).map(([action, count]) => `${count} × ${actionLabel(action)}`).join(', ') || 'No activity recorded yet.';
+
+    resultBox.innerHTML = `
+      <div class="panel" style="margin-bottom:0;">
+        <h3 style="margin-top:0;">${displayName} — ${entries.length} total action(s)</h3>
+        <p style="font-size:12.5px;color:#6b7280;">${escapeHtml(breakdown)}</p>
+        ${renderAuditEntryTable(entries, true)}
+      </div>
+    `;
+  } else {
+    const entries = allAuditLogs.filter(l => l.targetStudent === username)
+      .sort((a, b) => (b.timestamp || '').localeCompare(a.timestamp || ''));
+    const byActor = {};
+    entries.forEach(l => { byActor[l.actorUsername] = (byActor[l.actorUsername] || 0) + 1; });
+    const accessedBy = Object.entries(byActor).map(([actor, count]) => {
+      const actorUser = auditUsersByUsername[actor];
+      const actorName = actorUser && actorUser.fullName ? `${actorUser.fullName} (${actor})` : actor;
+      return `${count} × ${escapeHtml(actorName)}`;
+    }).join(', ') || 'No staff have accessed this student\'s records yet.';
+
+    resultBox.innerHTML = `
+      <div class="panel" style="margin-bottom:0;">
+        <h3 style="margin-top:0;">${displayName} — ${entries.length} record access(es)</h3>
+        <p style="font-size:12.5px;color:#6b7280;">Accessed by: ${accessedBy}</p>
+        ${renderAuditEntryTable(entries, false)}
+      </div>
+    `;
+  }
+}
+
+// hideActorColumn=true: viewing one staff member's activity, so show which
+// student instead. hideActorColumn=false: viewing one student's record, so
+// show which staff member accessed it instead.
+function renderAuditEntryTable(entries, hideActorColumn) {
+  if (entries.length === 0) {
+    return '<p style="color:#9ca3af;font-size:13px;">Nothing recorded yet.</p>';
+  }
+  const headerCells = hideActorColumn
+    ? '<th>When</th><th>Action</th><th>Student</th><th>Details</th>'
+    : '<th>When</th><th>Staff Member</th><th>Action</th><th>Details</th>';
+  const rows = entries.map(l => {
+    const when = l.timestamp ? new Date(l.timestamp).toLocaleString() : '';
+    const cells = hideActorColumn
+      ? [when, actionLabel(l.action), escapeHtml(l.targetStudent), escapeHtml(l.details)]
+      : [when, escapeHtml(l.actorUsername), actionLabel(l.action), escapeHtml(l.details)];
+    return `<tr>${cells.map(c => `<td>${c}</td>`).join('')}</tr>`;
+  }).join('');
+  return `<table class="user-table"><thead><tr>${headerCells}</tr></thead><tbody>${rows}</tbody></table>`;
 }
 
 async function loadReportTypes() {
@@ -581,8 +735,15 @@ function renderUserTable() {
         badgeClass = 'pending';
         badgeText = 'Pending Verification';
       }
+      let checksBadge = '';
+      if (pending && u.receiptAutoCheckNote) {
+        const passed = (u.receiptAutoCheckNote.match(/✓/g) || []).length;
+        const checksColor = passed >= 4 ? '#1E5B3A' : passed >= 2 ? '#6B4400' : '#B23A2E';
+        const checksBg = passed >= 4 ? '#DCF3E4' : passed >= 2 ? '#FDF2D8' : '#FBEAE8';
+        checksBadge = ` <span class="fee-badge" style="background:${checksBg};color:${checksColor};" title="${escapeHtml(u.receiptAutoCheckNote)}">${passed}/4 checks</span>`;
+      }
       const feeCell = isStudent
-        ? `<span class="fee-badge ${badgeClass}">${badgeText}${u.feeAmount != null ? ' · FJ$' + Number(u.feeAmount).toFixed(2) : ''}</span>`
+        ? `<span class="fee-badge ${badgeClass}">${badgeText}${u.feeAmount != null ? ' · FJ$' + Number(u.feeAmount).toFixed(2) : ''}</span>${checksBadge}`
         : '—';
       return `
       <tr>

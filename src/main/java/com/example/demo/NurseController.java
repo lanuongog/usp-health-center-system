@@ -20,15 +20,18 @@ public class NurseController {
     private final CheckInRepository checkInRepository;
     private final DoctorScheduleRepository scheduleRepository;
     private final UserRepository userRepository;
+    private final AuditLogService auditLogService;
 
     public NurseController(AppointmentRepository appointmentRepository,
                           CheckInRepository checkInRepository,
                           DoctorScheduleRepository scheduleRepository,
-                          UserRepository userRepository) {
+                          UserRepository userRepository,
+                          AuditLogService auditLogService) {
         this.appointmentRepository = appointmentRepository;
         this.checkInRepository = checkInRepository;
         this.scheduleRepository = scheduleRepository;
         this.userRepository = userRepository;
+        this.auditLogService = auditLogService;
     }
 
     // Lower number = seen sooner - an emergency case should visibly jump
@@ -154,7 +157,10 @@ public class NurseController {
             scheduleRepository.setBookedForTimeSlot(saved.getAppointmentDate(), saved.getTimeSlot(), false);
         }
 
-        return checkInRepository.save(checkIn);
+        CheckIn savedCheckIn = checkInRepository.save(checkIn);
+        auditLogService.recordAccess(auth, "RECORD_CHECKIN_VITALS", appointment.getStudentName(),
+                "Recorded vitals for appointment #" + appointment.getId());
+        return savedCheckIn;
     }
 
     // today's completed check-ins, enriched with the student's and nurse's
