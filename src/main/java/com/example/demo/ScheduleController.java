@@ -64,9 +64,9 @@ public class ScheduleController {
         validateRequiredFields(slot);
         validateNoConflict(slot, null);
 
-        // A time slot is booked as a unit across every doctor scheduled for it, so a
-        // newly added doctor for an already-booked date+time joins it as booked too.
-        slot.setBooked(scheduleRepository.anyBookedForTimeSlot(slot.getScheduleDate(), slot.getTimeSlot()));
+        // Each doctor's slot is booked independently, so a newly created slot
+        // always starts open regardless of other doctors' bookings.
+        slot.setBooked(false);
         return scheduleRepository.save(slot);
     }
 
@@ -82,7 +82,8 @@ public class ScheduleController {
 
         existing.setScheduleDate(updated.getScheduleDate());
         existing.setTimeSlot(updated.getTimeSlot());
-        existing.setBooked(scheduleRepository.anyBookedForTimeSlot(updated.getScheduleDate(), updated.getTimeSlot()));
+        // booked status is left untouched - editing a slot's date/time doesn't
+        // change whether this specific row already has a student booked into it
         // doctorName is intentionally not changed by an update - a slot belongs to the doctor that created it
 
         try {

@@ -221,11 +221,17 @@ z-index: 200; max-height: 380px; overflow-y: auto; padding: 10px; text-align: le
 <div class="panel-head"><h2>Book an Appointment</h2></div>
 <div class="panel-body">
 <div class="field">
+<label for="doctor-input">Doctor</label>
+<select id="doctor-input" onchange="loadSlots()">
+<option value="">Select a doctor...</option>
+</select>
+</div>
+<div class="field">
 <label for="date-input">Date</label>
 <input id="date-input" type="date" onchange="loadSlots()" />
 </div>
 <div id="slot-container">
-<div class="empty-state">Pick a date to see open slots.</div>
+<div class="empty-state">Select a doctor and date to see open slots.</div>
 </div>
 <div class="field-row">
 <div class="field">
@@ -265,6 +271,7 @@ z-index: 200; max-height: 380px; overflow-y: auto; padding: 10px; text-align: le
 <div class="modal-box">
 <div class="panel-head"><h2>Confirm Your Booking</h2><button class="modal-close" aria-label="Close" onclick="closeConfirmModal()">✕</button></div>
 <div class="panel-body">
+<div class="confirm-row"><span>Doctor</span><strong id="confirm-doctor"></strong></div>
 <div class="confirm-row"><span>Date</span><strong id="confirm-date"></strong></div>
 <div class="confirm-row"><span>Time</span><strong id="confirm-time"></strong></div>
 <div class="confirm-row"><span>Reason</span><strong id="confirm-reason"></strong></div>
@@ -371,6 +378,7 @@ window.addEventListener('DOMContentLoaded', () => {
   const tomorrow = new Date();
   tomorrow.setDate(tomorrow.getDate() + 1);
   dateInput.value = tomorrow.toISOString().split('T')[0];
+  loadDoctorOptions();
   loadSlots();
   refreshAppointments();
   loadFeeStatus();
@@ -528,14 +536,32 @@ function timeSlotSortKey(timeSlot) {
   return hours * 60 + parseInt(match[2], 10);
 }
 
+function loadDoctorOptions() {
+  const select = document.getElementById('doctor-input');
+  fetch('/schedule/doctors')
+    .then(res => res.ok ? res.json() : [])
+    .then(doctors => {
+      const previousValue = select.value;
+      select.innerHTML = '<option value="">Select a doctor...</option>' +
+        doctors.map(d => `<option value="${escapeHtml(d)}">${escapeHtml(d)}</option>`).join('');
+      select.value = previousValue;
+    })
+    .catch(() => {});
+}
+
 function loadSlots() {
+  const doctorName = document.getElementById('doctor-input').value;
   const date = document.getElementById('date-input').value;
-  if (!date) return;
   selectedSlot = null;
 
   const container = document.getElementById('slot-container');
 
-  fetch('/schedule/available?date=' + date)
+  if (!doctorName || !date) {
+    container.innerHTML = '<div class="empty-state">Select a doctor and date to see open slots.</div>';
+    return;
+  }
+
+  fetch('/schedule/available?date=' + date + '&doctorName=' + encodeURIComponent(doctorName))
     .then(res => {
       if (res.status === 404) return [];
       if (!res.ok) throw new Error();
@@ -543,23 +569,13 @@ function loadSlots() {
     })
     .then(slots => {
       if (!Array.isArray(slots) || slots.length === 0) {
-        container.innerHTML = '<div class="empty-state">No available appointments for the selected date.</div>';
+        container.innerHTML = '<div class="empty-state">No available appointments for this doctor on the selected date.</div>';
         return;
       }
 
-      // Students pick a time only, not a doctor; the backend still lists one row
-      // per doctor scheduled for that time, so collapse those into one option.
-      // A time slot is booked/freed as a unit across every doctor's row for it,
-      // so the first row's booked flag reflects the whole time slot.
-      const seenTimes = new Set();
-      const uniqueSlots = slots.filter(s => {
-        if (seenTimes.has(s.timeSlot)) return false;
-        seenTimes.add(s.timeSlot);
-        return true;
-      });
-      uniqueSlots.sort((a, b) => timeSlotSortKey(a.timeSlot) - timeSlotSortKey(b.timeSlot));
+      const sorted = [...slots].sort((a, b) => timeSlotSortKey(a.timeSlot) - timeSlotSortKey(b.timeSlot));
 
-      container.innerHTML = '<div class="slot-list">' + uniqueSlots.map(s => `
+      container.innerHTML = '<div class="slot-list">' + sorted.map(s => `
         <div class="slot-option${s.booked ? ' booked' : ''}" data-id="${s.id}"
              ${s.booked ? '' : `onclick='pickSlot(${s.id}, this)'`}>
           <span class="time">${escapeHtml(s.timeSlot)}</span>
@@ -599,6 +615,7 @@ function bookAppointment() {
   }
 
   toast.textContent = '';
+  document.getElementById('confirm-doctor').textContent = document.getElementById('doctor-input').value;
   document.getElementById('confirm-date').textContent = document.getElementById('date-input').value;
   document.getElementById('confirm-time').textContent = selectedSlotTime || '';
   document.getElementById('confirm-reason').textContent = reason;

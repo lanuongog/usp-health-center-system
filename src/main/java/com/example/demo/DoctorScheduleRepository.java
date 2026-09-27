@@ -22,17 +22,14 @@ public interface DoctorScheduleRepository extends JpaRepository<DoctorSchedule, 
     @Query("SELECT DISTINCT s.doctorName FROM DoctorSchedule s ORDER BY s.doctorName")
     List<String> findDistinctDoctorNames();
 
-    // A time slot is booked as a unit across every doctor scheduled for that
-    // date+time, so these two helpers keep all of a time slot's rows in sync.
-    // Archived rows are excluded since a removed slot no longer participates
-    // in booking/availability for that date+time.
-    default boolean anyBookedForTimeSlot(LocalDate scheduleDate, String timeSlot) {
-        return findByScheduleDateAndTimeSlotAndArchivedFalse(scheduleDate, timeSlot).stream().anyMatch(DoctorSchedule::isBooked);
-    }
-
-    default void setBookedForTimeSlot(LocalDate scheduleDate, String timeSlot, boolean booked) {
-        List<DoctorSchedule> slots = findByScheduleDateAndTimeSlotAndArchivedFalse(scheduleDate, timeSlot);
-        slots.forEach(s -> s.setBooked(booked));
-        saveAll(slots);
+    // Each doctor's schedule row tracks its own booked state independently -
+    // one doctor's slot at 9am being taken has no bearing on another doctor's
+    // 9am slot. Appointment.scheduleSlotId is the single row this frees.
+    default void freeSlot(Long slotId) {
+        if (slotId == null) return;
+        findById(slotId).ifPresent(s -> {
+            s.setBooked(false);
+            save(s);
+        });
     }
 }

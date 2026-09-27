@@ -111,6 +111,29 @@ public class DataSeeder {
                 }
             }
 
+            // One-time correction for schedule rows left over from the old model, where
+            // booking one doctor's slot incorrectly marked every OTHER doctor's row for
+            // that same date+time as booked too. A row is genuinely booked only if a
+            // still-BOOKED appointment actually references it via scheduleSlotId (a
+            // checked-in appointment already frees its slot, by design).
+            {
+                java.util.Set<Long> actuallyBookedSlotIds = appointmentRepository.findAll().stream()
+                        .filter(a -> "BOOKED".equals(a.getStatus()))
+                        .map(Appointment::getScheduleSlotId)
+                        .filter(java.util.Objects::nonNull)
+                        .collect(java.util.stream.Collectors.toSet());
+
+                List<DoctorSchedule> mismatched = scheduleRepository.findAll().stream()
+                        .filter(s -> s.isBooked() != actuallyBookedSlotIds.contains(s.getId()))
+                        .collect(java.util.stream.Collectors.toList());
+                if (!mismatched.isEmpty()) {
+                    mismatched.forEach(s -> s.setBooked(actuallyBookedSlotIds.contains(s.getId())));
+                    scheduleRepository.saveAll(mismatched);
+                    System.out.println("Corrected booked status on " + mismatched.size()
+                            + " schedule slot(s) after moving to per-doctor booking.");
+                }
+            }
+
             // Tops up a rolling window of open slots (today -> +6 days) on every startup.
             // A one-time "count == 0" seed would only ever populate slots for the date the
             // app first ran, so restarting days later (or after testers book everything out)
@@ -141,10 +164,9 @@ public class DataSeeder {
                                 slot.setDoctorName(doctor);
                                 slot.setScheduleDate(date);
                                 slot.setTimeSlot(timeSlot);
-                                // Inherit the current booked state for this date+time rather than
-                                // hardcoding false, so a freshly topped-up row for one doctor can't
-                                // disagree with an already-booked row for another doctor at the same time.
-                                slot.setBooked(scheduleRepository.anyBookedForTimeSlot(date, timeSlot));
+                                // Each doctor's slot is booked independently, so a freshly
+                                // topped-up row always starts open regardless of other doctors.
+                                slot.setBooked(false);
                                 scheduleRepository.save(slot);
                                 seeded++;
                             }

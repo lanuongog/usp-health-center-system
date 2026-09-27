@@ -213,11 +213,8 @@ public class DoctorController {
 
         Appointment saved = appointmentRepository.save(appointment);
 
-        // Free up the schedule slot (every doctor's row for this date+time, since a
-        // time slot is booked as a unit) so other students can book it again if desired
-        if (saved.getAppointmentDate() != null && saved.getTimeSlot() != null) {
-            scheduleRepository.setBookedForTimeSlot(saved.getAppointmentDate(), saved.getTimeSlot(), false);
-        }
+        // Free up the schedule slot so other students can book it again if desired
+        scheduleRepository.freeSlot(saved.getScheduleSlotId());
 
         auditLogService.recordAccess(auth, "RECORD_CONSULTATION", saved.getStudentName(),
                 "Recorded diagnosis/notes for appointment #" + saved.getId());
