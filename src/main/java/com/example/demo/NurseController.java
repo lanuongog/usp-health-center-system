@@ -152,10 +152,12 @@ public class NurseController {
         appointment.setStatus("CHECKED_IN");
         Appointment saved = appointmentRepository.save(appointment);
 
-        // Free up the schedule slot as soon as the student is checked in - this
-        // also covers a future-dated appointment being checked in early, so that
-        // slot doesn't stay reserved once the student is already being seen.
-        scheduleRepository.freeSlot(saved.getScheduleSlotId());
+        // NOTE: do NOT free the schedule slot here. The slot must stay marked
+        // booked for the entire time the student is being seen (check-in through
+        // consultation) - freeing it early let a second student book the exact
+        // same doctor/date/time slot while the first one was still in progress
+        // (DEF-02). The slot is only freed on cancellation/reschedule
+        // (BookingController) or a no-show (markNoShow below).
 
         CheckIn savedCheckIn = checkInRepository.save(checkIn);
         auditLogService.recordAccess(auth, "RECORD_CHECKIN_VITALS", appointment.getStudentName(),
