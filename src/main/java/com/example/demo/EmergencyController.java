@@ -68,8 +68,10 @@ public class EmergencyController {
 
     // Registers AND checks in the student in a single step, skipping the
     // normal BOOKED -> nurse-queue -> check-in flow, so they land directly at
-    // the top of the doctor's active queue. Students booked for today are
-    // warned of a possible delay (see DelayNoticeService).
+    // the top of the doctor's active queue. Every student currently waiting -
+    // whether booked for today or already checked in ahead of a doctor - is
+    // warned of a possible delay; they'll be seen once the doctor is free of
+    // the emergency.
     @PostMapping("/checkin")
     public Object emergencyCheckIn(@RequestBody EmergencyCheckInRequest request, Authentication auth) {
         User student = findStudent(request.studentId);
@@ -109,9 +111,9 @@ public class EmergencyController {
         staffAlert.setCreatedAt(LocalDateTime.now());
         notificationRepository.save(staffAlert);
 
-        // Students booked for today are warned their visit may be delayed
-        // (skipping anyone already told when this student sent their alert).
-        int notifiedCount = delayNoticeService.notifyTodaysBookings(studentId, displayName);
+        // Everyone with a visit today - booked, or already checked in ahead of
+        // a doctor - gets bumped behind this emergency and is notified.
+        int notifiedCount = delayNoticeService.notifyStudentsWithVisitToday(studentId, displayName, appointment.getId());
 
         return Map.of(
                 "message", "Emergency check-in complete for " + displayName + ". Doctors have been alerted and "

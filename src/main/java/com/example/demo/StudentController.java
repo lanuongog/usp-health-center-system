@@ -1,6 +1,7 @@
 package com.example.demo;
 
 import java.io.IOException;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
@@ -233,28 +234,29 @@ public class StudentController {
         public String reason;
     }
 
+    // Guards the "one emergency alert per day" check-then-save so a double
+    // click (two requests arriving together) can't slip two alerts through.
+    private final Object emergencyAlertLock = new Object();
+
+    private boolean hasSentEmergencyAlertToday(String username) {
+        return notificationRepository.existsByTypeAndStudentUsernameAndCreatedAtGreaterThanEqual(
+                "EMERGENCY_ALERT", username, LocalDate.now().atStartOfDay());
+    }
+
+    // Lets the portal show the Emergency button as already used after a reload.
+    @GetMapping("/emergency-alert/status")
+    public Map<String, Boolean> getEmergencyAlertStatus(Authentication auth) {
+        return Map.of("sentToday", hasSentEmergencyAlertToday(auth.getName()));
+    }
+
     // A quick, low-friction heads-up a student sends before they've arrived -
     // it only notifies staff so they can prepare; it does NOT create an
     // appointment or check the student in, since they aren't physically here
     // yet. The actual check-in still happens through the nurse/doctor
     // dashboard's Emergency Check-in action once the student arrives.
-    @GetMapping("/emergency-alert/status")
-    public Map<String, Object> getEmergencyAlertStatus(Authentication auth) {
-        return Map.of("sentRecently", hasSentEmergencyAlertRecently(auth.getName()));
-    }
-
-    // One alert per student per rolling 24 hours: staff are already on it after the
-    // first, and repeats would just flood the staff feed with popups. synchronized
-    // so a burst of simultaneous requests can't all pass the check before any of
-    // them saves.
+    // Limited to one alert per student per day.
     @PostMapping("/emergency-alert")
-    public synchronized Object sendEmergencyAlert(@RequestBody EmergencyAlertRequest request, Authentication auth) {
-        if (hasSentEmergencyAlertRecently(auth.getName())) {
-            return Map.of("error", "You have already sent an emergency alert in the last 24 hours - Health Center staff have been "
-                    + "notified and are expecting you. If your situation has worsened or is life-threatening, "
-                    + "call campus security or emergency services directly.",
-                    "alreadySent", true);
-        }
+    public Object sendEmergencyAlert(@RequestBody EmergencyAlertRequest request, Authentication auth) {
         if (request.reason == null || request.reason.isBlank()) {
             return Map.of("error", "Please briefly describe what's happening.");
         }
@@ -266,25 +268,60 @@ public class StudentController {
         String displayName = (student != null && student.getFullName() != null && !student.getFullName().isBlank())
                 ? student.getFullName() : auth.getName();
 
-        Notification alert = new Notification();
-        alert.setType("EMERGENCY_ALERT");
-        alert.setStudentUsername(auth.getName());
-        alert.setStudentName(displayName);
-        alert.setMessage("EMERGENCY ALERT from " + displayName + " (" + auth.getName() + "): " + request.reason.trim()
-                + " — not yet checked in, will need immediate attention on arrival.");
-        alert.setCreatedAt(LocalDateTime.now());
-        notificationRepository.save(alert);
+        synchronized (emergencyAlertLock) {
+            if (hasSentEmergencyAlertToday(auth.getName())) {
+                return Map.of("error", "You have already sent an emergency alert today - Health Center staff have been "
+                        + "notified and are expecting you. If this is life-threatening, contact campus security or "
+                        + "emergency services immediately.");
+            }
 
-        // Let students booked for today know their visit may be pushed back.
-        delayNoticeService.notifyTodaysBookings(auth.getName(), displayName);
+            Notification alert = new Notification();
+            alert.setType("EMERGENCY_ALERT");
+            alert.setStudentUsername(auth.getName());
+            alert.setStudentName(displayName);
+            alert.setMessage("EMERGENCY ALERT from " + displayName + " (" + auth.getName() + "): " + request.reason.trim()
+                    + " — not yet checked in, will need immediate attention on arrival.");
+            alert.setCreatedAt(LocalDateTime.now());
+            notificationRepository.save(alert);
+        }
+
+        // Students with a visit today are warned their appointment may be delayed.
+        delayNoticeService.notifyStudentsWithVisitToday(auth.getName(), displayName, null);
 
         return Map.of("message", "Alert sent. Health Center staff have been notified and will prioritize you on "
                 + "arrival. If this is life-threatening, also contact campus security or emergency services immediately.");
     }
 
-    private boolean hasSentEmergencyAlertRecently(String username) {
-        return notificationRepository.existsByTypeAndStudentUsernameAndCreatedAtGreaterThanEqual(
-                "EMERGENCY_ALERT", username, LocalDateTime.now().minusHours(24));
+    // Drives the "emergency today - your appointment may be delayed" banner.
+    // Only shown when the student has a normal (non-emergency) booking for
+    // TODAY and some other student has raised an emergency today; bookings on
+    // other days, and the emergency patient themselves, are unaffected.
+    @GetMapping("/today-delay")
+    public Map<String, Object> getTodayDelay(Authentication auth) {
+        LocalDate today = LocalDate.now();
+        // The emergency patient themselves is never told they'll be delayed.
+        if (hasSentEmergencyAlertToday(auth.getName())) {
+            return Map.of("delayed", false);
+        }
+        Appointment todaysVisit = delayNoticeService.findNormalVisitToday(auth.getName());
+        if (todaysVisit == null) {
+            return Map.of("delayed", false);
+        }
+
+        boolean emergencyToday = notificationRepository
+                .findByRecipientUsernameIsNullAndTypeInAndCreatedAtGreaterThanEqual(
+                        List.of("EMERGENCY_ALERT", "EMERGENCY_BOOKING"), today.atStartOfDay())
+                .stream()
+                .anyMatch(n -> !auth.getName().equals(n.getStudentUsername()));
+        if (!emergencyToday) {
+            return Map.of("delayed", false);
+        }
+
+        return Map.of(
+                "delayed", true,
+                "timeSlot", todaysVisit.getTimeSlot() != null ? todaysVisit.getTimeSlot() : "",
+                "message", DelayNoticeService.DELAY_MESSAGE
+        );
     }
 
     private static final byte[] PDF_SIGNATURE = "%PDF-".getBytes(java.nio.charset.StandardCharsets.US_ASCII);

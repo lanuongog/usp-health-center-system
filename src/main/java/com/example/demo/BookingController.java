@@ -1,12 +1,13 @@
 package com.example.demo;
 
 import java.time.LocalDate;
-import java.time.LocalDateTime;
 import java.time.LocalTime;
+import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeFormatterBuilder;
+import java.time.format.DateTimeParseException;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -19,23 +20,32 @@ import org.springframework.web.bind.annotation.RestController;
 @RequestMapping("/student")
 public class BookingController {
 
-    // Matches the start time of a "09:00 AM - 09:30 AM" style slot label.
-    private static final Pattern SLOT_START_TIME = Pattern.compile("^\\s*(\\d{1,2}):(\\d{2})\\s*(AM|PM)", Pattern.CASE_INSENSITIVE);
+    // Students no longer choose an urgency - every online booking is Routine;
+    // emergencies go through the portal's Emergency button instead.
+    private static final String STUDENT_BOOKING_URGENCY = "Routine";
     private static final int MAX_REASON_LENGTH = 300;
+    private static final DateTimeFormatter SLOT_TIME_FORMAT = new DateTimeFormatterBuilder()
+            .parseCaseInsensitive().appendPattern("h:mm a").toFormatter(Locale.US);
 
     private final DoctorScheduleRepository scheduleRepository;
     private final AppointmentRepository appointmentRepository;
     private final CheckInRepository checkInRepository;
     private final UserRepository userRepository;
+    private final NotificationRepository notificationRepository;
+    private final DelayNoticeService delayNoticeService;
 
     public BookingController(DoctorScheduleRepository scheduleRepository,
                             AppointmentRepository appointmentRepository,
                             CheckInRepository checkInRepository,
-                            UserRepository userRepository) {
+                            UserRepository userRepository,
+                            NotificationRepository notificationRepository,
+                            DelayNoticeService delayNoticeService) {
         this.scheduleRepository = scheduleRepository;
         this.appointmentRepository = appointmentRepository;
         this.checkInRepository = checkInRepository;
         this.userRepository = userRepository;
+        this.notificationRepository = notificationRepository;
+        this.delayNoticeService = delayNoticeService;
     }
 
     public static class BookingRequest {
@@ -43,22 +53,20 @@ public class BookingController {
         public String visitReason;
     }
 
-    // A slot can't be booked once its date has passed, or - for today - once
-    // its start time has passed. Labels that can't be parsed fall back to
-    // the date check alone.
-    private boolean isInPast(DoctorSchedule slot) {
+    // A slot is in the past if its date is before today, or it's today and its
+    // start time (e.g. "09:00 AM" from "09:00 AM - 09:30 AM") has already passed.
+    static boolean isSlotInPast(DoctorSchedule slot) {
         LocalDate date = slot.getScheduleDate();
         if (date == null) return true;
         LocalDate today = LocalDate.now();
         if (date.isBefore(today)) return true;
         if (date.isAfter(today) || slot.getTimeSlot() == null) return false;
-
-        Matcher m = SLOT_START_TIME.matcher(slot.getTimeSlot());
-        if (!m.find()) return false;
-        int hour = Integer.parseInt(m.group(1)) % 12;
-        if ("PM".equalsIgnoreCase(m.group(3))) hour += 12;
-        LocalTime start = LocalTime.of(hour, Integer.parseInt(m.group(2)));
-        return !LocalDateTime.of(date, start).isAfter(LocalDateTime.now());
+        try {
+            LocalTime start = LocalTime.parse(slot.getTimeSlot().split("-")[0].trim(), SLOT_TIME_FORMAT);
+            return !start.isAfter(LocalTime.now());
+        } catch (DateTimeParseException e) {
+            return false;
+        }
     }
 
     // Student views their full visit and consultation history (completed, vitals, diagnosis, notes)
@@ -114,8 +122,8 @@ public class BookingController {
         if (slot == null) {
             return Map.of("error", "This slot is no longer available.");
         }
-        if (isInPast(slot)) {
-            return Map.of("error", "This slot is in the past. Please choose an upcoming date and time.");
+        if (isSlotInPast(slot)) {
+            return Map.of("error", "You can't book a date or time that has already passed.");
         }
 
         boolean alreadyBookedAtThisTime = !appointmentRepository.findByStudentNameAndStatusAndAppointmentDateAndTimeSlot(
@@ -143,15 +151,18 @@ public class BookingController {
         appointment.setAppointmentDate(slot.getScheduleDate());
         appointment.setTimeSlot(slot.getTimeSlot());
         appointment.setVisitReason(request.visitReason.trim());
-        // Students no longer pick an urgency - every booking is Routine, and
-        // genuine emergencies go through the emergency alert / check-in flow.
-        appointment.setUrgencyLevel("Routine");
+        appointment.setUrgencyLevel(STUDENT_BOOKING_URGENCY);
         appointment.setStatus("BOOKED");
         appointment.setScheduleSlotId(slot.getId());
         appointmentRepository.save(appointment);
 
+        // Booked for today after an emergency was already raised today -
+        // let them know up front that their visit may be delayed.
+        boolean delayed = delayNoticeService.notifyLateBookingIfEmergencyToday(appointment);
+
         return Map.of(
                 "message", "Appointment confirmed.",
+                "emergencyDelay", delayed,
                 "appointmentId", appointment.getId(),
                 "date", appointment.getAppointmentDate().toString(),
                 "timeSlot", slot.getTimeSlot()
@@ -210,9 +221,9 @@ public class BookingController {
             return Map.of("error", "This appointment can no longer be changed.");
         }
 
-        DoctorSchedule peekSlot = scheduleRepository.findById(request.newSlotId).orElse(null);
-        if (peekSlot != null && isInPast(peekSlot)) {
-            return Map.of("error", "This slot is in the past. Please choose an upcoming date and time.");
+        DoctorSchedule peekSlot = request.newSlotId == null ? null : scheduleRepository.findById(request.newSlotId).orElse(null);
+        if (peekSlot != null && isSlotInPast(peekSlot)) {
+            return Map.of("error", "You can't reschedule to a date or time that has already passed.");
         }
         if (peekSlot != null) {
             boolean conflictsWithOtherAppointment = appointmentRepository
@@ -242,8 +253,11 @@ public class BookingController {
         appointment.setScheduleSlotId(newSlot.getId());
         appointmentRepository.save(appointment);
 
+        boolean delayed = delayNoticeService.notifyLateBookingIfEmergencyToday(appointment);
+
         return Map.of(
                 "message", "Appointment rescheduled.",
+                "emergencyDelay", delayed,
                 "newDate", newSlot.getScheduleDate().toString(),
                 "newTimeSlot", newSlot.getTimeSlot()
         );

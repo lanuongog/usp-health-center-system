@@ -355,8 +355,9 @@ z-index: 200; max-height: 380px; overflow-y: auto; padding: 10px; text-align: le
 #notif-panel[hidden] { display: none; }
 .notif-item { border-bottom: 1px solid var(--line); padding: 8px 2px; font-size: 12.5px; cursor: pointer; }
 .notif-item:last-child { border-bottom: none; }
-.notif-item.unread { font-weight: 700; color: var(--ink); background: var(--brand-soft); border-left: 3px solid var(--brand); padding-left: 8px; }
-.notif-item.read { font-weight: 400; color: var(--ink-soft); }
+.notif-item.unread { font-weight: 700; background: var(--emergency-bg, #FBEAE8); border-left: 3px solid #B03A2E; padding-left: 8px; }
+.notif-item.unread .notif-time { font-weight: 600; }
+.notif-item.read { font-weight: 400; opacity: 0.6; }
 .notif-item .notif-time { font-size: 11px; color: var(--ink-soft); margin-top: 2px; }
 
 #account-menu-wrap { position: relative; }
@@ -457,7 +458,7 @@ background: var(--brand-soft); border-radius: 8px; padding: 12px 18px; min-width
 <div class="panel-body">
 <p class="hint">For a patient who needs to see a doctor immediately. This checks them in directly at the top of the queue, alerts every doctor, and warns other waiting students of a delay.</p>
 <label for="emergencyStudentId">Student ID</label>
-<input type="text" class="diag-input" id="emergencyStudentId" placeholder="e.g. S12345678" />
+<input type="text" id="emergencyStudentId" placeholder="e.g. S12345678" />
 <label for="emergencyReason">What's happening (brief)</label>
 <textarea id="emergencyReason" rows="3" placeholder="e.g. Severe allergic reaction" maxlength="300"></textarea>
 <div class="toast" id="emergencyResult"></div>
@@ -638,29 +639,21 @@ function switchDoctorTab(tab) {
 // Real-time-ish emergency alerts: polled every 20s (see pollNotifCount), any
 // unread EMERGENCY_ALERT not seen yet in this session pops an unmissable
 // overlay rather than waiting for staff to notice a badge and click into it.
-// "Acknowledge" only dismisses the popup - the alert stays unread in the
-// Alerts list until someone acts on it. Acknowledged IDs are remembered in
-// localStorage so a page reload doesn't pop the same alert up again.
-const ACK_STORAGE_KEY = 'acknowledgedEmergencyAlertIds';
-let seenEmergencyAlertIds = new Set(loadAcknowledgedAlertIds());
-
-function loadAcknowledgedAlertIds() {
-  try {
-    const ids = JSON.parse(localStorage.getItem(ACK_STORAGE_KEY) || '[]');
-    return Array.isArray(ids) ? ids : [];
-  } catch (e) {
-    return [];
-  }
+// Acknowledged popups are remembered in this browser so a page reload doesn't
+// pop them again - acknowledging deliberately leaves the alert UNREAD in the
+// Alerts list, since the student still hasn't arrived and needs attention.
+const ACK_EMERGENCY_KEY = 'acknowledgedEmergencyAlertIds';
+function loadAcknowledgedEmergencyIds() {
+  try { return new Set(JSON.parse(localStorage.getItem(ACK_EMERGENCY_KEY) || '[]')); } catch (e) { return new Set(); }
 }
-
-function rememberAcknowledgedAlert(id) {
+function rememberAcknowledgedEmergencyId(id) {
   try {
-    // Keep only the most recent IDs so this never grows unbounded.
-    const ids = loadAcknowledgedAlertIds().filter(x => x !== id);
-    ids.push(id);
-    localStorage.setItem(ACK_STORAGE_KEY, JSON.stringify(ids.slice(-200)));
+    const ids = loadAcknowledgedEmergencyIds();
+    ids.add(Number(id));
+    localStorage.setItem(ACK_EMERGENCY_KEY, JSON.stringify([...ids].slice(-200)));
   } catch (e) {}
 }
+let seenEmergencyAlertIds = loadAcknowledgedEmergencyIds();
 let emergencyPopupQueue = [];
 let emergencyPopupShowing = false;
 
@@ -693,7 +686,9 @@ function showNextEmergencyPopup() {
 
 function acknowledgeEmergencyPopup() {
   const overlay = document.getElementById('incoming-emergency-overlay');
-  rememberAcknowledgedAlert(Number(overlay.dataset.notifId));
+  // Intentionally NOT marked read - it stays bold in the Alerts list until
+  // someone actually acts on it (checks the student in or clicks it).
+  rememberAcknowledgedEmergencyId(overlay.dataset.notifId);
   overlay.hidden = true;
   emergencyPopupShowing = false;
   showNextEmergencyPopup();
