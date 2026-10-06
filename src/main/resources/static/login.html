@@ -101,6 +101,7 @@
           <label for="loginPassword">Password *</label>
           <input type="password" id="loginPassword" required autocomplete="current-password" maxlength="200" />
         </div>
+        <div style="text-align:right;margin:-6px 0 14px;"><button type="button" class="btn-link" style="font-size:13px;" onclick="VAL.forgotPassword(document.getElementById('loginUsername').value.trim())">Forgot password?</button></div>
         <div id="loginAlert" class="notice danger" style="margin-bottom:18px;" hidden></div>
         <button type="submit" class="btn btn-primary btn-block" id="loginBtn"><span data-icon="arrow"></span>Sign in</button>
       </form>
@@ -189,6 +190,7 @@
 </div>
 
 <script src="/js/app-shell.js"></script>
+<script src="/js/validation.js"></script>
 <script>
 let feeSchedule = null;
 const ARROW = HC.icon('arrow');
@@ -269,6 +271,7 @@ function hideLoginAlert() {
 }
 
 function showRegAlert(msg) {
+  if (msg) VAL.alert(msg, 'Please check this');
   const box = document.getElementById('regAlert');
   box.textContent = msg;
   box.hidden = !msg;
@@ -283,7 +286,11 @@ async function handleLogin(e) {
   const btn = document.getElementById('loginBtn');
 
   if (!username || !password) {
-    showLoginAlert('Enter your student ID or username and password', 'Both fields are required.');
+    VAL.alert('Enter your student ID or username and your password. Both fields are required.', 'Please check this');
+    return;
+  }
+  if (!/^[A-Za-z0-9._@-]{3,200}$/.test(username)) {
+    VAL.alert('Student ID or username can only contain letters, numbers and . _ - @', 'Please check this');
     return;
   }
 
@@ -342,7 +349,7 @@ async function handleRegister(e) {
   if (!receiptFile) return showRegAlert('Please attach a PDF receipt showing you have paid your Laucala Health Services Fee.');
   if (receiptFile.type !== 'application/pdf') return showRegAlert('The payment receipt must be a PDF file.');
   if (!/^S\d{8}$/.test(studentId)) return showRegAlert('Student ID must be S followed by 8 digits (e.g. S12345678).');
-  if (password.length < 6 || password.length > 100) return showRegAlert('Password must be between 6 and 100 characters.');
+  { const pe = VAL.password(password, studentId); if (pe) return showRegAlert(pe); }
   if (password !== passwordConfirm) return showRegAlert('The passwords do not match.');
   if (password.toUpperCase() === studentId) return showRegAlert('Do not use your student ID as your password.');
   if (!confirmed) return showRegAlert('Please confirm your details are correct.');

@@ -115,6 +115,7 @@
       <div class="field-row" style="margin-top:14px;">
         <div class="field"><label for="newUsername">Username *</label><input type="text" id="newUsername" minlength="3" maxlength="50" /></div>
         <div class="field"><label for="newPassword">Password *</label><input type="password" id="newPassword" placeholder="Min 6 characters" minlength="6" maxlength="100" /></div>
+        <div class="field"><label for="newEmail">Email (for password reset codes)</label><input type="email" id="newEmail" maxlength="150" placeholder="name@usp.ac.fj" /></div>
         <div class="field"><label for="newRole">Role *</label>
           <select id="newRole"><option value="DOCTOR">Doctor</option><option value="NURSE">Nurse</option><option value="ADMIN">Admin</option></select>
         </div>
@@ -200,6 +201,7 @@
 </div>
 
 <script src="/js/app-shell.js"></script>
+<script src="/js/validation.js"></script>
 <script>
 const esc = HC.esc;
 let authHeader = null;
@@ -237,7 +239,8 @@ window.addEventListener('DOMContentLoaded', () => {
   loadDashboard();
 });
 
-function logout() {
+async function logout() {
+  if (!(await VAL.ask({ title: 'Log out', note: 'Are you sure you want to log out?', okText: 'Yes, log out' }))) return;
   localStorage.clear();
   window.location.href = '/login.html';
 }
@@ -424,29 +427,34 @@ async function createStaffAccount() {
   const username = document.getElementById('newUsername').value.trim();
   const password = document.getElementById('newPassword').value;
   const role = document.getElementById('newRole').value;
+  const email = document.getElementById('newEmail').value.trim();
   const msg = document.getElementById('addUserMsg');
-  if (!username || !password) { msg.className = 'form-msg err'; msg.textContent = 'Username and password are required.'; return; }
+  msg.textContent = '';
+  const fail = m => { msg.className = 'form-msg err'; msg.textContent = m; VAL.alert(m); };
+  if (!username) return fail('Username is required.');
+  if (!/^[A-Za-z0-9._-]{3,50}$/.test(username)) return fail('Username must be 3-50 characters: letters, numbers, . _ - only.');
+  const pe = VAL.password(password, username);
+  if (pe) return fail(pe);
+  if (email && (email.length > 150 || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email))) return fail('Please enter a valid email address (or leave it blank).');
+  if (!(await VAL.ask({ title: 'Create account', rows: [['Username', username], ['Role', role], ['Email', email || '(none - USP default address used)']], note: 'Create this staff account?', okText: 'Yes, create' }))) return;
+  if (!VAL.once('createStaff', 2000)) return;
 
   try {
     const res = await fetch('/admin/users', {
       method: 'POST',
       headers: { 'Authorization': authHeader, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ username, password, role })
+      body: JSON.stringify({ username, password, role, email })
     });
     const data = await res.json();
-    if (!res.ok || data.error) {
-      msg.className = 'form-msg err';
-      msg.textContent = data.error || data.message || 'Unable to create account.';
-      return;
-    }
+    if (!res.ok || data.error) return fail(data.error || data.message || 'Unable to create account.');
     msg.className = 'form-msg ok';
     msg.textContent = `Account “${data.username}” created.`;
     document.getElementById('newUsername').value = '';
     document.getElementById('newPassword').value = '';
+    document.getElementById('newEmail').value = '';
     loadUsers();
   } catch (e) {
-    msg.className = 'form-msg err';
-    msg.textContent = 'Service temporarily unavailable';
+    fail('Service temporarily unavailable');
   }
 }
 
@@ -527,14 +535,17 @@ function closeChangePasswordModal() {
   document.getElementById('change-password-modal-overlay').hidden = true;
 }
 
-function submitChangePassword() {
+async function submitChangePassword() {
   const currentPassword = document.getElementById('cpCurrentPassword').value;
   const newPassword = document.getElementById('cpNewPassword').value;
   const confirmPassword = document.getElementById('cpConfirmPassword').value;
   const resultEl = document.getElementById('cpResult');
   if (!currentPassword || !newPassword) { resultEl.className = 'toast err'; resultEl.textContent = 'Both fields are required.'; return; }
   if (newPassword !== confirmPassword) { resultEl.className = 'toast err'; resultEl.textContent = 'New password and confirmation do not match.'; return; }
+  { const pe = VAL.password(newPassword, localStorage.getItem('currentUser')); if (pe) { resultEl.className = 'toast err'; resultEl.textContent = pe; VAL.alert(pe); return; } }
+  if (newPassword === currentPassword) { const m = 'The new password must be different from your current password.'; resultEl.className = 'toast err'; resultEl.textContent = m; VAL.alert(m); return; }
 
+  if (!(await VAL.ask({ title: 'Change password', note: 'Change your password now?', okText: 'Yes, change password' }))) return;
   fetch('/account/change-password', {
     method: 'POST',
     headers: { 'Authorization': authHeader, 'Content-Type': 'application/json' },

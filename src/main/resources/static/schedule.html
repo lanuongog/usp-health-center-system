@@ -85,13 +85,12 @@
         <p class="card-sub">Added slots become bookable immediately.</p>
         <div class="field" style="margin-top:18px;">
           <label for="newDoctorName">Doctor</label>
-          <input type="text" id="newDoctorName" list="doctor-options" maxlength="100" placeholder="e.g. dr.patel" />
-          <datalist id="doctor-options"></datalist>
+          <select id="newDoctorName"><option value="">Select a doctor…</option></select>
         </div>
         <div class="field"><label for="newDate">Date *</label><input type="date" id="newDate" /></div>
         <div class="field-row">
-          <div class="field"><label for="newStart">Start *</label><input type="time" id="newStart" step="300" /></div>
-          <div class="field"><label for="newEnd">End *</label><input type="time" id="newEnd" step="300" /></div>
+          <div class="field"><label for="newStart">Start *</label><select id="newStart"><option value="">Select…</option><option value="07:00">07:00</option><option value="07:15">07:15</option><option value="07:30">07:30</option><option value="07:45">07:45</option><option value="08:00">08:00</option><option value="08:15">08:15</option><option value="08:30">08:30</option><option value="08:45">08:45</option><option value="09:00">09:00</option><option value="09:15">09:15</option><option value="09:30">09:30</option><option value="09:45">09:45</option><option value="10:00">10:00</option><option value="10:15">10:15</option><option value="10:30">10:30</option><option value="10:45">10:45</option><option value="11:00">11:00</option><option value="11:15">11:15</option><option value="11:30">11:30</option><option value="11:45">11:45</option><option value="12:00">12:00</option><option value="12:15">12:15</option><option value="12:30">12:30</option><option value="12:45">12:45</option><option value="13:00">13:00</option><option value="13:15">13:15</option><option value="13:30">13:30</option><option value="13:45">13:45</option><option value="14:00">14:00</option><option value="14:15">14:15</option><option value="14:30">14:30</option><option value="14:45">14:45</option><option value="15:00">15:00</option><option value="15:15">15:15</option><option value="15:30">15:30</option><option value="15:45">15:45</option><option value="16:00">16:00</option><option value="16:15">16:15</option><option value="16:30">16:30</option><option value="16:45">16:45</option><option value="17:00">17:00</option><option value="17:15">17:15</option><option value="17:30">17:30</option><option value="17:45">17:45</option><option value="18:00">18:00</option><option value="18:15">18:15</option><option value="18:30">18:30</option><option value="18:45">18:45</option><option value="19:00">19:00</option></select></div>
+          <div class="field"><label for="newEnd">End *</label><select id="newEnd"><option value="">Select…</option><option value="07:00">07:00</option><option value="07:15">07:15</option><option value="07:30">07:30</option><option value="07:45">07:45</option><option value="08:00">08:00</option><option value="08:15">08:15</option><option value="08:30">08:30</option><option value="08:45">08:45</option><option value="09:00">09:00</option><option value="09:15">09:15</option><option value="09:30">09:30</option><option value="09:45">09:45</option><option value="10:00">10:00</option><option value="10:15">10:15</option><option value="10:30">10:30</option><option value="10:45">10:45</option><option value="11:00">11:00</option><option value="11:15">11:15</option><option value="11:30">11:30</option><option value="11:45">11:45</option><option value="12:00">12:00</option><option value="12:15">12:15</option><option value="12:30">12:30</option><option value="12:45">12:45</option><option value="13:00">13:00</option><option value="13:15">13:15</option><option value="13:30">13:30</option><option value="13:45">13:45</option><option value="14:00">14:00</option><option value="14:15">14:15</option><option value="14:30">14:30</option><option value="14:45">14:45</option><option value="15:00">15:00</option><option value="15:15">15:15</option><option value="15:30">15:30</option><option value="15:45">15:45</option><option value="16:00">16:00</option><option value="16:15">16:15</option><option value="16:30">16:30</option><option value="16:45">16:45</option><option value="17:00">17:00</option><option value="17:15">17:15</option><option value="17:30">17:30</option><option value="17:45">17:45</option><option value="18:00">18:00</option><option value="18:15">18:15</option><option value="18:30">18:30</option><option value="18:45">18:45</option><option value="19:00">19:00</option></select></div>
         </div>
         <div class="notice danger" id="formError" style="margin-top:16px;" hidden></div>
         <div class="toast" id="formOk"></div>
@@ -123,6 +122,7 @@
 </div>
 
 <script src="/js/app-shell.js"></script>
+<script src="/js/validation.js"></script>
 <script>
 const esc = HC.esc;
 let authHeader = null;
@@ -173,7 +173,8 @@ function doctorLabel(name) {
   return 'Dr ' + m[1].split(/[\s._]+/).map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
 }
 
-function logout() {
+async function logout() {
+  if (!(await VAL.ask({ title: 'Log out', note: 'Are you sure you want to log out?', okText: 'Yes, log out' }))) return;
   localStorage.clear();
   window.location.href = '/login.html';
 }
@@ -195,16 +196,30 @@ function resetIdleTimer() {
 );
 resetIdleTimer();
 
+async function loadDoctorOptions() {
+  try {
+    const r = await fetch('/schedule/manage/doctors', { headers: { 'Authorization': authHeader } });
+    if (!r.ok) return;
+    const docs = await r.json();
+    const sel = document.getElementById('newDoctorName');
+    const cur = sel.value;
+    sel.innerHTML = '<option value="">Select a doctor…</option>' + docs.map(d => `<option value="${esc(d)}">${esc(d)}</option>`).join('');
+    if (cur) sel.value = cur;
+  } catch (e) {}
+}
+
 function showPageError(message) {
   const box = document.getElementById('pageError');
   box.textContent = message || '';
   box.hidden = !message;
+  if (message) VAL.alert(message);
 }
 
 function showFormError(message) {
   const box = document.getElementById('formError');
   box.innerHTML = message ? `<strong>${esc(message)}</strong>The existing schedule is unchanged.` : '';
   box.hidden = !message;
+  if (message) VAL.alert(message);
 }
 
 // ---------- Week navigation ----------
@@ -243,8 +258,7 @@ async function loadSchedule() {
     }
     showPageError(null);
     slots = await res.json();
-    const doctors = [...new Set(slots.map(s => s.doctorName))].sort();
-    document.getElementById('doctor-options').innerHTML = doctors.map(d => `<option value="${esc(d)}">`).join('');
+    loadDoctorOptions();
     render();
   } catch (e) {
     showPageError('Service temporarily unavailable');
@@ -351,6 +365,8 @@ async function createSlot() {
   if (!doctorName || !date || !start || !end) { showFormError('Complete the doctor, date, start and end fields.'); return; }
   if (end <= start) { showFormError('The end time must be after the start time.'); return; }
   if (date < HC.todayIso()) { showFormError('Schedule date cannot be in the past.'); return; }
+  if (!(await VAL.ask({ title: 'Create slot', rows: [['Doctor', doctorName], ['Date', date], ['Time', start + ' – ' + end]], note: 'Add this consultation slot? It becomes bookable immediately.', okText: 'Yes, create slot' }))) return;
+  if (!VAL.once('createSlot', 2000)) return;
 
   // The API stores slots as "09:00 AM - 09:30 AM".
   const timeSlot = HC.to12h(start) + ' - ' + HC.to12h(end);
@@ -384,7 +400,7 @@ async function createSlot() {
 
 async function deleteSlot(id) {
   const s = slots.find(x => x.id === id);
-  if (!confirm(`Remove the ${s ? HC.slotRange(s.timeSlot) : ''} slot? Students will no longer be able to book it.`)) return;
+  if (!(await VAL.ask({ title: 'Remove slot', rows: [['Doctor', s ? s.doctorName : ''], ['Time', s ? HC.slotRange(s.timeSlot) : '']], note: 'Students will no longer be able to book this slot. Remove it?', okText: 'Yes, remove', danger: true }))) return;
   try {
     const res = await fetch(`/schedule/manage/${id}`, { method: 'DELETE', headers: { 'Authorization': authHeader } });
     if (!res.ok) {
@@ -410,14 +426,17 @@ function closeChangePasswordModal() {
   document.getElementById('change-password-modal-overlay').hidden = true;
 }
 
-function submitChangePassword() {
+async function submitChangePassword() {
   const currentPassword = document.getElementById('cpCurrentPassword').value;
   const newPassword = document.getElementById('cpNewPassword').value;
   const confirmPassword = document.getElementById('cpConfirmPassword').value;
   const resultEl = document.getElementById('cpResult');
   if (!currentPassword || !newPassword) { resultEl.className = 'toast err'; resultEl.textContent = 'Both fields are required.'; return; }
   if (newPassword !== confirmPassword) { resultEl.className = 'toast err'; resultEl.textContent = 'New password and confirmation do not match.'; return; }
+  { const pe = VAL.password(newPassword, localStorage.getItem('currentUser')); if (pe) { resultEl.className = 'toast err'; resultEl.textContent = pe; VAL.alert(pe); return; } }
+  if (newPassword === currentPassword) { const m = 'The new password must be different from your current password.'; resultEl.className = 'toast err'; resultEl.textContent = m; VAL.alert(m); return; }
 
+  if (!(await VAL.ask({ title: 'Change password', note: 'Change your password now?', okText: 'Yes, change password' }))) return;
   fetch('/account/change-password', {
     method: 'POST',
     headers: { 'Authorization': authHeader, 'Content-Type': 'application/json' },

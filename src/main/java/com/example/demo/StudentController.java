@@ -41,6 +41,12 @@ public class StudentController {
     private static final int MAX_PASSWORD_LENGTH = 100;
     private static final int MAX_FULL_NAME_LENGTH = 100;
     private static final int MAX_EMERGENCY_REASON_LENGTH = 300;
+    // After an emergency alert the button stays locked for this long, unless the student signs in again.
+    private static final int EMERGENCY_LOCK_MINUTES = 20;
+    private static final java.util.concurrent.ConcurrentHashMap<String, LocalDateTime> LAST_LOGIN = new java.util.concurrent.ConcurrentHashMap<>();
+
+    // called by the login check each time a student signs in
+    static void markLogin(String username) { LAST_LOGIN.put(username, LocalDateTime.now()); }
 
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
@@ -75,11 +81,15 @@ public class StudentController {
             return Map.of("error", "Student ID must be in the format S followed by 8 digits (e.g. S12345678).");
         }
         studentId = normalizedStudentId;
-        if (password.length() < MIN_PASSWORD_LENGTH || password.length() > MAX_PASSWORD_LENGTH) {
-            return Map.of("error", "Password must be between " + MIN_PASSWORD_LENGTH + " and " + MAX_PASSWORD_LENGTH + " characters.");
+        String passwordError = PasswordRules.check(password, studentId);
+        if (passwordError != null) {
+            return Map.of("error", passwordError);
         }
         if (fullName == null || fullName.isBlank()) {
             return Map.of("error", "Full name is required.");
+        }
+        if (fullName.trim().length() < 2 || !fullName.trim().matches("^[\\p{L}][\\p{L} .'\u2019-]*$")) {
+            return Map.of("error", "Full name must be at least 2 characters and contain only letters, spaces, apostrophes, hyphens or full stops.");
         }
         if (fullName.trim().length() > MAX_FULL_NAME_LENGTH) {
             return Map.of("error", "Full name must be " + MAX_FULL_NAME_LENGTH + " characters or fewer.");
@@ -243,15 +253,28 @@ public class StudentController {
                 "EMERGENCY_ALERT", username, LocalDate.now().atStartOfDay());
     }
 
-    // Lets the portal show today's request as already sent (and when) after a reload.
+    // True while the Emergency button is locked: an alert was sent in the last 20 minutes
+    // and the student has not signed in again since.
+    private Notification activeEmergencyAlert(String username) {
+        LocalDateTime since = LocalDateTime.now().minusMinutes(EMERGENCY_LOCK_MINUTES);
+        LocalDateTime login = LAST_LOGIN.get(username);
+        if (login != null && login.isAfter(since)) since = login;
+        return notificationRepository.findFirstByTypeAndStudentUsernameAndCreatedAtGreaterThanEqualOrderByCreatedAtDesc(
+                "EMERGENCY_ALERT", username, since);
+    }
+
+    private boolean hasActiveEmergencyAlert(String username) {
+        return activeEmergencyAlert(username) != null;
+    }
+
+    // Lets the portal show the request as already sent (and when) after a reload.
     @GetMapping("/emergency-alert/status")
     public Map<String, Object> getEmergencyAlertStatus(Authentication auth) {
-        Notification sent = notificationRepository.findFirstByTypeAndStudentUsernameAndCreatedAtGreaterThanEqualOrderByCreatedAtDesc(
-                "EMERGENCY_ALERT", auth.getName(), LocalDate.now().atStartOfDay());
+        Notification sent = activeEmergencyAlert(auth.getName());
         if (sent == null) {
-            return Map.of("sentToday", false);
+            return Map.of("sentToday", false, "lockMinutes", EMERGENCY_LOCK_MINUTES);
         }
-        return Map.of("sentToday", true, "sentAt", sent.getCreatedAt().toString());
+        return Map.of("sentToday", true, "sentAt", sent.getCreatedAt().toString(), "lockMinutes", EMERGENCY_LOCK_MINUTES);
     }
 
     // A quick, low-friction heads-up a student sends before they've arrived -
@@ -259,7 +282,7 @@ public class StudentController {
     // appointment or check the student in, since they aren't physically here
     // yet. The actual check-in still happens through the nurse/doctor
     // dashboard's Emergency Check-in action once the student arrives.
-    // Limited to one alert per student per day.
+    // Locked for 20 minutes after sending, or until the student signs in again.
     @PostMapping("/emergency-alert")
     public Object sendEmergencyAlert(@RequestBody EmergencyAlertRequest request, Authentication auth) {
         if (request.reason == null || request.reason.isBlank()) {
@@ -274,9 +297,10 @@ public class StudentController {
                 ? student.getFullName() : auth.getName();
 
         synchronized (emergencyAlertLock) {
-            if (hasSentEmergencyAlertToday(auth.getName())) {
-                return Map.of("error", "You have already sent an emergency alert today - Health Center staff have been "
-                        + "notified and are expecting you. If this is life-threatening, contact campus security or "
+            if (hasActiveEmergencyAlert(auth.getName())) {
+                return Map.of("error", "You have already sent an emergency alert - Health Center staff have been "
+                        + "notified and are expecting you. You can send another after " + EMERGENCY_LOCK_MINUTES
+                        + " minutes, or after you sign in again. If this is life-threatening, contact campus security or "
                         + "emergency services immediately.");
             }
 

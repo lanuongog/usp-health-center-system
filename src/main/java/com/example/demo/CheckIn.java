@@ -15,10 +15,14 @@ public class CheckIn {
     @JoinColumn(name = "appointment_id", unique = true)
     private Appointment appointment;
 
+    @Column(length = 20)
     private String temperature;
+    @Column(length = 20)
     private String bloodPressure;
+    @Column(length = 500)
     private String presentingComplaint;
     private LocalDateTime checkInTime;
+    @Column(length = 100)
     private String checkedInBy; // nurse username
 
     public CheckIn() {}

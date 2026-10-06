@@ -378,9 +378,9 @@
       <div id="em-locked" hidden>
         <div class="notice ok">
           <strong id="em-locked-title">Emergency request sent today</strong>
-          Health Center staff have been notified and will prioritise you when you arrive. Go to the Health Center now if you can — you don’t need to send another request.
+          Health Center staff have been notified and will prioritise you when you arrive. Go to the Health Center now if you can — you don’t need to send another request right now.
         </div>
-        <p class="small muted" style="margin-top:14px;">You can send one emergency request per day. A new request can be sent from tomorrow. If things get worse, contact emergency services or campus security directly.</p>
+        <p class="small muted" style="margin-top:14px;">The emergency button unlocks again 20 minutes after your request, or the next time you sign in, in case of another emergency. If things get worse, contact emergency services or campus security directly.</p>
         <div class="btn-row" style="margin-top:16px;"><a class="btn" href="#overview">Return to overview</a></div>
       </div>
       <div class="form-msg" id="emergencyResult"></div>
@@ -435,6 +435,7 @@
 </div>
 
 <script src="/js/app-shell.js"></script>
+<script src="/js/validation.js"></script>
 <script>
 const esc = HC.esc;
 let authHeader = null;
@@ -565,13 +566,15 @@ function loadProfile() {
     .catch(() => {});
 }
 
-function uploadReceipt() {
+async function uploadReceipt() {
   const input = document.getElementById('receipt-upload-input');
   const msg = document.getElementById('receipt-upload-msg');
   const file = input.files[0];
-  if (!file) { msg.className = 'toast err'; msg.textContent = 'Please choose a PDF file first.'; return; }
-  if (file.type !== 'application/pdf') { msg.className = 'toast err'; msg.textContent = 'The receipt must be a PDF file.'; return; }
+  if (!file) { msg.className = 'toast err'; msg.textContent = 'Please choose a PDF file first.'; VAL.alert('Please choose a PDF file first.'); return; }
+  if (file.type !== 'application/pdf') { msg.className = 'toast err'; msg.textContent = 'The receipt must be a PDF file.'; VAL.alert('The receipt must be a PDF file.'); return; }
 
+  if (file.size > 5 * 1024 * 1024) { msg.className = 'toast err'; msg.textContent = 'The receipt must be 5 MB or smaller.'; VAL.alert('The receipt must be 5 MB or smaller.'); return; }
+  if (!(await VAL.ask({ title: 'Upload receipt', rows: [['File', file.name]], note: 'Upload this receipt for verification?', okText: 'Yes, upload' }))) return;
   const formData = new FormData();
   formData.append('receipt', file);
   fetch('/student/receipt', { method: 'POST', headers: { 'Authorization': authHeader }, body: formData })
@@ -587,7 +590,8 @@ function uploadReceipt() {
 }
 
 // ---------- Session ----------
-function logout() {
+async function logout() {
+  if (!(await VAL.ask({ title: 'Log out', note: 'Are you sure you want to log out?', okText: 'Yes, log out' }))) return;
   localStorage.clear();
   window.location.href = '/login.html';
 }
@@ -859,14 +863,20 @@ function updateSummary() {
 function submitBooking() {
   const toast = document.getElementById('book-toast');
   const reason = document.getElementById('reason-input').value.trim();
-  if (!reason) { setReasonError(true); updateSummary(); return; }
-  if (!selectedSlot) return;
+  if (!reason) { setReasonError(true); updateSummary(); VAL.alert('Please enter a reason for your visit.'); return; }
+  if (reason.length > 300) { VAL.alert('The reason for your visit must be 300 characters or fewer.'); return; }
+  if (!selectedSlot) { VAL.alert('Please select an available time slot first.'); return; }
   if (HC.isSlotPast(selectedDate, selectedSlotTime || '')) {
     toast.className = 'toast err';
     toast.textContent = 'That time has already passed. Please pick a later slot.';
+    VAL.alert('That time has already passed. Please pick a later slot.');
     loadSlots();
     return;
   }
+  VAL.ask({ title: 'Confirm booking', rows: [['Date', document.getElementById('sum-date').textContent], ['Time', document.getElementById('sum-time').textContent], ['Reason', reason.length > 60 ? reason.slice(0, 60) + '…' : reason]], note: 'Book this appointment?', okText: 'Yes, book it' }).then(okay => { if (okay && VAL.once('book', 2000)) doBooking(reason, toast); });
+}
+
+function doBooking(reason, toast) {
 
   const btn = document.getElementById('book-btn');
   btn.disabled = true;
@@ -888,6 +898,7 @@ function submitBooking() {
       } else {
         toast.className = 'toast err';
         toast.textContent = data.error;
+        VAL.alert(data.error);
       }
       updateSummary();
       return;
@@ -1366,11 +1377,42 @@ function closeDelayModal() {
 let emergencyAlertSending = false;
 let emergencyAlertSent = false;
 
+let emergencyUnlockTimer = null;
 function loadEmergencyAlertStatus() {
   fetch('/student/emergency-alert/status', { headers: { 'Authorization': authHeader } })
     .then(res => res.ok ? res.json() : null)
-    .then(data => { if (data && data.sentToday) markEmergencyAlertSent(data.sentAt); })
+    .then(data => {
+      if (!data) return;
+      clearTimeout(emergencyUnlockTimer);
+      if (data.sentToday) {
+        markEmergencyAlertSent(data.sentAt);
+        const mins = data.lockMinutes || 20;
+        const sent = data.sentAt ? new Date(data.sentAt).getTime() : Date.now();
+        const wait = Math.max(5000, sent + mins * 60000 - Date.now() + 2000);
+        emergencyUnlockTimer = setTimeout(loadEmergencyAlertStatus, Math.min(wait, 2147483000));
+      } else if (emergencyAlertSent) {
+        unlockEmergencyAlert();
+      }
+    })
     .catch(() => {});
+}
+
+// Puts the emergency form back once the 20-minute lock has ended.
+function unlockEmergencyAlert() {
+  emergencyAlertSent = false;
+  emergencyAlertSending = false;
+  const pill = document.getElementById('em-state-pill');
+  pill.textContent = 'Ready to request';
+  pill.className = 'pill teal';
+  document.getElementById('em-state-sub').textContent = 'You can send a new emergency request.';
+  document.getElementById('em-heading').textContent = 'Tell the clinic what is happening';
+  document.getElementById('em-form').hidden = false;
+  document.getElementById('em-locked').hidden = true;
+  document.getElementById('em-confirm').hidden = true;
+  document.getElementById('emergencyReason').value = '';
+  document.getElementById('emergencyLocation').value = '';
+  const overviewBtn = document.querySelector('.urgent-card a.btn, .urgent-card .btn-block');
+  if (overviewBtn) { overviewBtn.textContent = 'Open emergency request'; overviewBtn.className = 'btn btn-danger btn-block'; }
 }
 
 // Swaps the form for a clear "already sent" panel, so a locked form is never
@@ -1382,8 +1424,8 @@ function markEmergencyAlertSent(sentAt) {
   const pill = document.getElementById('em-state-pill');
   pill.textContent = 'Today’s request used';
   pill.className = 'pill';
-  document.getElementById('em-state-sub').textContent = `You sent an emergency request today at ${time} Fiji.`;
-  document.getElementById('em-locked-title').textContent = `Emergency request sent today at ${time}`;
+  document.getElementById('em-state-sub').textContent = `You sent an emergency request at ${time} Fiji. You can send another after 20 minutes or when you next sign in.`;
+  document.getElementById('em-locked-title').textContent = `Emergency request sent at ${time}`;
   document.getElementById('em-heading').textContent = 'Today’s emergency request';
   document.getElementById('em-form').hidden = true;
   document.getElementById('em-locked').hidden = false;
@@ -1403,6 +1445,7 @@ function reviewEmergency() {
   if (!what || !where) {
     result.className = 'form-msg err';
     result.textContent = 'Please describe what is happening and where you are now.';
+    VAL.alert('Please describe what is happening and where you are now.');
     return;
   }
   result.textContent = '';
@@ -1450,6 +1493,7 @@ function sendEmergencyAlert() {
     }
     btn.textContent = 'Send emergency request';
     markEmergencyAlertSent();
+    loadEmergencyAlertStatus();
   })
   .catch(() => {
     resetSending();
@@ -1469,14 +1513,17 @@ function closeChangePasswordModal() {
   document.getElementById('change-password-modal-overlay').hidden = true;
 }
 
-function submitChangePassword() {
+async function submitChangePassword() {
   const currentPassword = document.getElementById('cpCurrentPassword').value;
   const newPassword = document.getElementById('cpNewPassword').value;
   const confirmPassword = document.getElementById('cpConfirmPassword').value;
   const resultEl = document.getElementById('cpResult');
   if (!currentPassword || !newPassword) { resultEl.className = 'toast err'; resultEl.textContent = 'Both fields are required.'; return; }
   if (newPassword !== confirmPassword) { resultEl.className = 'toast err'; resultEl.textContent = 'New password and confirmation do not match.'; return; }
+  { const pe = VAL.password(newPassword, localStorage.getItem('currentUser')); if (pe) { resultEl.className = 'toast err'; resultEl.textContent = pe; VAL.alert(pe); return; } }
+  if (newPassword === currentPassword) { const m = 'The new password must be different from your current password.'; resultEl.className = 'toast err'; resultEl.textContent = m; VAL.alert(m); return; }
 
+  if (!(await VAL.ask({ title: 'Change password', note: 'Change your password now?', okText: 'Yes, change password' }))) return;
   fetch('/account/change-password', {
     method: 'POST',
     headers: { 'Authorization': authHeader, 'Content-Type': 'application/json' },
