@@ -9,9 +9,8 @@ import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 
 // Two kinds of alert live in this one table:
-//  - Staff-facing (recipientUsername == null): a student books/holds an Urgent
-//    or Emergency appointment, sends an emergency alert, or a nurse/doctor
-//    completes an emergency check-in. Shown to every nurse/doctor/admin.
+//  - Staff-facing (recipientUsername == null): a student sends an emergency
+//    alert, or a nurse/doctor completes an emergency check-in. Shown to every nurse/doctor/admin.
 //  - Student-facing (recipientUsername == that student's username): a "your
 //    appointment may be delayed" notice sent to students who already have a
 //    booking today when an emergency check-in jumps the queue ahead of them.
@@ -23,7 +22,7 @@ public class Notification {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    private String type; // EMERGENCY_BOOKING, URGENT_BOOKING, DELAY_NOTICE
+    private String type; // EMERGENCY_ALERT, EMERGENCY_BOOKING, DELAY_NOTICE (URGENT_BOOKING on older rows)
     private String studentUsername; // the student this alert is ABOUT
     private String studentName;
     private String recipientUsername; // null = staff broadcast; set = that student only

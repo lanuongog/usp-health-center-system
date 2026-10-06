@@ -1,8 +1,12 @@
 package com.example.demo;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.LocalTime;
 import java.util.List;
 import java.util.Map;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -15,31 +19,46 @@ import org.springframework.web.bind.annotation.RestController;
 @RequestMapping("/student")
 public class BookingController {
 
-    private static final List<String> URGENCY_LEVELS = List.of("Routine", "Urgent", "Emergency");
+    // Matches the start time of a "09:00 AM - 09:30 AM" style slot label.
+    private static final Pattern SLOT_START_TIME = Pattern.compile("^\\s*(\\d{1,2}):(\\d{2})\\s*(AM|PM)", Pattern.CASE_INSENSITIVE);
     private static final int MAX_REASON_LENGTH = 300;
 
     private final DoctorScheduleRepository scheduleRepository;
     private final AppointmentRepository appointmentRepository;
     private final CheckInRepository checkInRepository;
     private final UserRepository userRepository;
-    private final NotificationRepository notificationRepository;
 
     public BookingController(DoctorScheduleRepository scheduleRepository,
                             AppointmentRepository appointmentRepository,
                             CheckInRepository checkInRepository,
-                            UserRepository userRepository,
-                            NotificationRepository notificationRepository) {
+                            UserRepository userRepository) {
         this.scheduleRepository = scheduleRepository;
         this.appointmentRepository = appointmentRepository;
         this.checkInRepository = checkInRepository;
         this.userRepository = userRepository;
-        this.notificationRepository = notificationRepository;
     }
 
     public static class BookingRequest {
         public Long slotId;
         public String visitReason;
-        public String urgencyLevel;
+    }
+
+    // A slot can't be booked once its date has passed, or - for today - once
+    // its start time has passed. Labels that can't be parsed fall back to
+    // the date check alone.
+    private boolean isInPast(DoctorSchedule slot) {
+        LocalDate date = slot.getScheduleDate();
+        if (date == null) return true;
+        LocalDate today = LocalDate.now();
+        if (date.isBefore(today)) return true;
+        if (date.isAfter(today) || slot.getTimeSlot() == null) return false;
+
+        Matcher m = SLOT_START_TIME.matcher(slot.getTimeSlot());
+        if (!m.find()) return false;
+        int hour = Integer.parseInt(m.group(1)) % 12;
+        if ("PM".equalsIgnoreCase(m.group(3))) hour += 12;
+        LocalTime start = LocalTime.of(hour, Integer.parseInt(m.group(2)));
+        return !LocalDateTime.of(date, start).isAfter(LocalDateTime.now());
     }
 
     // Student views their full visit and consultation history (completed, vitals, diagnosis, notes)
@@ -87,12 +106,6 @@ public class BookingController {
         if (request.visitReason.trim().length() > MAX_REASON_LENGTH) {
             return Map.of("error", "Reason for visit must be " + MAX_REASON_LENGTH + " characters or fewer.");
         }
-        if (request.urgencyLevel == null || request.urgencyLevel.isBlank()) {
-            return Map.of("error", "Urgency level is required.");
-        }
-        if (!URGENCY_LEVELS.contains(request.urgencyLevel)) {
-            return Map.of("error", "Urgency level must be one of: " + String.join(", ", URGENCY_LEVELS) + ".");
-        }
         if (request.slotId == null) {
             return Map.of("error", "Please select an available slot.");
         }
@@ -100,6 +113,9 @@ public class BookingController {
         DoctorSchedule slot = scheduleRepository.findById(request.slotId).orElse(null);
         if (slot == null) {
             return Map.of("error", "This slot is no longer available.");
+        }
+        if (isInPast(slot)) {
+            return Map.of("error", "This slot is in the past. Please choose an upcoming date and time.");
         }
 
         boolean alreadyBookedAtThisTime = !appointmentRepository.findByStudentNameAndStatusAndAppointmentDateAndTimeSlot(
@@ -127,27 +143,12 @@ public class BookingController {
         appointment.setAppointmentDate(slot.getScheduleDate());
         appointment.setTimeSlot(slot.getTimeSlot());
         appointment.setVisitReason(request.visitReason.trim());
-        appointment.setUrgencyLevel(request.urgencyLevel);
+        // Students no longer pick an urgency - every booking is Routine, and
+        // genuine emergencies go through the emergency alert / check-in flow.
+        appointment.setUrgencyLevel("Routine");
         appointment.setStatus("BOOKED");
         appointment.setScheduleSlotId(slot.getId());
         appointmentRepository.save(appointment);
-
-        // Urgent/Emergency bookings raise a staff alert immediately, so a nurse
-        // or doctor doesn't have to be actively browsing the queue to notice a
-        // booking that needs prompt attention.
-        if ("Urgent".equals(request.urgencyLevel) || "Emergency".equals(request.urgencyLevel)) {
-            String displayName = student.getFullName() != null && !student.getFullName().isBlank()
-                    ? student.getFullName() : auth.getName();
-            Notification notification = new Notification();
-            notification.setType("Emergency".equals(request.urgencyLevel) ? "EMERGENCY_BOOKING" : "URGENT_BOOKING");
-            notification.setStudentUsername(auth.getName());
-            notification.setStudentName(displayName);
-            notification.setAppointmentId(appointment.getId());
-            notification.setMessage(request.urgencyLevel + " booking: " + displayName + " on "
-                    + appointment.getAppointmentDate() + " at " + slot.getTimeSlot() + " — " + request.visitReason);
-            notification.setCreatedAt(LocalDateTime.now());
-            notificationRepository.save(notification);
-        }
 
         return Map.of(
                 "message", "Appointment confirmed.",
@@ -210,6 +211,9 @@ public class BookingController {
         }
 
         DoctorSchedule peekSlot = scheduleRepository.findById(request.newSlotId).orElse(null);
+        if (peekSlot != null && isInPast(peekSlot)) {
+            return Map.of("error", "This slot is in the past. Please choose an upcoming date and time.");
+        }
         if (peekSlot != null) {
             boolean conflictsWithOtherAppointment = appointmentRepository
                     .findByStudentNameAndStatusAndAppointmentDateAndTimeSlot(
