@@ -225,9 +225,13 @@ public class AdminUserController {
                 ? request.reason.trim()
                 : "Your receipt was rejected. Please upload a valid payment receipt.";
 
+        // NOTE: keep the rejected receipt on file instead of deleting it
+        // (DEF-03). Deleting it here left the account with nothing to act on -
+        // hasReceipt showed false, and re-approving a null receipt threw a 500.
+        // The student can still see their rejected receipt and the reason, and
+        // StudentController.uploadReceipt() already overwrites this file when
+        // they re-upload, so nothing else needs to change for that flow.
         user.setFeePaid(false);
-        user.setReceiptFile(null);
-        user.setReceiptFileName(null);
         user.setReceiptRejectionReason(reason);
         userRepository.save(user);
 

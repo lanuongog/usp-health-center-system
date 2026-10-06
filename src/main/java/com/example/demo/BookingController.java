@@ -132,16 +132,15 @@ public class BookingController {
             return Map.of("error", "You already have an appointment booked for this date and time slot.");
         }
 
-        // Prevents two students booking the same time slot: a time is only offered
-        // to one student at a time even when multiple doctors are on duty for it, so
-        // booking one doctor's row for a date+time books every doctor's row for it.
+        // Prevents two students booking the same doctor's slot at once - each
+        // doctor's row is booked independently of every other doctor's.
         synchronized (this) {
             slot = scheduleRepository.findById(request.slotId).orElse(null);
-            if (slot == null || slot.isBooked()
-                    || scheduleRepository.anyBookedForTimeSlot(slot.getScheduleDate(), slot.getTimeSlot())) {
+            if (slot == null || slot.isBooked()) {
                 return Map.of("error", "This slot is no longer available.");
             }
-            scheduleRepository.setBookedForTimeSlot(slot.getScheduleDate(), slot.getTimeSlot(), true);
+            slot.setBooked(true);
+            scheduleRepository.save(slot);
         }
 
         Appointment appointment = new Appointment();
@@ -197,10 +196,7 @@ public class BookingController {
 
         appointment.setStatus("CANCELLED");
         appointmentRepository.save(appointment);
-
-        if (appointment.getAppointmentDate() != null && appointment.getTimeSlot() != null) {
-            scheduleRepository.setBookedForTimeSlot(appointment.getAppointmentDate(), appointment.getTimeSlot(), false);
-        }
+        scheduleRepository.freeSlot(appointment.getScheduleSlotId());
 
         return Map.of("message", "Appointment cancelled.");
     }
@@ -243,16 +239,14 @@ public class BookingController {
         DoctorSchedule newSlot;
         synchronized (this) {
             newSlot = scheduleRepository.findById(request.newSlotId).orElse(null);
-            if (newSlot == null || newSlot.isBooked()
-                    || scheduleRepository.anyBookedForTimeSlot(newSlot.getScheduleDate(), newSlot.getTimeSlot())) {
+            if (newSlot == null || newSlot.isBooked()) {
                 return Map.of("error", "This slot is no longer available.");
             }
-            scheduleRepository.setBookedForTimeSlot(newSlot.getScheduleDate(), newSlot.getTimeSlot(), true);
+            newSlot.setBooked(true);
+            scheduleRepository.save(newSlot);
         }
 
-        if (appointment.getAppointmentDate() != null && appointment.getTimeSlot() != null) {
-            scheduleRepository.setBookedForTimeSlot(appointment.getAppointmentDate(), appointment.getTimeSlot(), false);
-        }
+        scheduleRepository.freeSlot(appointment.getScheduleSlotId());
 
         appointment.setAppointmentDate(newSlot.getScheduleDate());
         appointment.setTimeSlot(newSlot.getTimeSlot());

@@ -7,8 +7,6 @@ import java.util.Map;
 
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -21,15 +19,10 @@ public class DashboardController {
         this.appointmentRepository = appointmentRepository;
     }
 
-    
+
     // REQ 63 requires Admin to see aggregate statistics only, never individual patient
     // records (name, reason, urgency per student). Only the summary endpoints below
     // are exposed to the ADMIN role.
-
-    @PostMapping("/appointments")
-    public Appointment createAppointment(@RequestBody Appointment appointment) {
-        return appointmentRepository.save(appointment);
-    }
 
     @GetMapping("/dashboard/summary")
     public DashboardSummary getSummary() {
