@@ -142,7 +142,7 @@ a { color: var(--brand); }
 #notif-badge:not(:empty)::before { content: " ("; }
 #notif-badge:not(:empty)::after { content: ")"; }
 
-.app-content { padding: 30px 28px 40px; width: 100%; max-width: 1160px; }
+.app-content { padding: 30px 28px 40px; width: 100%; }
 .app-legal { margin-top: 22px; font-size: 11.5px; color: var(--ink-faint); }
 
 /* Mobile chrome */
