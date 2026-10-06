@@ -1,4 +1,5 @@
 package com.example.demo;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
 import java.util.List;
@@ -24,9 +25,11 @@ import org.springframework.web.server.ResponseStatusException;
 public class ScheduleController {
 
     private final DoctorScheduleRepository scheduleRepository;
+    private final AppointmentRepository appointmentRepository;
 
-    public ScheduleController(DoctorScheduleRepository scheduleRepository) {
+    public ScheduleController(DoctorScheduleRepository scheduleRepository, AppointmentRepository appointmentRepository) {
         this.scheduleRepository = scheduleRepository;
+        this.appointmentRepository = appointmentRepository;
     }
 
     // students view slots for a date (booked and open), optionally filtered by doctor,
@@ -35,6 +38,11 @@ public class ScheduleController {
     public List<DoctorSchedule> getAvailable(
             @RequestParam(required = false) String doctorName,
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date) {
+
+        // DEF-05: never offer slots dated before today
+        if (date.isBefore(LocalDate.now())) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "No available appointments for the selected date");
+        }
 
         List<DoctorSchedule> slots = (doctorName != null)
                 ? scheduleRepository.findByDoctorNameAndScheduleDateAndArchivedFalse(doctorName, date)
@@ -71,6 +79,7 @@ public class ScheduleController {
     }
 
     // doctor/admin updates an existing consultation slot (this endpoint did not exist before)
+    @Transactional
     @PutMapping("/manage/{id}")
     public DoctorSchedule updateSlot(@PathVariable Long id, @RequestBody DoctorSchedule updated, Authentication auth) {
         DoctorSchedule existing = scheduleRepository.findById(id)
@@ -85,6 +94,15 @@ public class ScheduleController {
         // booked status is left untouched - editing a slot's date/time doesn't
         // change whether this specific row already has a student booked into it
         // doctorName is intentionally not changed by an update - a slot belongs to the doctor that created it
+
+        // keep a student's active appointment in step with the new date/time (DEF-12)
+        if (existing.isBooked()) {
+            for (Appointment a : appointmentRepository.findByScheduleSlotIdAndStatus(existing.getId(), "BOOKED")) {
+                a.setAppointmentDate(existing.getScheduleDate());
+                a.setTimeSlot(existing.getTimeSlot());
+                appointmentRepository.save(a);
+            }
+        }
 
         try {
             return scheduleRepository.save(existing);

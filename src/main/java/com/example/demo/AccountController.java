@@ -41,8 +41,12 @@ public class AccountController {
                 || request.newPassword == null || request.newPassword.isBlank()) {
             return Map.of("error", "Current and new password are required.");
         }
-        if (request.newPassword.length() < MIN_PASSWORD_LENGTH || request.newPassword.length() > MAX_PASSWORD_LENGTH) {
-            return Map.of("error", "New password must be between " + MIN_PASSWORD_LENGTH + " and " + MAX_PASSWORD_LENGTH + " characters.");
+        String passwordError = PasswordRules.check(request.newPassword, auth.getName());
+        if (passwordError != null) {
+            return Map.of("error", passwordError);
+        }
+        if (request.newPassword.equals(request.currentPassword)) {
+            return Map.of("error", "New password must be different from the current password.");
         }
 
         User user = userRepository.findByUsername(auth.getName())

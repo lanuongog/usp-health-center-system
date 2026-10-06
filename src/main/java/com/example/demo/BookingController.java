@@ -1,5 +1,7 @@
 package com.example.demo;
+import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
@@ -17,6 +19,7 @@ public class BookingController {
 
     private static final List<String> URGENCY_LEVELS = List.of("Routine", "Urgent", "Emergency");
     private static final int MAX_REASON_LENGTH = 300;
+    private static final int MAX_UPCOMING_APPOINTMENTS = 3;
 
     private final DoctorScheduleRepository scheduleRepository;
     private final AppointmentRepository appointmentRepository;
@@ -75,6 +78,7 @@ public class BookingController {
     }
 
     // book an available slot, tied to the logged-in student
+    @Transactional
     @PostMapping("/book")
     public Object bookAppointment(@RequestBody BookingRequest request, Authentication auth) {
         User student = userRepository.findByUsername(auth.getName()).orElse(null);
@@ -100,6 +104,20 @@ public class BookingController {
         DoctorSchedule slot = scheduleRepository.findById(request.slotId).orElse(null);
         if (slot == null) {
             return Map.of("error", "This slot is no longer available.");
+        }
+
+        // DEF-05: a slot whose date has already passed can never take place
+        if (slot.getScheduleDate() != null && slot.getScheduleDate().isBefore(LocalDate.now())) {
+            return Map.of("error", "This slot has already passed. Please select a current or future slot.");
+        }
+
+        // limit how many upcoming appointments one student can hold at a time
+        long upcoming = appointmentRepository.findByStudentNameAndStatus(auth.getName(), "BOOKED").stream()
+                .filter(x -> x.getAppointmentDate() != null && !x.getAppointmentDate().isBefore(LocalDate.now()))
+                .count();
+        if (upcoming >= MAX_UPCOMING_APPOINTMENTS) {
+            return Map.of("error", "You already have " + MAX_UPCOMING_APPOINTMENTS
+                    + " upcoming appointments. Please cancel one or attend it before booking another.");
         }
 
         boolean alreadyBookedAtThisTime = !appointmentRepository.findByStudentNameAndStatusAndAppointmentDateAndTimeSlot(
@@ -168,6 +186,7 @@ public class BookingController {
     }
 
     // cancel an upcoming appointment, freeing the slot back up
+    @Transactional
     @PostMapping("/cancel")
     public Object cancelAppointment(@RequestBody CancelRequest request, Authentication auth) {
         Appointment appointment = appointmentRepository.findById(request.appointmentId).orElse(null);
@@ -195,6 +214,7 @@ public class BookingController {
     }
 
     // reschedule to a new open slot, freeing the old one
+    @Transactional
     @PostMapping("/reschedule")
     public Object rescheduleAppointment(@RequestBody RescheduleRequest request, Authentication auth) {
         Appointment appointment = appointmentRepository.findById(request.appointmentId).orElse(null);
@@ -210,6 +230,11 @@ public class BookingController {
         }
 
         DoctorSchedule peekSlot = scheduleRepository.findById(request.newSlotId).orElse(null);
+        // DEF-07: rescheduling into a slot dated before today must be rejected as well
+        if (peekSlot != null && peekSlot.getScheduleDate() != null
+                && peekSlot.getScheduleDate().isBefore(LocalDate.now())) {
+            return Map.of("error", "This slot has already passed. Please select a current or future slot.");
+        }
         if (peekSlot != null) {
             boolean conflictsWithOtherAppointment = appointmentRepository
                     .findByStudentNameAndStatusAndAppointmentDateAndTimeSlot(

@@ -65,6 +65,7 @@ public class SecurityConfig {
                 .requestMatchers("/nurse/**").hasAnyRole("NURSE", "ADMIN")
                 .requestMatchers("/doctor/**").hasRole("DOCTOR")
                 .requestMatchers("/student/register", "/student/fee-schedule").permitAll()
+                .requestMatchers("/auth/forgot-password", "/auth/reset-password").permitAll()
                 .requestMatchers("/student/**").hasRole("STUDENT")
                 .requestMatchers("/schedule/available").permitAll()
                 .requestMatchers("/schedule/manage/**").hasAnyRole("DOCTOR", "ADMIN")

@@ -579,6 +579,39 @@ background: var(--brand-soft); border-radius: 8px; padding: 12px 18px; min-width
 
 
 <script>
+// ---- shared input validation helpers (client-side; the server re-checks everything) ----
+const VAL = {
+  _last: {},
+  // returns false if the same action fired again within ms (stops double-click submits)
+  once(key, ms) {
+    const now = Date.now();
+    if (this._last[key] && now - this._last[key] < (ms || 2000)) return false;
+    this._last[key] = now;
+    return true;
+  },
+  today() { return new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 10); },
+  vitals(temp, bp) {
+    const t = Number(String(temp).trim());
+    if (String(temp).trim() === '' || !isFinite(t)) return 'Temperature must be a number in degrees Celsius (e.g. 37.2).';
+    if (t < 30 || t > 43) return 'Temperature is out of the valid range (30\u201343 \u00B0C).';
+    const m = /^(\d{2,3})\s*\/\s*(\d{2,3})$/.exec(String(bp).trim());
+    if (!m) return 'Blood pressure must be in the format systolic/diastolic (e.g. 120/80).';
+    const s = parseInt(m[1], 10), d = parseInt(m[2], 10);
+    if (s < 60 || s > 250 || d < 40 || d > 150) return 'Blood pressure is out of the valid range (systolic 60\u2013250, diastolic 40\u2013150).';
+    if (d >= s) return 'Systolic pressure must be higher than diastolic pressure.';
+    return null;
+  },
+  password(pw, username) {
+    if (!pw) return 'A password is required.';
+    if (pw.length < 6 || pw.length > 100) return 'Password must be between 6 and 100 characters.';
+    if (!/[A-Za-z]/.test(pw) || !/\d/.test(pw)) return 'Password must contain at least one letter and one number.';
+    if (/\s/.test(pw)) return 'Password cannot contain spaces.';
+    if (username && pw.toLowerCase() === String(username).toLowerCase()) return 'Password cannot be the same as the username.';
+    return null;
+  }
+};
+</script>
+<script>
 let authHeader = null;
 let currentUsername = null;
 let selectedAppointment = null;
@@ -886,6 +919,12 @@ function submitEmergencyCheckIn() {
   const studentId = document.getElementById('emergencyStudentId').value.trim();
   const reason = document.getElementById('emergencyReason').value.trim();
   const resultEl = document.getElementById('emergencyResult');
+  if (studentId) {
+    if (studentId.length > 50) { resultEl.className = 'toast err'; resultEl.textContent = 'Student ID is too long.'; return; }
+    if (reason.length > 300) { resultEl.className = 'toast err'; resultEl.textContent = 'Reason must be 300 characters or fewer.'; return; }
+    if (!confirm('Emergency check-in for ' + studentId + '? Doctors will be alerted and waiting students notified of a delay.')) return;
+    if (!VAL.once('emergency', 3000)) return;
+  }
 
   if (!studentId) {
     resultEl.className = 'toast err';
@@ -956,6 +995,12 @@ function submitChangePassword() {
   if (newPassword !== confirmPassword) {
     resultEl.className = 'toast err';
     resultEl.textContent = 'New password and confirmation do not match.';
+    return;
+  }
+  const pwErr = VAL.password(newPassword, null);
+  if (pwErr || newPassword === currentPassword) {
+    resultEl.className = 'toast err';
+    resultEl.textContent = pwErr || 'New password must be different from the current password.';
     return;
   }
 
@@ -1327,6 +1372,13 @@ function recordConsultation(appointmentId) {
     toast.className = 'toast err';
     return;
   }
+  if (diagnosis.length > 200 || notes.length > 2000) {
+    toast.textContent = 'Diagnosis must be 200 characters or fewer and notes 2000 or fewer.';
+    toast.className = 'toast err';
+    return;
+  }
+  if (!confirm('Save this consultation and mark the patient as completed?\n\nDiagnosis: ' + diagnosis + '\n\nIt cannot be edited afterwards.')) return;
+  if (!VAL.once('consult' + appointmentId, 3000)) return;
 
   btn.disabled = true;
   toast.textContent = '';

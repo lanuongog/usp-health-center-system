@@ -319,6 +319,39 @@ cursor: pointer; box-shadow: 0 2px 8px rgba(176,58,46,0.4);
 </div>
 
 <script>
+// ---- shared input validation helpers (client-side; the server re-checks everything) ----
+const VAL = {
+  _last: {},
+  // returns false if the same action fired again within ms (stops double-click submits)
+  once(key, ms) {
+    const now = Date.now();
+    if (this._last[key] && now - this._last[key] < (ms || 2000)) return false;
+    this._last[key] = now;
+    return true;
+  },
+  today() { return new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 10); },
+  vitals(temp, bp) {
+    const t = Number(String(temp).trim());
+    if (String(temp).trim() === '' || !isFinite(t)) return 'Temperature must be a number in degrees Celsius (e.g. 37.2).';
+    if (t < 30 || t > 43) return 'Temperature is out of the valid range (30\u201343 \u00B0C).';
+    const m = /^(\d{2,3})\s*\/\s*(\d{2,3})$/.exec(String(bp).trim());
+    if (!m) return 'Blood pressure must be in the format systolic/diastolic (e.g. 120/80).';
+    const s = parseInt(m[1], 10), d = parseInt(m[2], 10);
+    if (s < 60 || s > 250 || d < 40 || d > 150) return 'Blood pressure is out of the valid range (systolic 60\u2013250, diastolic 40\u2013150).';
+    if (d >= s) return 'Systolic pressure must be higher than diastolic pressure.';
+    return null;
+  },
+  password(pw, username) {
+    if (!pw) return 'A password is required.';
+    if (pw.length < 6 || pw.length > 100) return 'Password must be between 6 and 100 characters.';
+    if (!/[A-Za-z]/.test(pw) || !/\d/.test(pw)) return 'Password must contain at least one letter and one number.';
+    if (/\s/.test(pw)) return 'Password cannot contain spaces.';
+    if (username && pw.toLowerCase() === String(username).toLowerCase()) return 'Password cannot be the same as the username.';
+    return null;
+  }
+};
+</script>
+<script>
 let authHeader = null;
 let currentNurseTab = 'queue';
 let allRecords = [];
@@ -580,9 +613,23 @@ function closeWalkInModal() {
 
 async function submitWalkInCheckIn() {
   const studentId = document.getElementById('walkinStudentId').value.trim();
-  const temperature = document.getElementById('walkinTemperature').value;
-  const bloodPressure = document.getElementById('walkinBloodPressure').value;
-  const presentingComplaint = document.getElementById('walkinPresentingComplaint').value;
+  const temperature = document.getElementById('walkinTemperature').value.trim();
+  const bloodPressure = document.getElementById('walkinBloodPressure').value.trim();
+  const presentingComplaint = document.getElementById('walkinPresentingComplaint').value.trim();
+  {
+    const wr = document.getElementById('walkinResult');
+    const fail = (m) => { wr.style.color = '#B03A2E'; wr.textContent = m; };
+    if (studentId) {
+      if (studentId.length > 50) return fail('Student ID is too long.');
+      if (!presentingComplaint) return fail('Presenting complaint is required.');
+      if (presentingComplaint.length > 500) return fail('Presenting complaint must be 500 characters or fewer.');
+      if (!temperature || !bloodPressure) return fail('Temperature and blood pressure are both required.');
+      const vErr = VAL.vitals(temperature, bloodPressure);
+      if (vErr) return fail(vErr);
+      if (!confirm('Check in walk-in student ' + studentId + '?\n\nTemperature: ' + temperature + ' \u00B0C\nBlood pressure: ' + bloodPressure + '\nComplaint: ' + presentingComplaint)) return;
+      if (!VAL.once('walkin', 2500)) return;
+    }
+  }
   const urgencyLevel = document.getElementById('walkinUrgencyLevel').value;
   const resultEl = document.getElementById('walkinResult');
 
@@ -631,6 +678,12 @@ function submitEmergencyCheckIn() {
   const studentId = document.getElementById('emergencyStudentId').value.trim();
   const reason = document.getElementById('emergencyReason').value.trim();
   const resultEl = document.getElementById('emergencyResult');
+  if (studentId) {
+    if (studentId.length > 50) { resultEl.style.color = '#B03A2E'; resultEl.textContent = 'Student ID is too long.'; return; }
+    if (reason.length > 300) { resultEl.style.color = '#B03A2E'; resultEl.textContent = 'Reason must be 300 characters or fewer.'; return; }
+    if (!confirm('Emergency check-in for ' + studentId + '? Doctors will be alerted and waiting students notified of a delay.')) return;
+    if (!VAL.once('emergency', 3000)) return;
+  }
 
   if (!studentId) {
     resultEl.style.color = '#B03A2E';
@@ -701,6 +754,12 @@ function submitChangePassword() {
   if (newPassword !== confirmPassword) {
     resultEl.style.color = '#B03A2E';
     resultEl.textContent = 'New password and confirmation do not match.';
+    return;
+  }
+  const pwErr = VAL.password(newPassword, null);
+  if (pwErr || newPassword === currentPassword) {
+    resultEl.style.color = '#B03A2E';
+    resultEl.textContent = pwErr || 'New password must be different from the current password.';
     return;
   }
 
@@ -872,6 +931,7 @@ function cancelCheckIn() {
 
 async function markNoShow(appointmentId, studentName) {
   if (!confirm(`Mark ${studentName} as a no-show for this appointment?`)) return;
+  if (!VAL.once('noshow' + appointmentId, 2500)) return;
 
   try {
     const res = await fetch('/nurse/no-show', {
@@ -902,9 +962,20 @@ function showFormError(message) {
 
 async function submitCheckIn() {
   const appointmentId = document.getElementById('checkinAppointmentId').value;
-  const temperature = document.getElementById('temperature').value;
-  const bloodPressure = document.getElementById('bloodPressure').value;
-  const presentingComplaint = document.getElementById('presentingComplaint').value;
+  const temperature = document.getElementById('temperature').value.trim();
+  const bloodPressure = document.getElementById('bloodPressure').value.trim();
+  const presentingComplaint = document.getElementById('presentingComplaint').value.trim();
+  if (presentingComplaint.length > 500) {
+    showFormError('Presenting complaint must be 500 characters or fewer.');
+    return;
+  }
+  if (presentingComplaint && temperature && bloodPressure) {
+    const vErr = VAL.vitals(temperature, bloodPressure);
+    if (vErr) { showFormError(vErr); return; }
+    if (!confirm('Confirm check-in?\n\nTemperature: ' + temperature + ' \u00B0C\nBlood pressure: ' + bloodPressure +
+        '\nComplaint: ' + presentingComplaint + '\n\nThe student will be placed in the doctor\'s queue.')) return;
+    if (!VAL.once('checkin', 2500)) return;
+  }
 
   if (!presentingComplaint) {
     showFormError('Missing presenting complaint - this field is required.');

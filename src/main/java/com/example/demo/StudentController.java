@@ -40,6 +40,7 @@ public class StudentController {
     private static final int MAX_PASSWORD_LENGTH = 100;
     private static final int MAX_FULL_NAME_LENGTH = 100;
     private static final int MAX_EMERGENCY_REASON_LENGTH = 300;
+    private static final java.util.concurrent.ConcurrentHashMap<String, Long> LAST_ALERT_MS = new java.util.concurrent.ConcurrentHashMap<>();
 
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
@@ -71,11 +72,15 @@ public class StudentController {
             return Map.of("error", "Student ID must be in the format S followed by 8 digits (e.g. S12345678).");
         }
         studentId = normalizedStudentId;
-        if (password.length() < MIN_PASSWORD_LENGTH || password.length() > MAX_PASSWORD_LENGTH) {
-            return Map.of("error", "Password must be between " + MIN_PASSWORD_LENGTH + " and " + MAX_PASSWORD_LENGTH + " characters.");
+        String passwordError = PasswordRules.check(password, studentId);
+        if (passwordError != null) {
+            return Map.of("error", passwordError);
         }
         if (fullName == null || fullName.isBlank()) {
             return Map.of("error", "Full name is required.");
+        }
+        if (fullName.trim().length() < 2 || !fullName.trim().matches("^[\\p{L}][\\p{L} .'\u2019-]*$")) {
+            return Map.of("error", "Full name must be at least 2 characters and contain only letters, spaces, apostrophes, hyphens or full stops.");
         }
         if (fullName.trim().length() > MAX_FULL_NAME_LENGTH) {
             return Map.of("error", "Full name must be " + MAX_FULL_NAME_LENGTH + " characters or fewer.");
@@ -242,6 +247,13 @@ public class StudentController {
         }
         if (request.reason.trim().length() > MAX_EMERGENCY_REASON_LENGTH) {
             return Map.of("error", "Description must be " + MAX_EMERGENCY_REASON_LENGTH + " characters or fewer.");
+        }
+
+        // stop one student flooding staff with alerts
+        long nowMs = System.currentTimeMillis();
+        Long lastMs = LAST_ALERT_MS.put(auth.getName(), nowMs);
+        if (lastMs != null && nowMs - lastMs < 60_000) {
+            return Map.of("error", "An alert was just sent. Staff have been notified - please wait a minute before sending another.");
         }
 
         User student = userRepository.findByUsername(auth.getName()).orElse(null);

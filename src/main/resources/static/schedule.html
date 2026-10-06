@@ -88,6 +88,39 @@ th { color: var(--ink-soft); font-weight: 600; }
 </div>
 
 <script>
+// ---- shared input validation helpers (client-side; the server re-checks everything) ----
+const VAL = {
+  _last: {},
+  // returns false if the same action fired again within ms (stops double-click submits)
+  once(key, ms) {
+    const now = Date.now();
+    if (this._last[key] && now - this._last[key] < (ms || 2000)) return false;
+    this._last[key] = now;
+    return true;
+  },
+  today() { return new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 10); },
+  vitals(temp, bp) {
+    const t = Number(String(temp).trim());
+    if (String(temp).trim() === '' || !isFinite(t)) return 'Temperature must be a number in degrees Celsius (e.g. 37.2).';
+    if (t < 30 || t > 43) return 'Temperature is out of the valid range (30\u201343 \u00B0C).';
+    const m = /^(\d{2,3})\s*\/\s*(\d{2,3})$/.exec(String(bp).trim());
+    if (!m) return 'Blood pressure must be in the format systolic/diastolic (e.g. 120/80).';
+    const s = parseInt(m[1], 10), d = parseInt(m[2], 10);
+    if (s < 60 || s > 250 || d < 40 || d > 150) return 'Blood pressure is out of the valid range (systolic 60\u2013250, diastolic 40\u2013150).';
+    if (d >= s) return 'Systolic pressure must be higher than diastolic pressure.';
+    return null;
+  },
+  password(pw, username) {
+    if (!pw) return 'A password is required.';
+    if (pw.length < 6 || pw.length > 100) return 'Password must be between 6 and 100 characters.';
+    if (!/[A-Za-z]/.test(pw) || !/\d/.test(pw)) return 'Password must contain at least one letter and one number.';
+    if (/\s/.test(pw)) return 'Password cannot contain spaces.';
+    if (username && pw.toLowerCase() === String(username).toLowerCase()) return 'Password cannot be the same as the username.';
+    return null;
+  }
+};
+</script>
+<script>
 let authHeader = null;
 
 window.addEventListener('DOMContentLoaded', () => {
@@ -179,10 +212,24 @@ async function createSlot() {
   const date = document.getElementById('newDate').value;
   const timeSlot = document.getElementById('newTimeSlot').value;
 
-  if (!doctorName || !date || !timeSlot) {
-    showFormError('Display validation messages for the missing fields');
+  if (!doctorName.trim() || !date || !timeSlot.trim()) {
+    showFormError('Doctor name, date and time slot are all required.');
     return;
   }
+  if (doctorName.trim().length > 100 || timeSlot.trim().length > 50) {
+    showFormError('Doctor name must be 100 characters or fewer and time slot 50 or fewer.');
+    return;
+  }
+  if (date < VAL.today()) {
+    showFormError('Schedule date cannot be in the past.');
+    return;
+  }
+  if (!/^\d{1,2}:\d{2}\s*(AM|PM)\s*-\s*\d{1,2}:\d{2}\s*(AM|PM)$/i.test(timeSlot.trim())) {
+    showFormError('Time slot must look like "09:00 AM - 09:30 AM".');
+    return;
+  }
+  if (!confirm('Create a slot for ' + doctorName.trim() + ' on ' + date + ', ' + timeSlot.trim() + '?')) return;
+  if (!VAL.once('createslot', 2500)) return;
 
   try {
     const res = await fetch('/schedule/manage', {
@@ -208,6 +255,8 @@ async function createSlot() {
 }
 
 async function deleteSlot(id) {
+  if (!confirm('Remove this slot? Students will no longer be able to book it.')) return;
+  if (!VAL.once('delslot' + id, 2500)) return;
   try {
     const res = await fetch(`/schedule/manage/${id}`, {
       method: 'DELETE',

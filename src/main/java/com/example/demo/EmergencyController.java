@@ -1,4 +1,5 @@
 package com.example.demo;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -70,6 +71,7 @@ public class EmergencyController {
     // whether booked for today or already checked in ahead of a doctor - is
     // warned of a possible delay; they'll be seen once the doctor is free of
     // the emergency.
+    @Transactional
     @PostMapping("/checkin")
     public Object emergencyCheckIn(@RequestBody EmergencyCheckInRequest request, Authentication auth) {
         User student = findStudent(request.studentId);
@@ -77,6 +79,12 @@ public class EmergencyController {
             return Map.of("error", "No registered student found with that Student ID.");
         }
         String studentId = student.getUsername();
+        if (!student.isActive()) {
+            return Map.of("error", "This student account is deactivated.");
+        }
+        if (!appointmentRepository.findByStudentNameAndStatus(studentId, "CHECKED_IN").isEmpty()) {
+            return Map.of("error", "This student is already checked in and waiting to be seen.");
+        }
 
         if (request.reason != null && request.reason.trim().length() > MAX_REASON_LENGTH) {
             return Map.of("error", "Reason must be " + MAX_REASON_LENGTH + " characters or fewer.");

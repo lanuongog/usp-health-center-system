@@ -58,6 +58,10 @@ public class DoctorReportController {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
                     "Invalid date range: start date must be on or before the end date");
         }
+        if (java.time.temporal.ChronoUnit.DAYS.between(startDate, endDate) > 366) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                    "Date range is too long. Please choose a range of one year or less.");
+        }
 
         List<Appointment> consultations = appointmentRepository.findByConsultedByDoctor(auth.getName()).stream()
                 .filter(a -> "COMPLETED".equals(a.getStatus()))

@@ -1,4 +1,5 @@
 package com.example.demo;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.Comparator;
@@ -180,10 +181,17 @@ public class DoctorController {
     }
 
     // record diagnosis/notes, mark completed, exit the queue
+    @Transactional
     @PostMapping("/consultation")
     public Appointment recordConsultation(@RequestBody ConsultationRequest request, Authentication auth) {
         Appointment appointment = appointmentRepository.findById(request.appointmentId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Medical record not found"));
+
+        // a consultation can only be recorded for a patient the nurse has checked in
+        if (!"CHECKED_IN".equals(appointment.getStatus())) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT,
+                    "This patient is not checked in, or the consultation is already completed.");
+        }
 
         // required consultation information is missing
         if (isBlank(request.diagnosis) || isBlank(request.consultationNotes)) {
