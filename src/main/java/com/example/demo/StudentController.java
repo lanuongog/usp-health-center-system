@@ -124,7 +124,7 @@ public class StudentController {
         // entirely. Anything less certain falls back to manual review exactly
         // as before - this never blocks registration, only speeds up the
         // clear-cut cases.
-        ReceiptVerificationResult check = receiptVerificationService.verify(receiptBytes, feeAmount, fullName.trim());
+        ReceiptVerificationResult check = receiptVerificationService.verify(receiptBytes, feeAmount, fullName.trim(), studentId);
         student.setReceiptAutoCheckNote(check.summary());
         student.setFeePaid(check.isAutoApproved());
 
@@ -194,7 +194,7 @@ public class StudentController {
         student.setReceiptRejectionReason(null);
 
         double feeAmount = student.getFeeAmount() != null ? student.getFeeAmount() : 0.0;
-        ReceiptVerificationResult check = receiptVerificationService.verify(receiptBytes, feeAmount, student.getFullName());
+        ReceiptVerificationResult check = receiptVerificationService.verify(receiptBytes, feeAmount, student.getFullName(), student.getUsername());
         student.setReceiptAutoCheckNote(check.summary());
         student.setFeePaid(check.isAutoApproved());
 

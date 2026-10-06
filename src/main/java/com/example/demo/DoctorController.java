@@ -213,11 +213,11 @@ public class DoctorController {
 
         Appointment saved = appointmentRepository.save(appointment);
 
-        // Free up the schedule slot (every doctor's row for this date+time, since a
-        // time slot is booked as a unit) so other students can book it again if desired
-        if (saved.getAppointmentDate() != null && saved.getTimeSlot() != null) {
-            scheduleRepository.setBookedForTimeSlot(saved.getAppointmentDate(), saved.getTimeSlot(), false);
-        }
+        // NOTE: do NOT free the schedule slot here either - same reasoning as
+        // NurseController.checkInStudent (DEF-02). Once a visit has actually
+        // happened for this dated/timed slot it should stay marked as used, not
+        // reopen for a new booking. Slots are only freed on cancellation/
+        // reschedule (BookingController) or a no-show (NurseController.markNoShow).
 
         auditLogService.recordAccess(auth, "RECORD_CONSULTATION", saved.getStudentName(),
                 "Recorded diagnosis/notes for appointment #" + saved.getId());
@@ -236,6 +236,18 @@ public class DoctorController {
 
         if (!"COMPLETED".equals(appointment.getStatus()) || isBlank(appointment.getDiagnosis()) || isBlank(appointment.getConsultationNotes())) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Unable to generate report");
+        }
+
+        // restrict consultation reports to the doctor who actually saw this
+        // patient, or an admin - same ownership pattern as ScheduleController.
+        // validateOwnership(). Missing before (DEF-01): any authenticated doctor
+        // could read any other doctor's patient's full consultation report just
+        // by knowing/guessing the appointment ID.
+        boolean isAdmin = auth.getAuthorities().stream()
+                .anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN"));
+        if (!isAdmin && !auth.getName().equals(appointment.getConsultedByDoctor())) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN,
+                    "You do not have permission to view this consultation report");
         }
 
         auditLogService.recordAccess(auth, "VIEW_CONSULTATION_REPORT", appointment.getStudentName(),

@@ -213,6 +213,32 @@ cursor: pointer; box-shadow: 0 2px 8px rgba(176,58,46,0.4);
 </div>
 </div>
 
+<div class="modal-overlay" id="walkin-modal-overlay" hidden onclick="if (event.target === this) closeWalkInModal()">
+<div class="modal-box" style="max-width:420px;">
+<h3>Walk-in Check-in</h3>
+<p style="font-size:12.5px;color:#6b7280;margin-top:-6px;">For a student who has arrived without an existing appointment. This registers a visit for them and adds them straight to the doctor's queue.</p>
+<label>Student ID</label>
+<input type="text" id="walkinStudentId" placeholder="e.g. S12345678" />
+<label>Temperature (°C)</label>
+<input type="text" id="walkinTemperature" placeholder="e.g. 37.2" />
+<label>Blood Pressure</label>
+<input type="text" id="walkinBloodPressure" placeholder="e.g. 120/80" />
+<label>Presenting Complaint</label>
+<textarea id="walkinPresentingComplaint" placeholder="What is the student here for, in their own words..." maxlength="500"></textarea>
+<label>Urgency Level</label>
+<select id="walkinUrgencyLevel">
+<option value="Routine">Routine</option>
+<option value="Urgent">Urgent</option>
+<option value="Emergency">Emergency</option>
+</select>
+<div id="walkinResult" style="font-size:12.5px;margin-top:10px;min-height:16px;"></div>
+<div class="modal-actions">
+<button onclick="submitWalkInCheckIn()">Check In</button>
+<button class="secondary small" onclick="closeWalkInModal()">Cancel</button>
+</div>
+</div>
+</div>
+
 <div class="modal-overlay" id="change-password-modal-overlay" hidden onclick="if (event.target === this) closeChangePasswordModal()">
 <div class="modal-box" style="max-width:400px;">
 <h3>Change Password</h3>
@@ -239,7 +265,10 @@ cursor: pointer; box-shadow: 0 2px 8px rgba(176,58,46,0.4);
 </div>
 
 <div class="panel" id="queue-panel">
-<h3>Students Waiting to be Checked In</h3>
+<div style="display:flex;justify-content:space-between;align-items:center;">
+<h3 style="margin:0;">Students Waiting to be Checked In</h3>
+<button class="secondary" onclick="openWalkInModal()">+ Walk-in Check-in</button>
+</div>
 <div id="queueList"></div>
 </div>
 
@@ -556,6 +585,58 @@ function markAllNotifRead() {
   fetch('/notifications/read-all', { method: 'POST', headers: { 'Authorization': authHeader } })
     .then(() => { loadNotifPanel(); pollNotifCount(); })
     .catch(() => {});
+}
+
+function openWalkInModal() {
+  document.getElementById('walkinStudentId').value = '';
+  document.getElementById('walkinTemperature').value = '';
+  document.getElementById('walkinBloodPressure').value = '';
+  document.getElementById('walkinPresentingComplaint').value = '';
+  document.getElementById('walkinUrgencyLevel').value = 'Routine';
+  document.getElementById('walkinResult').textContent = '';
+  document.getElementById('walkin-modal-overlay').hidden = false;
+}
+
+function closeWalkInModal() {
+  document.getElementById('walkin-modal-overlay').hidden = true;
+}
+
+async function submitWalkInCheckIn() {
+  const studentId = document.getElementById('walkinStudentId').value.trim();
+  const temperature = document.getElementById('walkinTemperature').value;
+  const bloodPressure = document.getElementById('walkinBloodPressure').value;
+  const presentingComplaint = document.getElementById('walkinPresentingComplaint').value;
+  const urgencyLevel = document.getElementById('walkinUrgencyLevel').value;
+  const resultEl = document.getElementById('walkinResult');
+
+  if (!studentId) {
+    resultEl.style.color = '#B03A2E';
+    resultEl.textContent = 'Student ID is required.';
+    return;
+  }
+
+  try {
+    const res = await fetch('/nurse/walk-in-checkin', {
+      method: 'POST',
+      headers: { 'Authorization': authHeader, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ studentId, temperature, bloodPressure, presentingComplaint, urgencyLevel })
+    });
+    const data = await res.json();
+    if (!res.ok) {
+      resultEl.style.color = '#B03A2E';
+      resultEl.textContent = data.message || 'Unable to complete walk-in check-in.';
+      return;
+    }
+    resultEl.style.color = '#3C7A4E';
+    resultEl.textContent = data.message;
+    loadQueue();
+    loadCheckIns();
+    if (currentNurseTab === 'all') loadAllRecords();
+    setTimeout(closeWalkInModal, 1500);
+  } catch (e) {
+    resultEl.style.color = '#B03A2E';
+    resultEl.textContent = 'Service temporarily unavailable';
+  }
 }
 
 function openEmergencyModal(prefillStudentId) {
