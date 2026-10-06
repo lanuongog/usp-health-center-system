@@ -35,7 +35,7 @@ public class StudentController {
     private static final double REGIONAL_FEE = 80.00;
     private static final List<String> MARITAL_STATUSES = List.of("Single", "Married");
     private static final long MAX_RECEIPT_SIZE_BYTES = 5L * 1024 * 1024;
-    // Official USP student ID format: "S" followed by exactly 8 digits.
+    // Official USU student ID format: "S" followed by exactly 8 digits.
     private static final Pattern STUDENT_ID_PATTERN = Pattern.compile("^S\\d{8}$");
     private static final int MIN_PASSWORD_LENGTH = 6;
     private static final int MAX_PASSWORD_LENGTH = 100;
@@ -243,10 +243,15 @@ public class StudentController {
                 "EMERGENCY_ALERT", username, LocalDate.now().atStartOfDay());
     }
 
-    // Lets the portal show the Emergency button as already used after a reload.
+    // Lets the portal show today's request as already sent (and when) after a reload.
     @GetMapping("/emergency-alert/status")
-    public Map<String, Boolean> getEmergencyAlertStatus(Authentication auth) {
-        return Map.of("sentToday", hasSentEmergencyAlertToday(auth.getName()));
+    public Map<String, Object> getEmergencyAlertStatus(Authentication auth) {
+        Notification sent = notificationRepository.findFirstByTypeAndStudentUsernameAndCreatedAtGreaterThanEqualOrderByCreatedAtDesc(
+                "EMERGENCY_ALERT", auth.getName(), LocalDate.now().atStartOfDay());
+        if (sent == null) {
+            return Map.of("sentToday", false);
+        }
+        return Map.of("sentToday", true, "sentAt", sent.getCreatedAt().toString());
     }
 
     // A quick, low-friction heads-up a student sends before they've arrived -

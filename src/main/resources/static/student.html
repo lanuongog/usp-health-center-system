@@ -3,462 +3,564 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Student Portal — Laucala Health Center</title>
+<title>Student Workspace — USU Health Center</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/css/design-system.css">
 <style>
-:root {
---bg: #F4F8F8;
---panel: #FFFFFF;
---ink: #14213D;
---ink-soft: #5C7070;
---line: #D8E6E6;
---brand: #0D7377;
---brand-dark: #095558;
---brand-soft: #E3F1F1;
---emergency: #B23A2E;
---emergency-bg: #FBEAE8;
---urgent: #B8721E;
---urgent-bg: #FBF1E1;
---routine: #3E6E85;
---routine-bg: #E7EFF2;
---ok: #3D7A55;
-}
-* { box-sizing: border-box; }
-body {
-margin: 0;
-font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
-background: var(--bg);
-color: var(--ink);
-}
-.topbar {
-background: var(--brand);
-color: #fff;
-padding: 14px 24px;
-display: flex;
-align-items: center;
-justify-content: space-between;
-}
-.topbar h1 { font-size: 17px; font-weight: 600; margin: 0; letter-spacing: 0.2px; }
-.topbar .who { font-size: 13px; color: #CFE0E6; display: flex; align-items: center; gap: 12px; }
-.topbar button {
-background: transparent; border: 1px solid rgba(255,255,255,0.4); color: #fff;
-padding: 5px 12px; border-radius: 5px; font-size: 12px; cursor: pointer;
-}
-.topbar button:hover { background: rgba(255,255,255,0.1); }
-.topbar .home-link {
-color: #fff; font-size: 13px; text-decoration: none;
-opacity: 0.85; margin-right: 4px;
-}
-.topbar .home-link:hover { opacity: 1; text-decoration: underline; }
-
-#app-screen { display: block; }
-.layout {
-display: grid; grid-template-columns: 1fr 1fr; gap: 20px;
-padding: 22px 24px; max-width: 1180px; margin: 0 auto;
-}
-@media (max-width: 860px) { .layout { grid-template-columns: 1fr; } }
-
-.panel { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; overflow: hidden; }
-.panel-head { padding: 16px 18px; border-bottom: 1px solid var(--line); display: flex; align-items: baseline; justify-content: space-between; }
-.panel-head h2 { font-size: 15px; margin: 0; }
-.panel-body { padding: 18px; }
-
-.field-row { display: flex; gap: 10px; margin-bottom: 12px; }
-.field-row .field { flex: 1; margin-bottom: 0; }
-.field { margin-bottom: 14px; }
-.field label { display: block; font-size: 12px; color: var(--ink-soft); margin-bottom: 5px; }
-.field input, .field textarea, select {
-width: 100%; padding: 9px 10px; border: 1px solid var(--line); border-radius: 6px;
-font-size: 13px; background: #fff; font-family: inherit;
-}
-.field textarea { resize: vertical; min-height: 72px; line-height: 1.4; }
-.slot-list { display: flex; flex-direction: column; gap: 7px; margin: 10px 0 16px; max-height: 220px; overflow-y: auto; }
-.slot-option {
-border: 1px solid var(--line); border-radius: 7px; padding: 9px 12px;
-font-size: 13px; cursor: pointer; display: flex; justify-content: space-between; align-items: center;
-}
-.slot-option:hover { background: var(--brand-soft); }
-.slot-option.selected { background: var(--brand-soft); border-color: var(--brand); }
-.slot-option .time { font-weight: 600; }
-.slot-option.booked {
-background: var(--emergency-bg); border-color: #EBD3D0; color: var(--emergency);
-cursor: not-allowed;
-}
-.slot-option.booked:hover { background: var(--emergency-bg); }
-.slot-option.past { background: #F3F4F6; border-color: var(--line); color: var(--ink-soft); cursor: not-allowed; }
-.slot-option.past:hover { background: #F3F4F6; }
-.badge.Past { background: #E5E7EB; color: #6B7280; }
-.empty-state { padding: 30px 20px; text-align: center; color: var(--ink-soft); font-size: 13px; }
-
-.appt-card {
-border: 1px solid var(--line); border-radius: 8px; padding: 12px 14px; margin-bottom: 10px;
-}
-.appt-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px; }
-.appt-top .doc { font-weight: 600; font-size: 14px; }
-.badge { font-size: 11px; font-weight: 600; padding: 3px 9px; border-radius: 20px; white-space: nowrap; }
-.badge.Emergency { background: var(--emergency-bg); color: var(--emergency); }
-.badge.Urgent { background: var(--urgent-bg); color: var(--urgent); }
-.badge.Routine { background: var(--routine-bg); color: var(--routine); }
-.badge.Booked { background: var(--emergency); color: #fff; }
-.appt-meta { font-size: 12.5px; color: var(--ink-soft); margin-bottom: 10px; }
-.appt-actions { display: flex; gap: 8px; }
-.btn-small {
-flex: 1; padding: 7px; border-radius: 6px; font-size: 12.5px; font-weight: 600;
-cursor: pointer; border: 1px solid var(--line); background: #fff;
-}
-.btn-small.danger { color: var(--emergency); border-color: #EBD3D0; }
-.btn-small.danger:hover { background: var(--emergency-bg); }
-.btn-small.neutral { color: var(--brand); border-color: var(--line); }
-.btn-small.neutral:hover { background: var(--brand-soft); }
-
-.btn-primary {
-width: 100%; background: var(--brand); color: #fff; border: none; padding: 10px;
-border-radius: 6px; font-size: 14px; font-weight: 600; cursor: pointer; margin-top: 4px;
-}
-.btn-primary:hover { background: #173C49; }
-.btn-primary:disabled { background: #9CA3AF; cursor: not-allowed; }
-.btn-primary:disabled:hover { background: #9CA3AF; }
-
-.toast { font-size: 12.5px; margin-top: 8px; min-height: 16px; }
-.toast.ok { color: var(--ok); }
-.toast.err { color: var(--emergency); }
-
-.modal-overlay {
-position: fixed; inset: 0; background: rgba(20, 33, 61, 0.45);
-display: flex; align-items: flex-start; justify-content: center;
-padding: 40px 16px; overflow-y: auto; z-index: 100;
-}
-.modal-overlay[hidden] { display: none; }
-.modal-box {
-background: var(--panel); border-radius: 10px; width: 100%; max-width: 420px;
-box-shadow: 0 12px 32px rgba(20, 33, 61, 0.25);
-}
-.modal-box .panel-head { display: flex; align-items: center; }
-.modal-close {
-background: transparent; border: none; font-size: 18px; line-height: 1;
-color: var(--ink-soft); cursor: pointer; padding: 4px;
-}
-.modal-close:hover { color: var(--ink); }
-.confirm-row { display: flex; justify-content: space-between; padding: 7px 0; border-bottom: 1px solid var(--line); font-size: 13px; }
-.confirm-row:last-of-type { border-bottom: none; }
-.confirm-row span { color: var(--ink-soft); }
-
-.mini-tab-bar { display: flex; gap: 4px; background: var(--brand-soft); padding: 4px; margin: 0 18px; border-radius: 6px; }
-.mini-tab-btn { flex: 1; padding: 6px 8px; border: none; background: transparent; border-radius: 5px; font-size: 12px; font-weight: 600; color: var(--ink-soft); cursor: pointer; font-family: inherit; }
-.mini-tab-btn.active { background: #fff; color: var(--brand); box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
-.history-card { border: 1px solid var(--line); border-radius: 8px; padding: 12px 14px; margin-bottom: 10px; }
-.history-card .h-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px; }
-.history-card .h-date { font-weight: 600; font-size: 13.5px; }
-.history-card .h-detail { font-size: 12.5px; color: var(--ink-soft); margin-top: 3px; }
-.status-tag { font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: 10px; }
-.status-tag.COMPLETED { background: #E1F0E5; color: var(--ok); }
-.status-tag.CANCELLED { background: var(--emergency-bg); color: var(--emergency); }
-.status-tag.NO_SHOW { background: #ECECEC; color: var(--ink-soft); }
-
-#account-menu-wrap { position: relative; }
-#account-menu {
-position: absolute; right: 0; top: 130%; background: var(--panel); border: 1px solid var(--line);
-border-radius: 8px; box-shadow: 0 6px 20px rgba(20,33,61,0.2); min-width: 170px; z-index: 250; overflow: hidden;
-}
-#account-menu[hidden] { display: none; }
-#account-menu button {
-display: block; width: 100%; text-align: left; background: var(--panel); color: var(--ink);
-border: none; padding: 10px 14px; font-size: 13px; cursor: pointer;
-}
-#account-menu button:hover { background: var(--brand-soft); }
-
-#emergency-fab {
-position: fixed; bottom: 24px; right: 24px; z-index: 90;
-background: var(--emergency); color: #fff; border: 2px solid #fff; border-radius: 999px;
-padding: 14px 22px; font-size: 14px; font-weight: 800; cursor: pointer;
-box-shadow: 0 4px 14px rgba(178,58,46,0.45);
-}
-#emergency-fab:hover { background: #8f2d23; }
-#emergency-fab:disabled { cursor: not-allowed; }
-#emergency-fab.sent, #emergency-fab.sent:hover { background: #6B7280; box-shadow: 0 4px 14px rgba(0,0,0,0.25); }
-.spinner {
-display: inline-block; width: 14px; height: 14px; margin-right: 7px; vertical-align: -2px;
-border: 2px solid rgba(255,255,255,0.45); border-top-color: #fff; border-radius: 50%;
-animation: spin 0.8s linear infinite;
-}
-@keyframes spin { to { transform: rotate(360deg); } }
-
-#notif-wrap { position: relative; }
-#notif-badge {
-display: none; background: var(--emergency); color: #fff; border-radius: 10px;
-padding: 1px 7px; font-size: 11px; margin-left: 4px; vertical-align: middle;
-}
-#notif-panel {
-position: absolute; right: 0; top: 130%; width: 320px; background: var(--panel);
-border: 1px solid var(--line); border-radius: 8px; box-shadow: 0 6px 20px rgba(20,33,61,0.2);
-z-index: 200; max-height: 380px; overflow-y: auto; padding: 10px; text-align: left; color: var(--ink);
-}
-#notif-panel[hidden] { display: none; }
-.notif-item { border-bottom: 1px solid var(--line); padding: 8px 2px; font-size: 12.5px; cursor: pointer; }
-.notif-item:last-child { border-bottom: none; }
-.notif-item.unread { font-weight: 700; background: var(--emergency-bg); border-left: 3px solid var(--emergency); padding-left: 8px; }
-.notif-item.unread .notif-time { font-weight: 600; }
-.notif-item.read { font-weight: 400; opacity: 0.6; }
-.notif-item .notif-time { font-size: 11px; color: var(--ink-soft); margin-top: 2px; }
+.next-appt { display: flex; gap: 16px; align-items: flex-start; }
+.next-appt .na-body { flex: 1; min-width: 0; }
+.next-appt .na-top { display: flex; justify-content: space-between; gap: 10px; align-items: flex-start; }
+.next-appt .na-doc { font-weight: 600; margin-top: 4px; }
+.next-appt .na-loc { font-size: 12.5px; color: var(--ink-soft); margin-top: 4px; }
+.reason-row { display: flex; justify-content: space-between; gap: 14px; align-items: center; }
+.reason-row .rr-text { min-width: 0; }
+.reason-row .rr-text p { margin-top: 4px; }
+@media (max-width: 560px) { .reason-row { flex-direction: column; align-items: stretch; } }
+.book-grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.05fr); gap: 24px; }
+@media (max-width: 760px) { .book-grid { grid-template-columns: minmax(0, 1fr); } }
+.slots-title { font-size: 13.5px; font-weight: 600; margin-bottom: 12px; }
+.summary-card .sc-label { font-size: 11.5px; text-transform: uppercase; letter-spacing: 0.03em; color: var(--ink-soft); margin-top: 16px; }
+.summary-card .sc-value { font-weight: 600; margin-top: 3px; }
+.summary-card .sc-date { font-size: 20px; font-weight: 700; margin-top: 3px; letter-spacing: -0.01em; }
+.appt-card .ac-head { display: flex; justify-content: space-between; gap: 10px; align-items: flex-start; }
+.appt-card .ac-when { font-size: 21px; font-weight: 600; letter-spacing: -0.01em; }
+.appt-card .ac-doc { margin-top: 8px; }
+.appt-card .ac-meta { font-size: 11.5px; color: var(--ink-soft); margin-top: 4px; }
+.appt-card + .appt-card { margin-top: 16px; }
+.appt-card .ac-note { font-size: 11.5px; margin-top: 6px; }
+.appt-card .ac-note.warn { color: var(--urgent); }
+.appt-card .ac-note.teal { color: var(--brand); }
+.mini-slot-grid { grid-template-columns: repeat(auto-fill, minmax(76px, 1fr)); }
+.state-badges { display: flex; gap: 8px; flex-wrap: wrap; margin: 14px 0 18px; }
+.urgent-card .uc-icon { width: 22px; height: 22px; border-radius: 50%; border: 2px solid var(--emergency); color: var(--emergency); display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 12px; margin-bottom: 12px; }
+.urgent-note { font-size: 12px; color: var(--emergency); margin-top: 12px; }
+#banner-holder { display: none; }
+.em-grid { grid-template-columns: minmax(0, 1fr) 310px; }
+@media (max-width: 1080px) { .em-grid { grid-template-columns: minmax(0, 1fr); } }
 </style>
 </head>
 <body>
 
-<div id="app-screen">
-<div class="topbar">
-<a href="/" class="home-link">← Home</a>
-<h1>Student Portal</h1>
-<div class="who">
-<div id="notif-wrap">
-<button id="notif-bell" onclick="toggleNotifPanel()">🔔 Alerts<span id="notif-badge"></span></button>
-<div id="notif-panel" hidden></div>
+<div class="app">
+<div class="app-main">
+<main class="app-content">
+
+<!-- Shared banners, moved into each view's .banner-slot as needed -->
+<div id="banner-holder">
+  <div id="fee-banner" class="notice danger" hidden>
+    <div class="notice-title" id="fee-banner-title">Health Services Fee unpaid</div>
+    <div class="notice-body" id="fee-banner-text"></div>
+    <div id="receipt-upload" class="btn-row" style="margin-top:10px;" hidden>
+      <input type="file" id="receipt-upload-input" accept="application/pdf" class="small" />
+      <button class="btn btn-sm" onclick="uploadReceipt()">Upload receipt</button>
+    </div>
+    <div class="toast" id="receipt-upload-msg"></div>
+  </div>
+  <div id="delay-banner" class="notice warn" hidden>
+    <strong id="delay-banner-title">Today’s appointment may start later</strong>
+    <span id="delay-banner-text">An emergency patient is being seen first at the clinic today. Your appointment today remains booked. Appointments on other days are not affected.</span>
+  </div>
+  <div id="flash-banner" class="notice ok" hidden></div>
 </div>
-<div id="account-menu-wrap">
-<button id="account-menu-btn" onclick="toggleAccountMenu()">👤 <span id="who-label"></span> ▾</button>
-<div id="account-menu" hidden>
-<button onclick="closeAccountMenu(); openChangePasswordModal();">🔑 Change Password</button>
-<button onclick="logout()">Log out</button>
-</div>
-</div>
+
+<!-- ================= OVERVIEW ================= -->
+<section data-view="overview">
+  <div class="page-head">
+    <div>
+      <h1>Bula<span id="greet-name"></span></h1>
+      <p>A clear view of your appointments and care at Laucala Campus.</p>
+    </div>
+    <a class="btn btn-primary" href="#book"><span data-icon="calendarPlus"></span>Book appointment</a>
+  </div>
+  <div class="banner-slot"></div>
+
+  <div class="grid-main-side">
+    <div class="stack">
+      <div class="card">
+        <h2 style="margin-bottom:18px;">Your next appointment</h2>
+        <div id="next-appt"><div class="empty">Loading…</div></div>
+      </div>
+
+      <div class="card">
+        <h2>Doctor availability</h2>
+        <p class="card-sub" id="avail-refreshed">Checking today’s availability…</p>
+        <div class="table-wrap" style="margin-top:16px;">
+          <table class="table">
+            <thead><tr><th>Doctor</th><th>Consultation hours</th><th>Next available</th></tr></thead>
+            <tbody id="avail-body"></tbody>
+          </table>
+        </div>
+        <div class="link-row">
+          <a class="btn-link" href="#book">Browse all available slots →</a>
+          <button class="btn-link" onclick="loadAvailabilityToday()">↻ Refresh availability</button>
+        </div>
+        <p class="tiny muted" style="margin-top:12px;">Displayed availability is checked again when you confirm a booking.</p>
+      </div>
+
+      <div class="card">
+        <h2 style="margin-bottom:16px;">Your recent visits</h2>
+        <div class="table-wrap">
+          <table class="table">
+            <thead><tr><th>Visit date</th><th>Consultation</th><th>Status</th><th>Record</th></tr></thead>
+            <tbody id="recent-visits-body"></tbody>
+          </table>
+        </div>
+        <div class="link-row"><a class="btn-link" href="#history">View your medical history →</a></div>
+      </div>
+    </div>
+
+    <div class="stack">
+      <div class="card">
+        <h2>In-app alerts</h2>
+        <div class="pill-row" style="margin:12px 0 16px;">
+          <span class="pill teal" id="ov-unread-pill">0 unread</span>
+          <a class="btn-link" href="#alerts">View all →</a>
+        </div>
+        <div id="ov-alerts"><p class="small muted">No alerts yet.</p></div>
+      </div>
+
+      <div class="card danger-edge urgent-card">
+        <div class="uc-icon">!</div>
+        <h2>Need urgent assistance?</h2>
+        <p class="small muted" style="margin:8px 0 14px;">Send an emergency request to the clinic for review. This is not an ambulance service.</p>
+        <a class="btn btn-danger btn-block" href="#emergency">Open emergency request</a>
+        <p class="urgent-note">For immediate danger, contact emergency services or seek urgent in-person help.</p>
+      </div>
+    </div>
+  </div>
+  <p class="app-legal">All times are Fiji local time.</p>
+</section>
+
+<!-- ================= BOOK ================= -->
+<section data-view="book" hidden>
+  <div class="page-head">
+    <div>
+      <h1>Book an appointment</h1>
+      <p>Choose a future time, then tell us why you’re visiting.</p>
+    </div>
+  </div>
+  <div class="banner-slot"></div>
+
+  <div class="grid-main-side">
+    <div class="stack">
+      <div class="card">
+        <h2>Choose your appointment</h2>
+        <p class="card-sub">Now: <span data-clock></span></p>
+
+        <div class="book-grid" style="margin-top:20px;">
+          <div>
+            <div class="cal-head">
+              <strong id="cal-title"></strong>
+              <div class="cal-nav">
+                <button type="button" id="cal-prev" aria-label="Previous month" onclick="shiftMonth(-1)">‹</button>
+                <button type="button" id="cal-next" aria-label="Next month" onclick="shiftMonth(1)">›</button>
+              </div>
+            </div>
+            <div class="cal-grid" id="cal-grid"></div>
+            <p class="cal-legend">Today is outlined · Past dates disabled</p>
+          </div>
+          <div>
+            <p class="slots-title" id="slots-title"></p>
+            <div id="slot-container"></div>
+            <p class="tiny muted" style="margin-top:12px;">Times at or before now are Passed and cannot be selected. Booked slots are unavailable.</p>
+            <div class="link-row" style="margin-top:10px;"><button class="btn-link" onclick="loadSlots()">↻ Refresh availability</button></div>
+          </div>
+        </div>
+        <div id="book-delay" class="notice warn" style="margin-top:20px;" hidden>
+          <strong>Today’s clinic is attending an emergency</strong>
+          Appointments today may start later and remain booked. Future days are unaffected by today’s emergency.
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>Tell us about your visit</h2>
+        <p class="card-sub">Your reason is kept separate from the nurse’s assessment and doctor’s notes.</p>
+        <div class="field" id="reason-field" style="margin-top:20px;">
+          <label for="reason-input">Reason for visit *</label>
+          <textarea id="reason-input" rows="3" maxlength="300" placeholder="Describe in your own words…"></textarea>
+          <div class="error-text" id="reason-error"></div>
+          <p class="help">Tell us about your symptoms and when they started. This field is required.</p>
+        </div>
+        <p class="tiny muted" style="margin-top:16px;">If you need urgent assistance, use <a href="#emergency">Emergency request</a> instead of waiting for a routine appointment.</p>
+      </div>
+    </div>
+
+    <div class="stack">
+      <div class="card soft summary-card">
+        <h2>Booking summary</h2>
+        <div style="margin-top:12px;"><span class="pill teal" style="background:#fff;">Selection · not yet booked</span></div>
+        <p class="sc-label">Date &amp; time</p>
+        <p class="sc-date" id="sum-date">Choose a date</p>
+        <p class="sc-value" id="sum-time">and an available time</p>
+        <hr class="divider" style="border-color:#CFE5E5;">
+        <p class="small">Health Center<br>Laucala Campus</p>
+        <button class="btn btn-primary btn-block" style="margin-top:18px;" id="book-btn" onclick="submitBooking()" disabled>Confirm booking</button>
+        <p class="tiny muted" style="margin-top:10px;" id="sum-hint"></p>
+        <div class="toast" id="book-toast"></div>
+      </div>
+
+      <div class="card" id="conflict-card" hidden>
+        <h2>Availability changed</h2>
+        <div class="notice warn" style="margin:14px 0;">
+          <strong>This slot is no longer available</strong>
+          Choose another available time. Your reason for visit has been kept.
+        </div>
+        <button class="btn btn-block" onclick="loadSlots(); document.getElementById('conflict-card').hidden = true;">Refresh slots</button>
+      </div>
+    </div>
+  </div>
+  <p class="app-legal">All times are Fiji local time.</p>
+</section>
+
+<!-- ================= MY APPOINTMENTS ================= -->
+<section data-view="appointments" hidden>
+  <div class="page-head">
+    <div>
+      <h1>My appointments</h1>
+      <p>Manage your own bookings before their scheduled consultation time.</p>
+    </div>
+    <a class="btn btn-primary" href="#book"><span data-icon="calendarPlus"></span>Book appointment</a>
+  </div>
+  <div class="banner-slot"></div>
+
+  <div class="tabs">
+    <button class="tab active" id="tab-upcoming" onclick="switchApptTab('upcoming')">Upcoming</button>
+    <button class="tab" id="tab-past" onclick="switchApptTab('past')">Past</button>
+  </div>
+
+  <div class="grid-main-side">
+    <div class="stack">
+      <div id="appt-list"></div>
+      <div class="card" id="past-card">
+        <h2>Past appointments</h2>
+        <p class="card-sub">Read-only history · past appointments cannot be edited.</p>
+        <div class="table-wrap" style="margin-top:16px;">
+          <table class="table">
+            <thead><tr><th>Date &amp; time</th><th>Doctor</th><th>Status</th><th>Action</th></tr></thead>
+            <tbody id="past-body"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <div class="stack">
+      <div class="card" id="manage-help">
+        <h2>Need to change a booking?</h2>
+        <p class="small muted" style="margin-top:8px;">Choose Reschedule or Cancel on an upcoming appointment. Nothing changes until you confirm.</p>
+      </div>
+
+      <div class="card" id="cancel-card" hidden>
+        <h2>Cancel this appointment?</h2>
+        <p class="card-sub">No change is made until you confirm.</p>
+        <div style="margin:14px 0;"><span class="pill" id="cancel-when"></span></div>
+        <p class="small">Cancelling releases your slot. Your other bookings and past visits won’t change.</p>
+        <button class="btn btn-block" style="margin-top:18px;" onclick="closeSidePanels()">Keep appointment</button>
+        <button class="btn btn-danger btn-block" style="margin-top:10px;" id="cancel-confirm-btn" onclick="confirmCancel()">Confirm cancellation</button>
+        <div class="toast" id="cancel-toast"></div>
+      </div>
+
+      <div class="card" id="reschedule-card" hidden>
+        <h2>Reschedule</h2>
+        <p class="card-sub">Your existing slot is kept until the new time is confirmed as available.</p>
+        <p class="small muted" style="margin-top:16px;">Current booking</p>
+        <p style="font-weight:700;margin-top:6px;" id="reschedule-current"></p>
+        <div class="field" style="margin-top:16px;">
+          <label for="reschedule-date-input">New date</label>
+          <input id="reschedule-date-input" type="date" onchange="loadRescheduleSlots()" />
+        </div>
+        <div id="reschedule-slot-container"></div>
+        <div id="reschedule-new-row" hidden>
+          <p class="small muted" style="margin-top:16px;">Selected replacement</p>
+          <p style="font-weight:700;margin-top:6px;" id="reschedule-new-time"></p>
+        </div>
+        <button class="btn btn-primary btn-block" style="margin-top:18px;" id="reschedule-confirm-btn" onclick="confirmReschedule()" disabled>Confirm new time</button>
+        <button class="btn btn-block" style="margin-top:10px;" onclick="closeSidePanels()">Keep current time</button>
+        <div class="toast" id="reschedule-toast"></div>
+      </div>
+    </div>
+  </div>
+  <p class="app-legal">All times are Fiji local time.</p>
+</section>
+
+<!-- ================= MEDICAL HISTORY ================= -->
+<section data-view="history" hidden>
+  <div class="page-head">
+    <div>
+      <h1>My medical history</h1>
+      <p>Your own completed visits and read-only clinical summaries.</p>
+    </div>
+  </div>
+  <div class="banner-slot"></div>
+  <div class="notice info" style="margin-bottom:20px;">
+    <strong>Your records, in one place</strong>
+    Each visit keeps your reason, the nurse’s findings and the doctor’s notes separately. Only your own visits are shown.
+  </div>
+
+  <div class="grid-side-main">
+    <div class="card">
+      <h2>Your visits</h2>
+      <p class="small muted" style="margin:12px 0 16px;" id="visit-count"></p>
+      <div id="visit-list"></div>
+    </div>
+    <div class="card" id="visit-summary"><div class="empty">Select a visit to see its summary.</div></div>
+  </div>
+  <p class="app-legal">All times are Fiji local time.</p>
+</section>
+
+<!-- ================= ALERTS ================= -->
+<section data-view="alerts" hidden>
+  <div class="page-head">
+    <div>
+      <h1>Alerts</h1>
+      <p>In-app updates for your account. Alerts stay unread until you mark them as read.</p>
+    </div>
+    <button class="btn" onclick="loadNotifications()"><span data-icon="refresh"></span>Refresh alerts</button>
+  </div>
+  <div class="banner-slot"></div>
+
+  <div class="tabs">
+    <button class="tab active" data-filter="all" onclick="setAlertFilter('all')">All (<span id="cnt-all">0</span>)</button>
+    <button class="tab" data-filter="unread" onclick="setAlertFilter('unread')">Unread (<span id="cnt-unread">0</span>)</button>
+    <button class="tab" data-filter="read" onclick="setAlertFilter('read')">Read (<span id="cnt-read">0</span>)</button>
+  </div>
+
+  <div class="grid-main-side">
+    <div id="alert-list"></div>
+    <div class="card soft">
+      <h2 id="side-unread">0 unread alerts</h2>
+      <p class="small" style="margin-top:14px;">Unread titles and messages are bold and have an unread marker.</p>
+      <hr class="divider" style="border-color:#CFE5E5;">
+      <p class="small">Opening this page does not mark anything as read. Only <strong>Mark as read</strong> changes an alert’s read status.</p>
+    </div>
+  </div>
+  <p class="app-legal">All times are Fiji local time.</p>
+</section>
+
+<!-- ================= EMERGENCY REQUEST ================= -->
+<section data-view="emergency" hidden>
+  <div class="page-head">
+    <div>
+      <h1>Emergency request</h1>
+      <p>Ask the Laucala clinic to review your need for urgent assistance.</p>
+    </div>
+  </div>
+  <div class="banner-slot"></div>
+  <div class="notice danger" style="margin-bottom:20px;">
+    <strong>For immediate danger, don’t wait here</strong>
+    <span class="notice-body">Contact emergency services or seek urgent in-person help. This portal does not dispatch an ambulance or guarantee a response.</span>
+  </div>
+
+  <div class="grid-main-side em-grid">
+    <div class="card">
+      <h2 id="em-heading">Tell the clinic what is happening</h2>
+      <p class="card-sub" id="em-state-sub">No request sent today.</p>
+      <div class="state-badges">
+        <span class="pill" id="em-who"></span>
+        <span class="pill teal" id="em-state-pill">Ready to request</span>
+      </div>
+      <div id="em-form">
+      <div class="field" id="em-what-field">
+        <label for="emergencyReason">What is happening? *</label>
+        <textarea id="emergencyReason" rows="3" maxlength="200" placeholder="Describe what is happening right now"></textarea>
+      </div>
+      <div class="field" id="em-where-field">
+        <label for="emergencyLocation">Where are you now? *</label>
+        <textarea id="emergencyLocation" rows="2" maxlength="80" placeholder="e.g. Health Center reception, Laucala Campus"></textarea>
+      </div>
+      <p class="tiny muted" style="margin-bottom:18px;">One emergency request per day. If you have already sent one today, the clinic is expecting you — do not send another.</p>
+      <div class="btn-row">
+        <button class="btn btn-danger" id="em-review-btn" onclick="reviewEmergency()"><span data-icon="alert"></span>Review emergency request</button>
+        <a class="btn-link" href="#overview">Return to overview</a>
+      </div>
+      </div>
+      <div id="em-locked" hidden>
+        <div class="notice ok">
+          <strong id="em-locked-title">Emergency request sent today</strong>
+          Health Center staff have been notified and will prioritise you when you arrive. Go to the Health Center now if you can — you don’t need to send another request.
+        </div>
+        <p class="small muted" style="margin-top:14px;">You can send one emergency request per day. A new request can be sent from tomorrow. If things get worse, contact emergency services or campus security directly.</p>
+        <div class="btn-row" style="margin-top:16px;"><a class="btn" href="#overview">Return to overview</a></div>
+      </div>
+      <div class="form-msg" id="emergencyResult"></div>
+    </div>
+
+    <div class="stack">
+      <div class="card" id="em-confirm" hidden>
+        <div class="modal-icon">!</div>
+        <h2>Send this request?</h2>
+        <p class="small" style="margin-top:12px;">The clinic will receive your description and location for review. This does not confirm that a responder is on the way.</p>
+        <hr class="divider">
+        <p class="small">This uses your emergency request for today.</p>
+        <button class="btn btn-danger btn-block" style="margin-top:16px;" id="emergency-send-btn" onclick="sendEmergencyAlert()">Send emergency request</button>
+        <button class="btn btn-block" style="margin-top:10px;" id="em-back-btn" onclick="document.getElementById('em-confirm').hidden = true;">Go back</button>
+      </div>
+    </div>
+  </div>
+</section>
+
+</main>
 </div>
 </div>
 
-<div id="fee-banner" style="display:none;background:#FBEAE8;color:#B23A2E;border-bottom:1px solid #EBD3D0;padding:9px 24px;font-size:13px;text-align:center;">
-<div id="fee-banner-text"></div>
-<div id="receipt-upload" style="display:none;margin-top:8px;">
-<input type="file" id="receipt-upload-input" accept="application/pdf" style="font-size:12px;" />
-<button onclick="uploadReceipt()" style="background:#B23A2E;color:#fff;border:none;padding:5px 12px;border-radius:5px;font-size:12px;cursor:pointer;">Upload Receipt</button>
-<div id="receipt-upload-msg" style="margin-top:4px;font-size:12px;"></div>
-</div>
-</div>
-
-<div id="delay-banner" style="display:none;background:#FEF3C7;color:#92400E;border-bottom:1px solid #FCD34D;padding:10px 24px;font-size:13px;text-align:center;font-weight:600;"></div>
-
-<div class="layout">
-<div class="panel">
-<div class="panel-head"><h2>Book an Appointment</h2></div>
-<div class="panel-body">
-<div class="field">
-<label for="date-input">Date</label>
-<input id="date-input" type="date" onchange="loadSlots()" />
-</div>
-<div id="slot-container">
-<div class="empty-state">Pick a date to see open slots.</div>
-</div>
-<div class="field">
-<label for="reason-input">Reason for visit</label>
-<textarea id="reason-input" rows="3" placeholder="e.g. Fever and headache since yesterday" maxlength="300"></textarea>
-</div>
-<button class="btn-primary" id="book-btn" onclick="bookAppointment()">Confirm Booking</button>
-<div class="toast" id="book-toast"></div>
-</div>
+<!-- Same-day emergency delay alert -->
+<div class="modal-overlay" id="delay-modal-overlay" hidden onclick="if (event.target === this) closeDelayModal()">
+  <div class="modal-box" style="border-top:4px solid var(--urgent);">
+    <div class="modal-icon" style="border-color:var(--urgent);color:var(--urgent);">!</div>
+    <p class="eyebrow" style="color:var(--urgent);font-weight:700;">Emergency at the clinic today</p>
+    <h2 style="font-size:20px;margin-top:6px;" id="delay-modal-title">Your appointment today may start later</h2>
+    <p class="small" style="margin-top:12px;" id="delay-modal-text"></p>
+    <p class="small muted" style="margin-top:10px;">Your booking is still in place — you don’t need to rebook. Appointments on other days are not affected.</p>
+    <div class="btn-row" style="margin-top:20px;">
+      <button class="btn btn-primary" onclick="closeDelayModal(); location.hash = '#appointments';">View my appointment</button>
+      <button class="btn" onclick="closeDelayModal()">OK, got it</button>
+    </div>
+  </div>
 </div>
 
-<div class="panel">
-<div class="panel-head">
-<h2>My Appointments</h2>
-<span class="count" id="appt-count"></span>
-</div>
-<div class="mini-tab-bar">
-<button id="tab-btn-upcoming" class="mini-tab-btn active" onclick="switchApptTab('upcoming')">Upcoming</button>
-<button id="tab-btn-history" class="mini-tab-btn" onclick="switchApptTab('history')">Medical History</button>
-</div>
-<div class="panel-body" id="appt-list"></div>
-<div class="panel-body" id="history-list" style="display:none;"></div>
-</div>
-</div>
-</div>
-
-<div class="modal-overlay" id="confirm-modal-overlay" hidden onclick="if (event.target === this) closeConfirmModal()">
-<div class="modal-box">
-<div class="panel-head"><h2>Confirm Your Booking</h2><button class="modal-close" aria-label="Close" onclick="closeConfirmModal()">✕</button></div>
-<div class="panel-body">
-<div class="confirm-row"><span>Date</span><strong id="confirm-date"></strong></div>
-<div class="confirm-row"><span>Time</span><strong id="confirm-time"></strong></div>
-<div class="confirm-row"><span>Reason</span><strong id="confirm-reason"></strong></div>
-<p style="font-size:12.5px;color:var(--ink-soft);margin-top:14px;">Please double-check these details before confirming. This will reserve the slot.</p>
-<div style="display:flex;gap:8px;margin-top:14px;">
-<button class="btn-primary" style="margin-top:0;" onclick="submitBooking()">Yes, Confirm Booking</button>
-<button class="btn-small neutral" onclick="closeConfirmModal()">Cancel</button>
-</div>
-<div class="toast" id="confirm-toast"></div>
-</div>
-</div>
-</div>
-
-<div class="modal-overlay" id="reschedule-modal-overlay" hidden onclick="if (event.target === this) closeRescheduleModal()">
-<div class="modal-box">
-<div class="panel-head"><h2>Reschedule Appointment</h2><button class="modal-close" aria-label="Close" onclick="closeRescheduleModal()">✕</button></div>
-<div class="panel-body">
-<div class="confirm-row"><span>Current</span><strong id="reschedule-current"></strong></div>
-<div class="field" style="margin-top:12px;">
-<label for="reschedule-date-input">New Date</label>
-<input id="reschedule-date-input" type="date" onchange="loadRescheduleSlots()" />
-</div>
-<div id="reschedule-slot-container">
-<div class="empty-state">Pick a date to see open slots.</div>
-</div>
-<div class="confirm-row" id="reschedule-new-row" style="display:none;"><span>New Time</span><strong id="reschedule-new-time"></strong></div>
-<p style="font-size:12.5px;color:var(--ink-soft);margin-top:10px;">Please confirm before saving. Your original appointment stays unchanged unless you confirm.</p>
-<div style="display:flex;gap:8px;margin-top:14px;">
-<button class="btn-primary" style="margin-top:0;" id="reschedule-confirm-btn" onclick="confirmReschedule()" disabled>Confirm Reschedule</button>
-<button class="btn-small neutral" onclick="closeRescheduleModal()">Keep Original</button>
-</div>
-<div class="toast" id="reschedule-toast"></div>
-</div>
-</div>
-</div>
-
+<!-- Change password -->
 <div class="modal-overlay" id="change-password-modal-overlay" hidden onclick="if (event.target === this) closeChangePasswordModal()">
-<div class="modal-box">
-<div class="panel-head"><h2>Change Password</h2><button class="modal-close" aria-label="Close" onclick="closeChangePasswordModal()">✕</button></div>
-<div class="panel-body">
-<div class="field">
-<label for="cpCurrentPassword">Current Password</label>
-<input type="password" id="cpCurrentPassword" />
-</div>
-<div class="field">
-<label for="cpNewPassword">New Password (min 6 characters)</label>
-<input type="password" id="cpNewPassword" minlength="6" maxlength="100" />
-</div>
-<div class="field">
-<label for="cpConfirmPassword">Confirm New Password</label>
-<input type="password" id="cpConfirmPassword" minlength="6" maxlength="100" />
-</div>
-<div class="toast" id="cpResult"></div>
-<div style="display:flex;gap:8px;margin-top:6px;">
-<button class="btn-primary" style="margin-top:0;" onclick="submitChangePassword()">Change Password</button>
-<button class="btn-small neutral" onclick="closeChangePasswordModal()">Cancel</button>
-</div>
-</div>
-</div>
+  <div class="modal-box">
+    <div class="modal-head"><h2>Change password</h2><button class="modal-close" aria-label="Close" onclick="closeChangePasswordModal()">✕</button></div>
+    <div class="field"><label for="cpCurrentPassword">Current password</label><input type="password" id="cpCurrentPassword" /></div>
+    <div class="field"><label for="cpNewPassword">New password <span class="unit">(min 6 characters)</span></label><input type="password" id="cpNewPassword" minlength="6" maxlength="100" /></div>
+    <div class="field"><label for="cpConfirmPassword">Confirm new password</label><input type="password" id="cpConfirmPassword" minlength="6" maxlength="100" /></div>
+    <div class="toast" id="cpResult"></div>
+    <div class="btn-row" style="margin-top:16px;">
+      <button class="btn btn-primary" onclick="submitChangePassword()">Change password</button>
+      <button class="btn" onclick="closeChangePasswordModal()">Cancel</button>
+    </div>
+  </div>
 </div>
 
-<button id="emergency-fab" onclick="openEmergencyModal()" title="Alert the Health Center now">🚨 Emergency</button>
-
-<div class="modal-overlay" id="emergency-modal-overlay" hidden onclick="if (event.target === this) closeEmergencyModal()">
-<div class="modal-box" style="border:3px solid var(--emergency);">
-<div class="panel-head"><h2 style="color:var(--emergency);">🚨 Emergency Alert</h2><button class="modal-close" aria-label="Close" onclick="closeEmergencyModal()">✕</button></div>
-<div class="panel-body">
-<p style="font-size:13px;color:var(--ink-soft);margin-top:0;">If this is life-threatening, call campus security or emergency services immediately. Sending this alert notifies Health Center staff now so they can prioritize you as soon as you arrive.</p>
-<div class="field">
-<label for="emergencyReason">What's happening? (brief)</label>
-<textarea id="emergencyReason" rows="3" placeholder="e.g. Severe allergic reaction, on my way now" maxlength="300"></textarea>
-</div>
-<div class="toast" id="emergencyResult"></div>
-<div style="display:flex;gap:8px;margin-top:6px;">
-<button class="btn-primary" style="margin-top:0;background:var(--emergency);" id="emergency-send-btn" onclick="sendEmergencyAlert()">🚨 Send Alert Now</button>
-<button class="btn-small neutral" onclick="closeEmergencyModal()">Cancel</button>
-</div>
-</div>
-</div>
-</div>
-
+<script src="/js/app-shell.js"></script>
 <script>
+const esc = HC.esc;
 let authHeader = null;
 let currentStudentId = null;
-let selectedSlot = null;
-let selectedSlotTime = null;
+let bookingLocked = false;
+let upcoming = [];
+let visitHistory = [];
+let notifications = [];
+let delayInfo = { delayed: false };
+let alertFilter = 'all';
 
 window.addEventListener('DOMContentLoaded', () => {
   const storedAuth = localStorage.getItem('authHeader');
   const storedUser = localStorage.getItem('currentUser');
   const storedRole = localStorage.getItem('userRole');
-
   if (!storedAuth || !storedUser || storedRole !== 'STUDENT') {
     window.location.href = '/login.html';
     return;
   }
-
   authHeader = storedAuth;
   currentStudentId = storedUser;
-  document.getElementById('who-label').textContent = currentStudentId;
+  document.getElementById('em-who').textContent = currentStudentId;
+  document.getElementById('reason-input').addEventListener('input', () => { setReasonError(false); updateSummary(); });
+  document.getElementById('reason-input').addEventListener('blur', () => {
+    if (selectedSlot && !document.getElementById('reason-input').value.trim()) setReasonError(true);
+  });
+  initCalendar();
 
-  const dateInput = document.getElementById('date-input');
-  const tomorrow = new Date();
-  tomorrow.setDate(tomorrow.getDate() + 1);
-  dateInput.min = localDateString(new Date());
-  dateInput.value = localDateString(tomorrow);
-  loadSlots();
+  Shell.mount({
+    workspace: 'Student workspace',
+    user: currentStudentId,
+    alerts: 'link',
+    alertsHref: '#alerts',
+    defaultView: 'overview',
+    nav: [
+      { key: 'overview', label: 'Overview', href: '#overview' },
+      { key: 'book', label: 'Book appointment', href: '#book' },
+      { key: 'appointments', label: 'My appointments', href: '#appointments' },
+      { key: 'history', label: 'Medical history', href: '#history' },
+      { key: 'alerts', label: 'Alerts', href: '#alerts', count: true },
+      { key: 'emergency', label: 'Emergency request', href: '#emergency' }
+    ],
+    bottomNav: [
+      { key: 'overview', label: 'Home', href: '#overview', icon: 'home' },
+      { key: 'book', label: 'Book', href: '#book', icon: 'book' },
+      { key: 'history', label: 'Visits', href: '#history', icon: 'visits' },
+      { key: 'alerts', label: 'Alerts', href: '#alerts', icon: 'bell' }
+    ],
+    onView
+  });
+
+  loadProfile();
   refreshAppointments();
-  loadFeeStatus();
+  loadHistory();
+  loadNotifications();
+  loadAvailabilityToday();
   loadEmergencyAlertStatus();
-  pollNotifCount();
-  setInterval(pollNotifCount, 4000);
   checkTodayDelay();
+  setInterval(pollNotifCount, 4000);
   setInterval(checkTodayDelay, 15000);
 });
 
-function pollNotifCount() {
-  fetch('/student/notifications/unread-count', { headers: { 'Authorization': authHeader } })
-    .then(res => res.ok ? res.json() : null)
-    .then(data => {
-      const badge = document.getElementById('notif-badge');
-      if (!data || !data.count) { badge.style.display = 'none'; return; }
-      badge.textContent = data.count;
-      badge.style.display = 'inline-block';
-    })
-    .catch(() => {});
+// ---------- View switching ----------
+function onView(view) {
+  // Move the shared banners into the view that's now showing.
+  const slot = document.querySelector(`[data-view="${view}"] .banner-slot`);
+  const holder = document.getElementById('banner-holder');
+  const flash = document.getElementById('flash-banner');
+  const fee = document.getElementById('fee-banner');
+  const delay = document.getElementById('delay-banner');
+  [flash, fee, delay].forEach(b => holder.appendChild(b));
+  if (slot) {
+    if (view === 'appointments' && !flash.hidden) slot.appendChild(flash);
+    if (view === 'overview' || view === 'book') slot.appendChild(fee);
+    if (view !== 'book') slot.appendChild(delay);
+  }
+  if (view !== 'appointments') flash.hidden = true;
+  if (view === 'history') renderHistory();
+  if (view === 'alerts') loadNotifications();
+  if (view === 'book') loadSlots();
 }
 
-function toggleNotifPanel() {
-  const panel = document.getElementById('notif-panel');
-  if (!panel.hidden) { panel.hidden = true; return; }
-  loadNotifPanel();
-  panel.hidden = false;
+function showFlash(msg) {
+  const f = document.getElementById('flash-banner');
+  f.textContent = msg;
+  f.hidden = false;
 }
 
-function loadNotifPanel() {
-  const panel = document.getElementById('notif-panel');
-  panel.innerHTML = '<div style="font-size:12.5px;color:var(--ink-soft);">Loading…</div>';
-  fetch('/student/notifications', { headers: { 'Authorization': authHeader } })
-    .then(res => res.json())
-    .then(items => {
-      if (!items.length) {
-        panel.innerHTML = '<div style="font-size:12.5px;color:var(--ink-soft);">No alerts.</div>';
-        return;
-      }
-      panel.innerHTML = items.map(n => `
-        <div class="notif-item ${n.read ? 'read' : 'unread'}" onclick="markNotifRead(${n.id})">
-          <div>${escapeHtml(n.message)}</div>
-          <div class="notif-time">${n.createdAt ? new Date(n.createdAt).toLocaleString() : ''}</div>
-        </div>
-      `).join('');
-    })
-    .catch(() => { panel.innerHTML = '<div style="font-size:12.5px;color:var(--emergency);">Unable to load alerts.</div>'; });
-}
-
-function markNotifRead(id) {
-  fetch('/student/notifications/' + id + '/read', { method: 'POST', headers: { 'Authorization': authHeader } })
-    .then(() => { loadNotifPanel(); pollNotifCount(); })
-    .catch(() => {});
-}
-
-function loadFeeStatus() {
+// ---------- Profile / fee ----------
+function loadProfile() {
   fetch('/student/profile', { headers: { 'Authorization': authHeader } })
     .then(res => res.json())
-    .then(profile => {
-      if (profile.error || profile.feePaid || !profile.feeAmount) return;
-      const banner = document.getElementById('fee-banner');
-      const bannerText = document.getElementById('fee-banner-text');
-      const uploadBox = document.getElementById('receipt-upload');
-
-      if (profile.receiptRejectionReason) {
-        bannerText.textContent = `⚠ Your payment receipt was rejected: "${profile.receiptRejectionReason}" Please upload a corrected receipt below.`;
-        uploadBox.style.display = 'block';
-      } else if (profile.hasReceipt) {
-        bannerText.textContent = '⚠ Your payment receipt is pending admin verification. You will be able to book appointments once it is approved.';
-        uploadBox.style.display = 'none';
-      } else {
-        bannerText.textContent = `⚠ Your Laucala Health Services Fee (FJ$${Number(profile.feeAmount).toFixed(2)}) is unpaid. Please upload your payment receipt below to proceed.`;
-        uploadBox.style.display = 'block';
+    .then(p => {
+      if (p.fullName) {
+        document.getElementById('greet-name').textContent = ', ' + p.fullName.split(' ')[0];
+        Shell.setUser(p.fullName);
+        document.getElementById('em-who').textContent = p.fullName + ' · ' + currentStudentId;
       }
-      banner.style.display = 'block';
+      const banner = document.getElementById('fee-banner');
+      const text = document.getElementById('fee-banner-text');
+      const title = document.getElementById('fee-banner-title');
+      const upload = document.getElementById('receipt-upload');
+      if (p.error || p.feePaid || !p.feeAmount) {
+        banner.hidden = true;
+        bookingLocked = false;
+        updateSummary();
+        return;
+      }
 
-      const bookBtn = document.getElementById('book-btn');
-      bookBtn.disabled = true;
-      bookBtn.title = profile.hasReceipt
-        ? 'Booking is locked until an admin verifies your payment receipt.'
-        : 'Booking is locked until your Health Services Fee is paid.';
+      bookingLocked = true;
+      if (p.receiptRejectionReason) {
+        title.textContent = 'Payment receipt rejected';
+        text.textContent = `Reason: “${p.receiptRejectionReason}”. Please upload a corrected PDF receipt to unlock booking.`;
+        upload.hidden = false;
+      } else if (p.hasReceipt) {
+        title.textContent = 'Payment receipt pending verification';
+        text.textContent = 'You can book appointments once an administrator approves your receipt.';
+        upload.hidden = true;
+      } else {
+        title.textContent = 'Health Services Fee unpaid';
+        text.textContent = `Your Laucala Health Services Fee (FJ$${Number(p.feeAmount).toFixed(2)}) is unpaid. Upload your PDF payment receipt to unlock booking.`;
+        upload.hidden = false;
+      }
+      banner.hidden = false;
+      onView(Shell.currentView());
+      updateSummary();
     })
     .catch(() => {});
 }
@@ -467,44 +569,24 @@ function uploadReceipt() {
   const input = document.getElementById('receipt-upload-input');
   const msg = document.getElementById('receipt-upload-msg');
   const file = input.files[0];
-
-  if (!file) {
-    msg.style.color = '#B23A2E';
-    msg.textContent = 'Please choose a PDF file first.';
-    return;
-  }
-  if (file.type !== 'application/pdf') {
-    msg.style.color = '#B23A2E';
-    msg.textContent = 'The receipt must be a PDF file.';
-    return;
-  }
+  if (!file) { msg.className = 'toast err'; msg.textContent = 'Please choose a PDF file first.'; return; }
+  if (file.type !== 'application/pdf') { msg.className = 'toast err'; msg.textContent = 'The receipt must be a PDF file.'; return; }
 
   const formData = new FormData();
   formData.append('receipt', file);
-
-  fetch('/student/receipt', {
-    method: 'POST',
-    headers: { 'Authorization': authHeader },
-    body: formData
-  })
+  fetch('/student/receipt', { method: 'POST', headers: { 'Authorization': authHeader }, body: formData })
     .then(res => res.json())
     .then(data => {
-      if (data.error) {
-        msg.style.color = '#B23A2E';
-        msg.textContent = data.error;
-        return;
-      }
-      msg.style.color = '#3D7A55';
+      if (data.error) { msg.className = 'toast err'; msg.textContent = data.error; return; }
+      msg.className = 'toast ok';
       msg.textContent = data.message;
       input.value = '';
-      loadFeeStatus();
+      loadProfile();
     })
-    .catch(() => {
-      msg.style.color = '#B23A2E';
-      msg.textContent = 'Unable to reach the server.';
-    });
+    .catch(() => { msg.className = 'toast err'; msg.textContent = 'Unable to reach the server.'; });
 }
 
+// ---------- Session ----------
 function logout() {
   localStorage.clear();
   window.location.href = '/login.html';
@@ -527,143 +609,269 @@ function resetIdleTimer() {
 );
 resetIdleTimer();
 
-// Converts a "09:00 AM - 09:30 AM" style label into minutes-since-midnight
-// (using its start time) so slots can be sorted chronologically regardless
-// of which doctor's row they came from.
-function timeSlotSortKey(timeSlot) {
-  const match = timeSlot.split('-')[0].trim().match(/(\d{1,2}):(\d{2})\s*(AM|PM)/i);
-  if (!match) return 0;
-  let hours = parseInt(match[1], 10) % 12;
-  if (match[3].toUpperCase() === 'PM') hours += 12;
-  return hours * 60 + parseInt(match[2], 10);
+// ---------- Helpers ----------
+// Schedule rows store doctor usernames such as "dr.patel" -> "Dr Patel".
+function doctorLabel(name) {
+  if (!name) return '';
+  const m = String(name).trim().match(/^dr\.?\s*(.+)$/i);
+  const rest = m ? m[1] : String(name).trim();
+  return 'Dr ' + rest.split(/[\s._]+/).map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
 }
 
-// YYYY-MM-DD in the student's local time zone (toISOString() is UTC, which
-// can be a day off here in the Pacific).
-function localDateString(d) {
-  return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+function apptSortKey(a) {
+  return (a.appointmentDate || '') + String(HC.parseSlot(a.timeSlot).startMin).padStart(4, '0');
 }
 
-function isPastDate(date) {
-  return !date || date < localDateString(new Date());
+// Students pick a time, not a doctor; the backend lists one row per doctor on
+// duty for that time and books them as a unit, so collapse rows by time.
+function uniqueSlots(slots) {
+  const seen = new Set();
+  return slots.filter(s => {
+    if (seen.has(s.timeSlot)) return false;
+    seen.add(s.timeSlot);
+    return true;
+  }).sort((a, b) => HC.parseSlot(a.timeSlot).startMin - HC.parseSlot(b.timeSlot).startMin);
 }
 
-// A slot is in the past if its date is before today, or it's today and its
-// start time has already gone by. The server enforces the same rule.
-function isSlotPast(date, timeSlot) {
-  if (isPastDate(date)) return true;
-  if (date !== localDateString(new Date())) return false;
-  if (!/(\d{1,2}):(\d{2})\s*(AM|PM)/i.test(timeSlot.split('-')[0])) return false;
-  const now = new Date();
-  return timeSlotSortKey(timeSlot) <= now.getHours() * 60 + now.getMinutes();
-}
-
-function renderSlotOption(s, date, pickFn) {
-  const past = isSlotPast(date, s.timeSlot);
-  const cls = s.booked ? ' booked' : (past ? ' past' : '');
-  const clickable = !s.booked && !past;
-  const badge = s.booked ? '<span class="badge Booked">Booked</span>' : (past ? '<span class="badge Past">Passed</span>' : '');
-  return `
-    <div class="slot-option${cls}" data-id="${s.id}"
-         ${clickable ? `onclick='${pickFn}(${s.id}, this)'` : ''}>
-      <span class="time">${escapeHtml(s.timeSlot)}</span>
-      ${badge}
-    </div>
-  `;
-}
-
-function loadSlots() {
-  const date = document.getElementById('date-input').value;
-  if (!date) return;
-  selectedSlot = null;
-
-  const container = document.getElementById('slot-container');
-
-  if (isPastDate(date)) {
-    container.innerHTML = '<div class="empty-state">You can\'t book a date in the past. Please pick today or a later date.</div>';
-    return;
-  }
-
-  fetch('/schedule/available?date=' + date)
+function fetchSlots(date) {
+  return fetch('/schedule/available?date=' + date)
     .then(res => {
       if (res.status === 404) return [];
       if (!res.ok) throw new Error();
       return res.json();
-    })
+    });
+}
+
+function statusLabel(s) {
+  return { COMPLETED: 'Completed', CANCELLED: 'Cancelled', NO_SHOW: 'No-show', BOOKED: 'Booked', CHECKED_IN: 'Checked in' }[s] || esc(s);
+}
+
+// ---------- Overview ----------
+function renderNextAppointment() {
+  const box = document.getElementById('next-appt');
+  if (!upcoming.length) {
+    box.innerHTML = `<div class="empty">You have no upcoming appointments.<div style="margin-top:12px;"><a class="btn btn-primary btn-sm" href="#book">Book an appointment</a></div></div>`;
+    return;
+  }
+  const a = upcoming[0];
+  const d = HC.parseDate(a.appointmentDate);
+  const isToday = a.appointmentDate === HC.todayIso();
+  box.innerHTML = `
+    <div class="next-appt">
+      <div class="date-block">
+        <div class="m">${d.toLocaleDateString('en-GB', { month: 'short' })}</div>
+        <div class="d">${String(d.getDate()).padStart(2, '0')}</div>
+        <div class="w">${d.toLocaleDateString('en-GB', { weekday: 'long' })}</div>
+      </div>
+      <div class="na-body">
+        <div class="na-top">
+          <span class="big-time">${esc(HC.slotRange(a.timeSlot).replace('–', ' – '))}</span>
+          <span class="pill teal">Booked</span>
+        </div>
+        <div class="na-doc">${a.doctorName ? esc(doctorLabel(a.doctorName)) + ' · ' : ''}General consultation</div>
+        <div class="na-loc">Health Center, Laucala Campus · A-${esc(a.id)}</div>
+      </div>
+    </div>
+    <hr class="divider">
+    <div class="reason-row">
+      <div class="rr-text">
+        <div class="meta-label">Reason for visit</div>
+        <p>${esc(a.visitReason)}</p>
+      </div>
+      <a class="btn" href="#appointments">View appointment</a>
+    </div>
+    <p class="tiny muted" style="margin-top:14px;">Check in with the nurse when you arrive.${isToday && delayInfo.delayed ? ' Your booking remains in place despite today’s clinic delay.' : ''}</p>`;
+}
+
+function loadAvailabilityToday() {
+  const today = HC.todayIso();
+  const body = document.getElementById('avail-body');
+  fetchSlots(today)
     .then(slots => {
-      if (!Array.isArray(slots) || slots.length === 0) {
-        container.innerHTML = '<div class="empty-state">No available appointments for the selected date.</div>';
+      document.getElementById('avail-refreshed').textContent =
+        `Last refreshed today at ${HC.nowLabel().time} · Refresh to check for changes.`;
+      if (!slots.length) {
+        body.innerHTML = '<tr><td colspan="3" class="muted">No consultation hours are scheduled for today.</td></tr>';
         return;
       }
-
-      // Students pick a time only, not a doctor; the backend still lists one row
-      // per doctor scheduled for that time, so collapse those into one option.
-      // A time slot is booked/freed as a unit across every doctor's row for it,
-      // so the first row's booked flag reflects the whole time slot.
-      const seenTimes = new Set();
-      const uniqueSlots = slots.filter(s => {
-        if (seenTimes.has(s.timeSlot)) return false;
-        seenTimes.add(s.timeSlot);
-        return true;
-      });
-      uniqueSlots.sort((a, b) => timeSlotSortKey(a.timeSlot) - timeSlotSortKey(b.timeSlot));
-
-      container.innerHTML = '<div class="slot-list">' + uniqueSlots.map(s => renderSlotOption(s, date, 'pickSlot')).join('') + '</div>';
+      const byDoctor = {};
+      slots.forEach(s => { (byDoctor[s.doctorName] = byDoctor[s.doctorName] || []).push(s); });
+      body.innerHTML = Object.entries(byDoctor).map(([doc, list]) => {
+        list.sort((a, b) => HC.parseSlot(a.timeSlot).startMin - HC.parseSlot(b.timeSlot).startMin);
+        // Merge back-to-back slots into consultation-hour ranges.
+        const ranges = [];
+        list.forEach(s => {
+          const p = HC.parseSlot(s.timeSlot);
+          const last = ranges[ranges.length - 1];
+          if (last && last.end === p.start) last.end = p.end;
+          else ranges.push({ start: p.start, end: p.end });
+        });
+        const next = list.find(s => !s.booked && !HC.isSlotPast(today, s.timeSlot));
+        return `<tr>
+          <td>${esc(doctorLabel(doc))}</td>
+          <td>${ranges.map(r => r.start + '–' + r.end).join(', ')}</td>
+          <td>${next ? `<a href="#book">Today · ${HC.parseSlot(next.timeSlot).start}</a>` : '<span class="muted">No more times today</span>'}</td>
+        </tr>`;
+      }).join('');
     })
-    .catch(() => {
-      container.innerHTML = '<div class="empty-state">Unable to load availability.</div>';
-    });
+    .catch(() => { body.innerHTML = '<tr><td colspan="3" class="muted">Unable to load availability.</td></tr>'; });
+}
+
+function renderRecentVisits() {
+  const body = document.getElementById('recent-visits-body');
+  const past = pastVisits().slice(0, 3);
+  if (!past.length) {
+    body.innerHTML = '<tr><td colspan="4" class="muted">No past visits on record.</td></tr>';
+    return;
+  }
+  body.innerHTML = past.map(h => `
+    <tr>
+      <td>${esc(HC.fmtDate(h.appointmentDate, 'day'))}</td>
+      <td>${esc(h.visitReason)}</td>
+      <td>${statusLabel(h.status)}</td>
+      <td><a href="#history?id=${h.id}">View summary →</a></td>
+    </tr>`).join('');
+}
+
+// ---------- Booking ----------
+let calMonth = null;
+let selectedDate = null;
+let selectedSlot = null;
+let selectedSlotTime = null;
+
+function initCalendar() {
+  const t = new Date();
+  calMonth = new Date(t.getFullYear(), t.getMonth(), 1);
+  selectedDate = HC.todayIso();
+  renderCalendar();
+}
+
+function shiftMonth(delta) {
+  calMonth = new Date(calMonth.getFullYear(), calMonth.getMonth() + delta, 1);
+  renderCalendar();
+}
+
+function renderCalendar() {
+  const t = new Date();
+  const thisMonth = new Date(t.getFullYear(), t.getMonth(), 1);
+  document.getElementById('cal-title').textContent = calMonth.toLocaleDateString('en-GB', { month: 'long', year: 'numeric' });
+  document.getElementById('cal-prev').disabled = calMonth <= thisMonth;
+
+  const today = HC.todayIso();
+  const offset = (new Date(calMonth.getFullYear(), calMonth.getMonth(), 1).getDay() + 6) % 7; // Monday first
+  const days = new Date(calMonth.getFullYear(), calMonth.getMonth() + 1, 0).getDate();
+  let html = ['Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa', 'Su'].map(d => `<div class="dow">${d}</div>`).join('');
+  for (let i = 0; i < offset; i++) html += '<div></div>';
+  for (let d = 1; d <= days; d++) {
+    const iso = HC.isoDate(new Date(calMonth.getFullYear(), calMonth.getMonth(), d));
+    const cls = ['cal-day'];
+    if (iso < today) cls.push('past');
+    if (iso === today) cls.push('today');
+    if (iso === selectedDate) cls.push('selected');
+    html += iso < today
+      ? `<button type="button" class="${cls.join(' ')}" disabled>${d}</button>`
+      : `<button type="button" class="${cls.join(' ')}" onclick="pickDate('${iso}')">${d}</button>`;
+  }
+  document.getElementById('cal-grid').innerHTML = html;
+}
+
+function pickDate(iso) {
+  selectedDate = iso;
+  renderCalendar();
+  loadSlots();
+}
+
+function loadSlots() {
+  const date = selectedDate;
+  const container = document.getElementById('slot-container');
+  selectedSlot = null;
+  selectedSlotTime = null;
+  updateSummary();
+  document.getElementById('slots-title').textContent = HC.fmtDate(date) + ' · consultations';
+  document.getElementById('book-delay').hidden = !(date === HC.todayIso() && delayInfo.delayed);
+
+  if (!date || date < HC.todayIso()) {
+    container.innerHTML = '<div class="empty">Past dates can’t be booked. Pick today or a later date.</div>';
+    return;
+  }
+  container.innerHTML = '<div class="empty">Loading available times…</div>';
+  fetchSlots(date)
+    .then(slots => {
+      if (date !== selectedDate) return;
+      if (!slots.length) {
+        container.innerHTML = '<div class="empty">No consultations are scheduled on this date.</div>';
+        return;
+      }
+      container.innerHTML = '<div class="slot-grid">' + uniqueSlots(slots).map(s => slotTile(s, date, 'pickSlot')).join('') + '</div>';
+    })
+    .catch(() => { container.innerHTML = '<div class="empty">Unable to load availability.</div>'; });
+}
+
+function slotTile(s, date, pickFn) {
+  const past = HC.isSlotPast(date, s.timeSlot);
+  const off = s.booked || past;
+  const label = past ? 'Passed' : (s.booked ? 'Booked' : 'Available');
+  const start = HC.parseSlot(s.timeSlot).start || s.timeSlot;
+  return `<button type="button" class="slot${off ? ' off' : ''}" data-id="${s.id}" data-time="${esc(s.timeSlot)}"
+    ${off ? 'disabled' : `onclick="${pickFn}(${s.id}, this)"`}><strong>${esc(start)}</strong><span>${label}</span></button>`;
+}
+
+function markSelectedTile(container, el) {
+  container.querySelectorAll('.slot').forEach(o => {
+    o.classList.remove('selected');
+    if (!o.classList.contains('off')) o.querySelector('span').textContent = 'Available';
+  });
+  el.classList.add('selected');
+  el.querySelector('span').textContent = 'Selected';
 }
 
 function pickSlot(slotId, el) {
   selectedSlot = slotId;
-  selectedSlotTime = el.querySelector('.time').textContent;
-  document.querySelectorAll('.slot-option').forEach(o => o.classList.remove('selected'));
-  el.classList.add('selected');
+  selectedSlotTime = el.dataset.time;
+  markSelectedTile(document.getElementById('slot-container'), el);
+  document.getElementById('conflict-card').hidden = true;
+  updateSummary();
 }
 
-// Step 1: validate inputs and show a confirmation summary before anything is
-// sent to the server - the actual booking only happens once the student
-// confirms the details in the modal (submitBooking()).
-function bookAppointment() {
+function setReasonError(on) {
+  document.getElementById('reason-field').classList.toggle('invalid', on);
+  document.getElementById('reason-error').textContent = on ? 'Please enter a reason for your visit.' : '';
+}
+
+function updateSummary() {
+  const reason = document.getElementById('reason-input').value.trim();
+  const hint = document.getElementById('sum-hint');
+  if (selectedSlot) {
+    document.getElementById('sum-date').textContent =
+      HC.parseDate(selectedDate).toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'long' }).replace(',', '');
+    document.getElementById('sum-time').textContent = HC.slotRange(selectedSlotTime).replace('–', ' – ') + ' Fiji';
+  } else {
+    document.getElementById('sum-date').textContent = 'Choose a date';
+    document.getElementById('sum-time').textContent = 'and an available time';
+  }
+  document.getElementById('book-btn').disabled = bookingLocked || !selectedSlot || !reason;
+  if (bookingLocked) hint.textContent = 'Booking is locked until your Health Services Fee receipt is verified.';
+  else if (!selectedSlot) hint.textContent = 'Select an available time to continue. Availability is verified again at confirmation.';
+  else if (!reason) hint.textContent = 'Enter the required reason to continue. Availability is verified again at confirmation.';
+  else hint.textContent = 'Review the details above, then confirm. Availability is verified again at confirmation.';
+}
+
+function submitBooking() {
   const toast = document.getElementById('book-toast');
   const reason = document.getElementById('reason-input').value.trim();
-  const date = document.getElementById('date-input').value;
-
-  if (!selectedSlot) {
-    toast.textContent = 'Select an available slot first.';
+  if (!reason) { setReasonError(true); updateSummary(); return; }
+  if (!selectedSlot) return;
+  if (HC.isSlotPast(selectedDate, selectedSlotTime || '')) {
     toast.className = 'toast err';
-    return;
-  }
-  if (isSlotPast(date, selectedSlotTime || '')) {
-    toast.textContent = "That time has already passed. Please pick a later slot.";
-    toast.className = 'toast err';
+    toast.textContent = 'That time has already passed. Please pick a later slot.';
     loadSlots();
     return;
   }
-  if (!reason) {
-    toast.textContent = 'Reason for visit is required.';
-    toast.className = 'toast err';
-    return;
-  }
 
+  const btn = document.getElementById('book-btn');
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner"></span>Confirming…';
   toast.textContent = '';
-  document.getElementById('confirm-date').textContent = document.getElementById('date-input').value;
-  document.getElementById('confirm-time').textContent = selectedSlotTime || '';
-  document.getElementById('confirm-reason').textContent = reason;
-  document.getElementById('confirm-toast').textContent = '';
-  document.getElementById('confirm-modal-overlay').hidden = false;
-}
-
-function closeConfirmModal() {
-  document.getElementById('confirm-modal-overlay').hidden = true;
-}
-
-// Step 2: the student has reviewed and confirmed - now actually book it.
-function submitBooking() {
-  const toast = document.getElementById('book-toast');
-  const confirmToast = document.getElementById('confirm-toast');
-  const reason = document.getElementById('reason-input').value.trim();
 
   fetch('/student/book', {
     method: 'POST',
@@ -672,202 +880,217 @@ function submitBooking() {
   })
   .then(res => res.json())
   .then(data => {
+    btn.textContent = 'Confirm booking';
     if (data.error) {
-      confirmToast.textContent = data.error;
-      confirmToast.className = 'toast err';
+      if (/no longer available/i.test(data.error)) {
+        document.getElementById('conflict-card').hidden = false;
+        loadSlots();
+      } else {
+        toast.className = 'toast err';
+        toast.textContent = data.error;
+      }
+      updateSummary();
       return;
     }
-    closeConfirmModal();
-    toast.textContent = 'Appointment confirmed for ' + data.timeSlot + '.'
-      + (data.emergencyDelay ? ' Note: there is an emergency at the Health Center today, so your visit may be delayed.' : '');
-    toast.className = 'toast ok';
-    checkTodayDelay();
-    pollNotifCount();
     document.getElementById('reason-input').value = '';
     selectedSlot = null;
     selectedSlotTime = null;
-    loadSlots();
+    updateSummary();
     refreshAppointments();
+    loadAvailabilityToday();
+    checkTodayDelay();
+    pollNotifCount();
+    showFlash(`Appointment confirmed for ${HC.fmtDate(data.date, 'long')} · ${HC.slotRange(data.timeSlot)}.`
+      + (data.emergencyDelay ? ' There is an emergency at the clinic today, so your visit may start later.' : ''));
+    location.hash = '#appointments';
   })
   .catch(() => {
-    confirmToast.textContent = 'Unable to reach the server.';
-    confirmToast.className = 'toast err';
+    btn.textContent = 'Confirm booking';
+    updateSummary();
+    toast.className = 'toast err';
+    toast.textContent = 'Unable to reach the server.';
   });
 }
 
-function switchApptTab(tab) {
-  document.getElementById('tab-btn-upcoming').classList.toggle('active', tab === 'upcoming');
-  document.getElementById('tab-btn-history').classList.toggle('active', tab === 'history');
-  document.getElementById('appt-list').style.display = tab === 'upcoming' ? 'block' : 'none';
-  document.getElementById('history-list').style.display = tab === 'history' ? 'block' : 'none';
-  if (tab === 'history') loadHistory();
-}
-
-function loadHistory() {
-  const listEl = document.getElementById('history-list');
-  listEl.innerHTML = '<div class="empty-state">Loading…</div>';
-  fetch('/student/history', { headers: { 'Authorization': authHeader } })
-    .then(res => res.json())
-    .then(history => {
-      // Only past encounters belong here - upcoming/in-progress visits
-      // already show under the Upcoming tab.
-      const past = history.filter(h => h.status !== 'BOOKED' && h.status !== 'CHECKED_IN');
-      if (past.length === 0) {
-        listEl.innerHTML = '<div class="empty-state">No past visits on record.</div>';
-        return;
-      }
-      listEl.innerHTML = past.map(h => {
-        let detail = '';
-        if (h.status === 'COMPLETED') {
-          detail = (h.diagnosis ? 'Diagnosis: ' + escapeHtml(h.diagnosis) : '') +
-                   (h.consultedByDoctor ? ' · Seen by ' + escapeHtml(h.consultedByDoctor) : '');
-        }
-        return `
-          <div class="history-card">
-            <div class="h-top">
-              <span class="h-date">${escapeHtml(h.appointmentDate)}${h.timeSlot ? ' · ' + escapeHtml(h.timeSlot) : ''}</span>
-              <span class="status-tag ${escapeHtml(h.status)}">${escapeHtml(h.status)}</span>
-            </div>
-            <div class="h-detail">${escapeHtml(h.visitReason)}</div>
-            ${detail ? `<div class="h-detail">${detail}</div>` : ''}
-          </div>
-        `;
-      }).join('');
-    })
-    .catch(() => { listEl.innerHTML = '<div class="empty-state">Unable to load medical history.</div>'; });
-}
-
+// ---------- My appointments ----------
 function refreshAppointments() {
   fetch('/student/my-appointments', { headers: { 'Authorization': authHeader } })
     .then(res => res.json())
-    .then(renderAppointments)
+    .then(list => {
+      upcoming = list.slice().sort((a, b) => apptSortKey(a).localeCompare(apptSortKey(b)));
+      renderAppointments();
+      renderNextAppointment();
+    })
     .catch(() => {});
 }
 
-function renderAppointments(appointments) {
-  const listEl = document.getElementById('appt-list');
-  const countEl = document.getElementById('appt-count');
-  countEl.textContent = appointments.length + (appointments.length === 1 ? ' upcoming' : ' upcoming');
-
-  if (appointments.length === 0) {
-    listEl.innerHTML = '<div class="empty-state">You have no upcoming appointments.</div>';
-    return;
-  }
-
-  listEl.innerHTML = appointments.map(a => `
-    <div class="appt-card">
-      <div class="appt-top">
-        <span class="doc">${escapeHtml(a.appointmentDate)}${a.timeSlot ? ' · ' + escapeHtml(a.timeSlot) : ''}</span>
-      </div>
-      <div class="appt-meta">${escapeHtml(a.visitReason)}</div>
-      <div class="appt-actions">
-        <button class="btn-small neutral" onclick="openRescheduleModal(${a.id}, '${escapeHtml(a.appointmentDate)}', '${escapeHtml(a.timeSlot || '')}')">Reschedule</button>
-        <button class="btn-small danger" onclick="cancelAppointment(${a.id})">Cancel</button>
-      </div>
-    </div>
-  `).join('');
+function switchApptTab(tab) {
+  document.getElementById('tab-upcoming').classList.toggle('active', tab === 'upcoming');
+  document.getElementById('tab-past').classList.toggle('active', tab === 'past');
+  document.getElementById('appt-list').hidden = tab !== 'upcoming';
 }
 
-function cancelAppointment(appointmentId) {
-  if (!confirm('Cancel this appointment?')) return;
+function renderAppointments() {
+  document.getElementById('tab-upcoming').textContent = `Upcoming (${upcoming.length})`;
+  const listEl = document.getElementById('appt-list');
+  if (!upcoming.length) {
+    listEl.innerHTML = '<div class="card"><div class="empty">You have no upcoming appointments.<div style="margin-top:12px;"><a class="btn btn-primary btn-sm" href="#book">Book an appointment</a></div></div></div>';
+    return;
+  }
+  const today = HC.todayIso();
+  listEl.innerHTML = upcoming.map(a => {
+    const isToday = a.appointmentDate === today;
+    const when = (isToday ? 'Today, ' + HC.fmtDate(a.appointmentDate) : HC.fmtDate(a.appointmentDate, 'long'))
+      + ' · ' + (HC.parseSlot(a.timeSlot).start || a.timeSlot);
+    let note = '';
+    if (delayInfo.delayed) {
+      note = isToday
+        ? '<p class="ac-note warn">Same-day booking · may start later, remains booked</p>'
+        : '<p class="ac-note teal">Future booking · not affected by today’s emergency</p>';
+    }
+    return `
+      <div class="card appt-card">
+        <div class="ac-head">
+          <div class="ac-when">${esc(when)}</div>
+          <span class="pill teal">Booked</span>
+        </div>
+        <p class="ac-doc">${a.doctorName ? esc(doctorLabel(a.doctorName)) + ' · ' : ''}General consultation</p>
+        <p class="ac-meta">A-${esc(a.id)} · ${esc(HC.slotRange(a.timeSlot))} Fiji · Laucala Campus</p>
+        <hr class="divider">
+        <div class="reason-row">
+          <div class="rr-text">
+            <div class="meta-label">Reason for visit</div>
+            <p>${esc(a.visitReason)}</p>
+            ${note}
+          </div>
+          <div class="btn-row" style="flex-wrap:nowrap;">
+            <button class="btn" onclick="openReschedule(${a.id})">Reschedule</button>
+            <button class="btn btn-ghost" onclick="openCancel(${a.id})">Cancel</button>
+          </div>
+        </div>
+      </div>`;
+  }).join('');
+}
 
+function renderPastTable() {
+  const past = pastVisits();
+  document.getElementById('tab-past').textContent = `Past (${past.length})`;
+  const body = document.getElementById('past-body');
+  if (!past.length) {
+    body.innerHTML = '<tr><td colspan="4" class="muted">No past appointments.</td></tr>';
+    return;
+  }
+  body.innerHTML = past.map(h => `
+    <tr>
+      <td>${esc(HC.fmtDate(h.appointmentDate, 'dm'))} · ${esc(HC.parseSlot(h.timeSlot).start || h.timeSlot || '')}</td>
+      <td>${h.consultedByDoctor ? esc(doctorLabel(h.consultedByDoctor)) : '<span class="muted">—</span>'}</td>
+      <td>${statusLabel(h.status)}</td>
+      <td><a href="#history?id=${h.id}">View visit →</a></td>
+    </tr>`).join('');
+}
+
+function closeSidePanels() {
+  cancelId = null;
+  rescheduleAppointmentId = null;
+  document.getElementById('cancel-card').hidden = true;
+  document.getElementById('reschedule-card').hidden = true;
+  document.getElementById('manage-help').hidden = false;
+}
+
+function showSidePanel(id) {
+  document.getElementById('cancel-card').hidden = id !== 'cancel-card';
+  document.getElementById('reschedule-card').hidden = id !== 'reschedule-card';
+  document.getElementById('manage-help').hidden = true;
+  if (window.innerWidth <= 1080) document.getElementById(id).scrollIntoView({ behavior: 'smooth' });
+}
+
+let cancelId = null;
+function openCancel(id) {
+  const a = upcoming.find(x => x.id === id);
+  if (!a) return;
+  cancelId = id;
+  document.getElementById('cancel-when').textContent = HC.fmtDate(a.appointmentDate) + ' · ' + (HC.parseSlot(a.timeSlot).start || a.timeSlot);
+  document.getElementById('cancel-toast').textContent = '';
+  showSidePanel('cancel-card');
+}
+
+function confirmCancel() {
+  const btn = document.getElementById('cancel-confirm-btn');
+  const toast = document.getElementById('cancel-toast');
+  btn.disabled = true;
   fetch('/student/cancel', {
     method: 'POST',
     headers: { 'Authorization': authHeader, 'Content-Type': 'application/json' },
-    body: JSON.stringify({ appointmentId })
+    body: JSON.stringify({ appointmentId: cancelId })
   })
   .then(res => res.json())
-  .then(() => {
+  .then(data => {
+    btn.disabled = false;
+    if (data.error) { toast.className = 'toast err'; toast.textContent = data.error; return; }
+    closeSidePanels();
+    showFlash('Appointment cancelled. The slot has been released.');
+    onView('appointments');
     refreshAppointments();
-    loadSlots();
+    loadHistory();
+    loadAvailabilityToday();
   })
-  .catch(() => {});
+  .catch(() => { btn.disabled = false; toast.className = 'toast err'; toast.textContent = 'Unable to reach the server.'; });
 }
 
 let rescheduleAppointmentId = null;
 let rescheduleSelectedSlotId = null;
 
-function openRescheduleModal(appointmentId, date, timeSlot) {
-  rescheduleAppointmentId = appointmentId;
+function openReschedule(id) {
+  const a = upcoming.find(x => x.id === id);
+  if (!a) return;
+  rescheduleAppointmentId = id;
   rescheduleSelectedSlotId = null;
-  document.getElementById('reschedule-current').textContent = date + (timeSlot ? ' · ' + timeSlot : '');
-  document.getElementById('reschedule-new-row').style.display = 'none';
+  document.getElementById('reschedule-current').textContent = HC.fmtDate(a.appointmentDate, 'dm') + ' · ' + HC.slotRange(a.timeSlot);
+  document.getElementById('reschedule-new-row').hidden = true;
   document.getElementById('reschedule-confirm-btn').disabled = true;
   document.getElementById('reschedule-toast').textContent = '';
-
   const dateInput = document.getElementById('reschedule-date-input');
-  const tomorrow = new Date();
-  tomorrow.setDate(tomorrow.getDate() + 1);
-  dateInput.min = localDateString(new Date());
-  dateInput.value = localDateString(tomorrow);
+  dateInput.min = HC.todayIso();
+  dateInput.value = a.appointmentDate >= HC.todayIso() ? a.appointmentDate : HC.todayIso();
   loadRescheduleSlots();
-  document.getElementById('reschedule-modal-overlay').hidden = false;
+  showSidePanel('reschedule-card');
 }
 
-function closeRescheduleModal() {
-  document.getElementById('reschedule-modal-overlay').hidden = true;
-}
-
-// Loads real-time availability for the chosen new date - always fetched
-// fresh from the server, so a slot someone else just took shows as booked.
+// Always fetched fresh, so a slot someone else just took shows as booked.
 function loadRescheduleSlots() {
   const date = document.getElementById('reschedule-date-input').value;
   const container = document.getElementById('reschedule-slot-container');
   rescheduleSelectedSlotId = null;
-  document.getElementById('reschedule-new-row').style.display = 'none';
+  document.getElementById('reschedule-new-row').hidden = true;
   document.getElementById('reschedule-confirm-btn').disabled = true;
   if (!date) return;
-  if (isPastDate(date)) {
-    container.innerHTML = '<div class="empty-state">You can\'t reschedule to a date in the past. Please pick today or a later date.</div>';
+  if (date < HC.todayIso()) {
+    container.innerHTML = '<div class="empty">You can’t reschedule to a past date.</div>';
     return;
   }
-
-  fetch('/schedule/available?date=' + date)
-    .then(res => {
-      if (res.status === 404) return [];
-      if (!res.ok) throw new Error();
-      return res.json();
-    })
+  fetchSlots(date)
     .then(slots => {
-      if (!Array.isArray(slots) || slots.length === 0) {
-        container.innerHTML = '<div class="empty-state">No available appointments for the selected date.</div>';
-        return;
-      }
-      const seenTimes = new Set();
-      const uniqueSlots = slots.filter(s => {
-        if (seenTimes.has(s.timeSlot)) return false;
-        seenTimes.add(s.timeSlot);
-        return true;
-      });
-      uniqueSlots.sort((a, b) => timeSlotSortKey(a.timeSlot) - timeSlotSortKey(b.timeSlot));
-
-      container.innerHTML = '<div class="slot-list">' + uniqueSlots.map(s => renderSlotOption(s, date, 'pickRescheduleSlot')).join('') + '</div>';
+      if (!slots.length) { container.innerHTML = '<div class="empty">No consultations on this date.</div>'; return; }
+      container.innerHTML = '<div class="slot-grid mini-slot-grid">' + uniqueSlots(slots).map(s => slotTile(s, date, 'pickRescheduleSlot')).join('') + '</div>';
     })
-    .catch(() => {
-      container.innerHTML = '<div class="empty-state">Unable to load availability.</div>';
-    });
+    .catch(() => { container.innerHTML = '<div class="empty">Unable to load availability.</div>'; });
 }
 
 function pickRescheduleSlot(slotId, el) {
   rescheduleSelectedSlotId = slotId;
-  document.querySelectorAll('#reschedule-slot-container .slot-option').forEach(o => o.classList.remove('selected'));
-  el.classList.add('selected');
-
+  markSelectedTile(document.getElementById('reschedule-slot-container'), el);
   const date = document.getElementById('reschedule-date-input').value;
-  const time = el.querySelector('.time').textContent;
-  document.getElementById('reschedule-new-time').textContent = date + ' · ' + time;
-  document.getElementById('reschedule-new-row').style.display = 'flex';
+  document.getElementById('reschedule-new-time').textContent = HC.fmtDate(date, 'dm') + ' · ' + HC.slotRange(el.dataset.time);
+  document.getElementById('reschedule-new-row').hidden = false;
   document.getElementById('reschedule-confirm-btn').disabled = false;
 }
 
-// The explicit confirm step: nothing changes on the server until this is
-// clicked - closing the modal or picking "Keep Original" leaves the
-// existing appointment untouched.
+// Nothing changes on the server until this is clicked - "Keep current time"
+// leaves the existing appointment untouched.
 function confirmReschedule() {
   const toast = document.getElementById('reschedule-toast');
   const btn = document.getElementById('reschedule-confirm-btn');
   btn.disabled = true;
-
   fetch('/student/reschedule', {
     method: 'POST',
     headers: { 'Authorization': authHeader, 'Content-Type': 'application/json' },
@@ -876,44 +1099,368 @@ function confirmReschedule() {
   .then(res => res.json())
   .then(data => {
     if (data.error) {
-      toast.textContent = data.error;
       toast.className = 'toast err';
-      btn.disabled = false;
+      toast.textContent = data.error;
+      if (/no longer available/i.test(data.error)) loadRescheduleSlots(); else btn.disabled = false;
       return;
     }
-    toast.textContent = 'Appointment rescheduled to ' + data.newDate + ' at ' + data.newTimeSlot + '.'
-      + (data.emergencyDelay ? ' Note: there is an emergency at the Health Center today, so your visit may be delayed.' : '');
+    closeSidePanels();
+    showFlash(`Appointment moved to ${HC.fmtDate(data.newDate, 'long')} · ${HC.slotRange(data.newTimeSlot)}.`
+      + (data.emergencyDelay ? ' There is an emergency at the clinic today, so your visit may start later.' : ''));
+    onView('appointments');
+    refreshAppointments();
+    loadAvailabilityToday();
     checkTodayDelay();
     pollNotifCount();
-    toast.className = 'toast ok';
-    refreshAppointments();
-    loadSlots();
-    setTimeout(closeRescheduleModal, 1500);
+  })
+  .catch(() => { toast.className = 'toast err'; toast.textContent = 'Unable to reach the server.'; btn.disabled = false; });
+}
+
+// ---------- Medical history ----------
+function loadHistory() {
+  fetch('/student/history', { headers: { 'Authorization': authHeader } })
+    .then(res => res.json())
+    .then(list => {
+      visitHistory = list;
+      renderRecentVisits();
+      renderPastTable();
+      if (Shell.currentView() === 'history') renderHistory();
+    })
+    .catch(() => {});
+}
+
+// Only past encounters belong here - upcoming/in-progress visits show under My appointments.
+function pastVisits() {
+  return visitHistory
+    .filter(h => h.status !== 'BOOKED' && h.status !== 'CHECKED_IN')
+    .sort((a, b) => apptSortKey(b).localeCompare(apptSortKey(a)));
+}
+
+let selectedVisitId = null;
+function renderHistory() {
+  const visits = pastVisits();
+  const completed = visits.filter(v => v.status === 'COMPLETED').length;
+  document.getElementById('visit-count').textContent =
+    `${completed} completed visit${completed === 1 ? '' : 's'}` + (visits.length > completed ? ` · ${visits.length - completed} other` : '');
+  const listEl = document.getElementById('visit-list');
+  if (!visits.length) {
+    listEl.innerHTML = '<div class="empty">No past visits on record.</div>';
+    document.getElementById('visit-summary').innerHTML = '<div class="empty">Your visit summaries will appear here after your first consultation.</div>';
+    return;
+  }
+  const wanted = Number(Shell.hashParam('id'));
+  if (wanted && visits.some(v => v.id === wanted)) selectedVisitId = wanted;
+  if (!visits.some(v => v.id === selectedVisitId)) selectedVisitId = visits[0].id;
+
+  listEl.innerHTML = visits.map(v => `
+    <button type="button" class="list-item${v.id === selectedVisitId ? ' selected' : ''}" onclick="selectVisit(${v.id})">
+      <div class="li-title">${esc(HC.fmtDate(v.appointmentDate, 'full'))}</div>
+      <div class="li-sub">${esc(v.visitReason)}</div>
+      <div class="li-meta">${v.consultedByDoctor ? esc(doctorLabel(v.consultedByDoctor)) + ' · ' : ''}V-${esc(v.id)}</div>
+      <div class="li-foot">${v.id === selectedVisitId ? HC.statusPill(v.status) : '<span class="btn-link">Open summary →</span>'}</div>
+    </button>`).join('');
+
+  renderVisitSummary(visits.find(v => v.id === selectedVisitId));
+}
+
+function selectVisit(id) {
+  selectedVisitId = id;
+  renderHistory();
+  if (window.innerWidth <= 1080) document.getElementById('visit-summary').scrollIntoView({ behavior: 'smooth' });
+}
+
+function renderVisitSummary(v) {
+  const box = document.getElementById('visit-summary');
+  const temp = v.temperature ? (/°/.test(v.temperature) ? v.temperature : v.temperature + ' °C') : null;
+  const bp = v.bloodPressure ? (/mmhg/i.test(v.bloodPressure) ? v.bloodPressure : v.bloodPressure.replace('/', ' / ') + ' mmHg') : null;
+  const nurse = (v.temperature || v.bloodPressure || v.presentingComplaint)
+    ? `<div class="metric-row">
+         ${bp ? `<div class="metric"><strong>${esc(bp)}</strong><span>Blood pressure</span></div>` : ''}
+         ${temp ? `<div class="metric"><strong>${esc(temp)}</strong><span>Temperature</span></div>` : ''}
+       </div>
+       ${v.presentingComplaint ? `<p>Presenting complaint: ${esc(v.presentingComplaint)}</p>` : ''}`
+    : '<p class="muted">No nurse findings were recorded for this visit.</p>';
+  const doctor = v.status === 'COMPLETED'
+    ? `${v.consultedByDoctor ? `<p class="rs-meta">Recorded by ${esc(doctorLabel(v.consultedByDoctor))}</p>` : ''}
+       <p><strong>Diagnosis: ${esc(v.diagnosis || '—')}</strong></p>
+       ${v.consultationNotes ? `<p>Consultation notes: ${esc(v.consultationNotes)}</p>` : ''}`
+    : `<p class="muted">No consultation was recorded — this visit was ${v.status === 'NO_SHOW' ? 'marked as a no-show' : 'cancelled'}.</p>`;
+
+  box.innerHTML = `
+    <h2>Visit summary · ${esc(HC.fmtDate(v.appointmentDate, 'day'))}</h2>
+    <p class="card-sub">V-${esc(v.id)} · Appointment ${esc(HC.parseSlot(v.timeSlot).start || v.timeSlot || '—')} Fiji</p>
+    <div class="pill-row" style="margin-top:14px;">
+      ${HC.statusPill(v.status)}
+      <span class="small muted">General consultation${v.consultedByDoctor ? ' · ' + esc(doctorLabel(v.consultedByDoctor)) : ''}</span>
+    </div>
+    <hr class="divider">
+    <div class="record-section">
+      <div class="rs-head"><h3>Student reason for visit</h3><span class="pill">Read only</span></div>
+      <p class="rs-meta">Entered by you</p>
+      <p>${esc(v.visitReason)}</p>
+    </div>
+    <hr class="record-sep">
+    <div class="record-section">
+      <div class="rs-head"><h3>Nurse findings</h3><span class="pill">Read only</span></div>
+      <p class="rs-meta">Recorded at check-in</p>
+      ${nurse}
+    </div>
+    <hr class="record-sep">
+    <div class="record-section">
+      <div class="rs-head"><h3>Doctor diagnosis &amp; notes</h3><span class="pill">Read only</span></div>
+      ${doctor}
+    </div>
+    <hr class="divider">
+    <p class="tiny muted">This is a completed record and cannot be edited from your student account. Speak with clinic staff if you need clarification.</p>`;
+}
+
+// ---------- Alerts ----------
+function pollNotifCount() {
+  fetch('/student/notifications/unread-count', { headers: { 'Authorization': authHeader } })
+    .then(res => res.ok ? res.json() : null)
+    .then(data => {
+      const n = data && data.count ? data.count : 0;
+      if (n !== notifications.filter(x => !x.read).length) loadNotifications();
+      else Shell.setAlertCount(n);
+    })
+    .catch(() => {});
+}
+
+function loadNotifications() {
+  fetch('/student/notifications', { headers: { 'Authorization': authHeader } })
+    .then(res => res.json())
+    .then(items => {
+      notifications = items;
+      Shell.setAlertCount(items.filter(n => !n.read).length);
+      renderAlerts();
+      renderOverviewAlerts();
+      showDelayPopupIfNew();
+    })
+    .catch(() => {
+      document.getElementById('alert-list').innerHTML = '<div class="card"><div class="empty">Unable to load alerts.</div></div>';
+    });
+}
+
+function alertTitle(n) {
+  return n.type === 'DELAY_NOTICE' ? 'Your appointment today may start later' : 'Health Center update';
+}
+function alertIcon(n) {
+  return HC.icon(n.type === 'DELAY_NOTICE' ? 'clock' : 'file');
+}
+
+function setAlertFilter(f) {
+  alertFilter = f;
+  document.querySelectorAll('[data-filter]').forEach(t => t.classList.toggle('active', t.dataset.filter === f));
+  renderAlerts();
+}
+
+function renderAlerts() {
+  const unread = notifications.filter(n => !n.read);
+  const read = notifications.filter(n => n.read);
+  document.getElementById('cnt-all').textContent = notifications.length;
+  document.getElementById('cnt-unread').textContent = unread.length;
+  document.getElementById('cnt-read').textContent = read.length;
+  document.getElementById('side-unread').textContent = `${unread.length} unread alert${unread.length === 1 ? '' : 's'}`;
+  const list = alertFilter === 'unread' ? unread : alertFilter === 'read' ? read : notifications;
+  const el = document.getElementById('alert-list');
+  if (!list.length) {
+    el.innerHTML = `<div class="card"><div class="empty">${alertFilter === 'unread' ? 'You have no unread alerts.' : 'No alerts yet.'}</div></div>`;
+    return;
+  }
+  el.innerHTML = list.map(n => `
+    <div class="alert-card${n.read ? '' : ' unread'}">
+      <div class="ac-icon">${alertIcon(n)}</div>
+      <div>
+        <div class="ac-title">${esc(alertTitle(n))}</div>
+        <div class="ac-msg">${esc(n.message)}</div>
+        <div class="ac-foot">
+          <span class="ac-time">${esc(HC.fmtDateTime(n.createdAt))}</span>
+          ${n.read ? '<span class="pill">Read</span>' : '<span class="pill teal">Unread</span>'}
+        </div>
+      </div>
+      <div class="ac-side">
+        ${n.read ? '' : `<span class="dot" style="margin-top:6px;"></span><button class="btn btn-sm" onclick="markNotifRead(${n.id})">Mark as read</button>`}
+      </div>
+    </div>`).join('');
+}
+
+function renderOverviewAlerts() {
+  document.getElementById('ov-unread-pill').textContent = notifications.filter(n => !n.read).length + ' unread';
+  const box = document.getElementById('ov-alerts');
+  const items = notifications.slice(0, 2);
+  if (!items.length) { box.innerHTML = '<p class="small muted">No alerts yet.</p>'; return; }
+  box.innerHTML = items.map(n => `
+    <div class="alert-mini${n.read ? '' : ' unread'}">
+      <div class="am-title">${n.read ? '' : '<span class="dot"></span>'}${esc(alertTitle(n))}</div>
+      <div class="am-msg">${esc(n.message)}</div>
+      <div class="am-time">${esc(HC.fmtDateTime(n.createdAt))} · ${n.read ? 'Read' : 'Unread'}</div>
+    </div>`).join('');
+}
+
+function markNotifRead(id) {
+  fetch('/student/notifications/' + id + '/read', { method: 'POST', headers: { 'Authorization': authHeader } })
+    .then(() => loadNotifications())
+    .catch(() => {});
+}
+
+// ---------- Today's delay ----------
+// Shown only when another student's emergency today may delay THIS student's
+// appointment today. Bookings on other days never show it.
+function checkTodayDelay() {
+  fetch('/student/today-delay', { headers: { 'Authorization': authHeader } })
+    .then(res => res.ok ? res.json() : null)
+    .then(data => {
+      const was = delayInfo.delayed;
+      delayInfo = data && data.delayed ? data : { delayed: false };
+      document.getElementById('delay-banner').hidden = !delayInfo.delayed;
+      if (delayInfo.delayed) {
+        const time = HC.parseSlot(delayInfo.timeSlot).start;
+        document.getElementById('delay-banner-title').textContent =
+          time ? `Your ${time} appointment today may start later` : 'Today’s appointment may start later';
+        document.getElementById('delay-banner-text').textContent =
+          'An emergency patient is being seen first at the clinic today. Your booking remains in place and you’ll be seen once the doctor is free. Appointments on other days are not affected.';
+      }
+      document.getElementById('book-delay').hidden = !(selectedDate === HC.todayIso() && delayInfo.delayed);
+      if (was !== delayInfo.delayed) { renderAppointments(); renderNextAppointment(); }
+    })
+    .catch(() => {});
+}
+
+// Pops up once per same-day delay notice, on whatever page the student is on.
+// Closing it does not mark the alert as read - that stays an explicit action
+// on the Alerts page.
+const SHOWN_DELAY_KEY = 'shownDelayNoticeIds';
+function loadShownDelayIds() {
+  try { return new Set(JSON.parse(localStorage.getItem(SHOWN_DELAY_KEY) || '[]')); } catch (e) { return new Set(); }
+}
+
+function showDelayPopupIfNew() {
+  const overlay = document.getElementById('delay-modal-overlay');
+  if (!overlay.hidden) return;
+  const shown = loadShownDelayIds();
+  const today = HC.todayIso();
+  const n = notifications.find(x => x.type === 'DELAY_NOTICE' && !x.read && !shown.has(x.id)
+    && x.createdAt && x.createdAt.slice(0, 10) === today);
+  if (!n) return;
+
+  shown.add(n.id);
+  try { localStorage.setItem(SHOWN_DELAY_KEY, JSON.stringify([...shown].slice(-200))); } catch (e) {}
+
+  const appt = upcoming.find(a => a.id === n.appointmentId) || upcoming.find(a => a.appointmentDate === today);
+  const time = appt ? HC.parseSlot(appt.timeSlot).start : '';
+  document.getElementById('delay-modal-title').textContent =
+    time ? `Your ${time} appointment today may start later` : 'Your appointment today may start later';
+  document.getElementById('delay-modal-text').textContent =
+    'An emergency patient is being seen first at the Health Center today, so your appointment may be delayed. You’ll be seen once the doctor is free — thank you for your patience.';
+  overlay.hidden = false;
+  checkTodayDelay();
+}
+
+function closeDelayModal() {
+  document.getElementById('delay-modal-overlay').hidden = true;
+}
+
+// ---------- Emergency request ----------
+// One emergency alert per day (enforced server-side too). While sending, and
+// once sent, the controls are locked so repeated clicks can't send twice.
+let emergencyAlertSending = false;
+let emergencyAlertSent = false;
+
+function loadEmergencyAlertStatus() {
+  fetch('/student/emergency-alert/status', { headers: { 'Authorization': authHeader } })
+    .then(res => res.ok ? res.json() : null)
+    .then(data => { if (data && data.sentToday) markEmergencyAlertSent(data.sentAt); })
+    .catch(() => {});
+}
+
+// Swaps the form for a clear "already sent" panel, so a locked form is never
+// left looking editable.
+function markEmergencyAlertSent(sentAt) {
+  emergencyAlertSent = true;
+  emergencyAlertSending = false;
+  const time = HC.timeOf(sentAt || new Date().toISOString());
+  const pill = document.getElementById('em-state-pill');
+  pill.textContent = 'Today’s request used';
+  pill.className = 'pill';
+  document.getElementById('em-state-sub').textContent = `You sent an emergency request today at ${time} Fiji.`;
+  document.getElementById('em-locked-title').textContent = `Emergency request sent today at ${time}`;
+  document.getElementById('em-heading').textContent = 'Today’s emergency request';
+  document.getElementById('em-form').hidden = true;
+  document.getElementById('em-locked').hidden = false;
+  document.getElementById('em-confirm').hidden = true;
+  const overviewBtn = document.querySelector('.urgent-card .btn-danger');
+  overviewBtn.textContent = 'View today’s request';
+  overviewBtn.className = 'btn btn-block';
+}
+
+function reviewEmergency() {
+  if (emergencyAlertSent || emergencyAlertSending) return;
+  const what = document.getElementById('emergencyReason').value.trim();
+  const where = document.getElementById('emergencyLocation').value.trim();
+  const result = document.getElementById('emergencyResult');
+  document.getElementById('em-what-field').classList.toggle('invalid', !what);
+  document.getElementById('em-where-field').classList.toggle('invalid', !where);
+  if (!what || !where) {
+    result.className = 'form-msg err';
+    result.textContent = 'Please describe what is happening and where you are now.';
+    return;
+  }
+  result.textContent = '';
+  document.getElementById('em-confirm').hidden = false;
+  if (window.innerWidth <= 1080) document.getElementById('em-confirm').scrollIntoView({ behavior: 'smooth' });
+}
+
+function sendEmergencyAlert() {
+  if (emergencyAlertSending || emergencyAlertSent) return;
+  const what = document.getElementById('emergencyReason').value.trim();
+  const where = document.getElementById('emergencyLocation').value.trim();
+  const result = document.getElementById('emergencyResult');
+  const btn = document.getElementById('emergency-send-btn');
+  const back = document.getElementById('em-back-btn');
+  const pill = document.getElementById('em-state-pill');
+
+  emergencyAlertSending = true;
+  btn.disabled = true;
+  back.disabled = true;
+  btn.innerHTML = '<span class="spinner"></span>Sending request…';
+  pill.textContent = 'Sending';
+
+  const resetSending = () => {
+    emergencyAlertSending = false;
+    btn.disabled = false;
+    back.disabled = false;
+    btn.textContent = 'Send emergency request';
+    pill.textContent = 'Ready to request';
+  };
+
+  fetch('/student/emergency-alert', {
+    method: 'POST',
+    headers: { 'Authorization': authHeader, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ reason: what + ' — Location: ' + where })
+  })
+  .then(res => res.json())
+  .then(data => {
+    if (data.error) {
+      resetSending();
+      result.className = 'form-msg err';
+      result.textContent = data.error;
+      // Already sent earlier today (e.g. from another tab) - lock it.
+      if (/already sent/i.test(data.error)) { result.textContent = ''; loadEmergencyAlertStatus(); }
+      return;
+    }
+    btn.textContent = 'Send emergency request';
+    markEmergencyAlertSent();
   })
   .catch(() => {
-    toast.textContent = 'Unable to reach the server.';
-    toast.className = 'toast err';
-    btn.disabled = false;
+    resetSending();
+    result.className = 'form-msg err';
+    result.textContent = 'Unable to reach the server. If this is an emergency, contact campus security or emergency services directly.';
   });
 }
 
-function toggleAccountMenu() {
-  document.getElementById('account-menu').hidden = !document.getElementById('account-menu').hidden;
-}
-
-function closeAccountMenu() {
-  document.getElementById('account-menu').hidden = true;
-}
-
-document.addEventListener('click', (e) => {
-  const wrap = document.getElementById('account-menu-wrap');
-  if (wrap && !wrap.contains(e.target)) closeAccountMenu();
-});
-
+// ---------- Change password ----------
 function openChangePasswordModal() {
-  document.getElementById('cpCurrentPassword').value = '';
-  document.getElementById('cpNewPassword').value = '';
-  document.getElementById('cpConfirmPassword').value = '';
+  ['cpCurrentPassword', 'cpNewPassword', 'cpConfirmPassword'].forEach(id => { document.getElementById(id).value = ''; });
   document.getElementById('cpResult').textContent = '';
   document.getElementById('change-password-modal-overlay').hidden = false;
 }
@@ -927,17 +1474,8 @@ function submitChangePassword() {
   const newPassword = document.getElementById('cpNewPassword').value;
   const confirmPassword = document.getElementById('cpConfirmPassword').value;
   const resultEl = document.getElementById('cpResult');
-
-  if (!currentPassword || !newPassword) {
-    resultEl.className = 'toast err';
-    resultEl.textContent = 'Both fields are required.';
-    return;
-  }
-  if (newPassword !== confirmPassword) {
-    resultEl.className = 'toast err';
-    resultEl.textContent = 'New password and confirmation do not match.';
-    return;
-  }
+  if (!currentPassword || !newPassword) { resultEl.className = 'toast err'; resultEl.textContent = 'Both fields are required.'; return; }
+  if (newPassword !== confirmPassword) { resultEl.className = 'toast err'; resultEl.textContent = 'New password and confirmation do not match.'; return; }
 
   fetch('/account/change-password', {
     method: 'POST',
@@ -946,144 +1484,13 @@ function submitChangePassword() {
   })
   .then(res => res.json())
   .then(data => {
-    if (data.error) {
-      resultEl.className = 'toast err';
-      resultEl.textContent = data.error;
-      return;
-    }
+    if (data.error) { resultEl.className = 'toast err'; resultEl.textContent = data.error; return; }
     resultEl.className = 'toast ok';
     resultEl.textContent = data.message;
     setTimeout(closeChangePasswordModal, 1500);
   })
-  .catch(() => {
-    resultEl.className = 'toast err';
-    resultEl.textContent = 'Unable to reach the server.';
-  });
-}
-
-// A student may send one emergency alert per day (enforced server-side too).
-// Once it's sent - or while it's being sent - the buttons are locked so a
-// panicked double/triple click can never fire more than one request.
-let emergencyAlertSending = false;
-let emergencyAlertSent = false;
-
-const EMERGENCY_FAB_LABEL = '🚨 Emergency';
-const EMERGENCY_SEND_LABEL = '🚨 Send Alert Now';
-
-function loadEmergencyAlertStatus() {
-  fetch('/student/emergency-alert/status', { headers: { 'Authorization': authHeader } })
-    .then(res => res.ok ? res.json() : null)
-    .then(data => { if (data && data.sentToday) markEmergencyAlertSent(); })
-    .catch(() => {});
-}
-
-function markEmergencyAlertSent() {
-  emergencyAlertSent = true;
-  emergencyAlertSending = false;
-  const fab = document.getElementById('emergency-fab');
-  fab.disabled = true;
-  fab.classList.add('sent');
-  fab.textContent = '✓ Alert sent – help is on the way';
-  fab.title = "You've already alerted the Health Center today. If this is life-threatening, call campus security or emergency services.";
-  const btn = document.getElementById('emergency-send-btn');
-  btn.disabled = true;
-  btn.textContent = '✓ Alert Sent';
-}
-
-function setEmergencySending(sending) {
-  emergencyAlertSending = sending;
-  const fab = document.getElementById('emergency-fab');
-  const btn = document.getElementById('emergency-send-btn');
-  document.getElementById('emergencyReason').disabled = sending;
-  fab.disabled = sending;
-  btn.disabled = sending;
-  if (sending) {
-    fab.innerHTML = '<span class="spinner"></span>Sending alert…';
-    btn.innerHTML = '<span class="spinner"></span>Sending…';
-  } else {
-    fab.textContent = EMERGENCY_FAB_LABEL;
-    btn.textContent = EMERGENCY_SEND_LABEL;
-  }
-}
-
-function openEmergencyModal() {
-  if (emergencyAlertSent || emergencyAlertSending) return;
-  document.getElementById('emergencyReason').value = '';
-  document.getElementById('emergencyReason').disabled = false;
-  document.getElementById('emergencyResult').textContent = '';
-  document.getElementById('emergencyResult').className = 'toast';
-  document.getElementById('emergency-modal-overlay').hidden = false;
-}
-
-function closeEmergencyModal() {
-  document.getElementById('emergency-modal-overlay').hidden = true;
-}
-
-function sendEmergencyAlert() {
-  if (emergencyAlertSending || emergencyAlertSent) return;
-
-  const reason = document.getElementById('emergencyReason').value.trim();
-  const resultEl = document.getElementById('emergencyResult');
-
-  if (!reason) {
-    resultEl.className = 'toast err';
-    resultEl.textContent = "Please briefly describe what's happening.";
-    return;
-  }
-
-  setEmergencySending(true);
-  fetch('/student/emergency-alert', {
-    method: 'POST',
-    headers: { 'Authorization': authHeader, 'Content-Type': 'application/json' },
-    body: JSON.stringify({ reason })
-  })
-  .then(res => res.json())
-  .then(data => {
-    if (data.error) {
-      setEmergencySending(false);
-      resultEl.className = 'toast err';
-      resultEl.textContent = data.error;
-      // Already alerted earlier today (e.g. from another tab) - lock it.
-      if (/already sent/i.test(data.error)) markEmergencyAlertSent();
-      return;
-    }
-    markEmergencyAlertSent();
-    resultEl.className = 'toast ok';
-    resultEl.textContent = data.message;
-    setTimeout(closeEmergencyModal, 3000);
-  })
-  .catch(() => {
-    setEmergencySending(false);
-    resultEl.className = 'toast err';
-    resultEl.textContent = 'Unable to reach the server. If this is an emergency, call campus security directly.';
-  });
-}
-
-// Shows a banner when another student's emergency today may delay THIS
-// student's appointment today. Bookings on other days never show it.
-function checkTodayDelay() {
-  fetch('/student/today-delay', { headers: { 'Authorization': authHeader } })
-    .then(res => res.ok ? res.json() : null)
-    .then(data => {
-      const banner = document.getElementById('delay-banner');
-      if (!data || !data.delayed) { banner.style.display = 'none'; return; }
-      banner.textContent = '⚠ Emergency at the Health Center today: your appointment today'
-        + (data.timeSlot ? ' (' + data.timeSlot + ')' : '')
-        + ' may be delayed while an emergency patient is prioritized. You\'ll be seen once the doctor is free - thank you for your patience.';
-      banner.style.display = 'block';
-    })
-    .catch(() => {});
-}
-
-function escapeHtml(str) {
-  if (str === null || str === undefined) return '';
-  return String(str)
-    .replaceAll('&', '&amp;')
-    .replaceAll('<', '&lt;')
-    .replaceAll('>', '&gt;')
-    .replaceAll('"', '&quot;');
+  .catch(() => { resultEl.className = 'toast err'; resultEl.textContent = 'Unable to reach the server.'; });
 }
 </script>
-
 </body>
 </html>

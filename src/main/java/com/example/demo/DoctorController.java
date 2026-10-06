@@ -1,5 +1,6 @@
 package com.example.demo;
 
+import java.io.IOException;
 import java.time.LocalDateTime;
 import java.util.Comparator;
 import java.util.LinkedHashMap;
@@ -7,7 +8,11 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
+import org.springframework.http.ContentDisposition;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -29,17 +34,20 @@ public class DoctorController {
     private final DoctorScheduleRepository scheduleRepository;
     private final UserRepository userRepository;
     private final AuditLogService auditLogService;
+    private final ConsultationReportPdfService reportPdfService;
 
     public DoctorController(AppointmentRepository appointmentRepository,
                            CheckInRepository checkInRepository,
                            DoctorScheduleRepository scheduleRepository,
                            UserRepository userRepository,
-                           AuditLogService auditLogService) {
+                           AuditLogService auditLogService,
+                           ConsultationReportPdfService reportPdfService) {
         this.appointmentRepository = appointmentRepository;
         this.checkInRepository = checkInRepository;
         this.scheduleRepository = scheduleRepository;
         this.userRepository = userRepository;
         this.auditLogService = auditLogService;
+        this.reportPdfService = reportPdfService;
     }
 
     // Lower number = seen sooner
@@ -272,6 +280,24 @@ public class DoctorController {
 
         report.put("generatedAt", LocalDateTime.now().toString());
         return report;
+    }
+
+    // Same report as a downloadable PDF file. Goes through the JSON report
+    // above, so the completed-visit check and the audit log entry still apply.
+    @GetMapping("/consultation-report/{appointmentId}/pdf")
+    public ResponseEntity<byte[]> downloadConsultationReport(@PathVariable Long appointmentId, Authentication auth) {
+        Map<String, Object> report = generateConsultationReport(appointmentId, auth);
+        byte[] pdf;
+        try {
+            pdf = reportPdfService.render(report);
+        } catch (IOException e) {
+            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Unable to generate report");
+        }
+        String filename = "consultation-report-A" + appointmentId + "-" + report.get("studentId") + ".pdf";
+        return ResponseEntity.ok()
+                .contentType(MediaType.APPLICATION_PDF)
+                .header(HttpHeaders.CONTENT_DISPOSITION, ContentDisposition.attachment().filename(filename).build().toString())
+                .body(pdf);
     }
 
     private boolean isBlank(String s) {

@@ -25,7 +25,7 @@ public class User {
     // Student registration details (null/unset for non-student accounts)
     private String fullName;
     private String maritalStatus; // "Single" or "Married"
-    private String country; // one of the 12 USP member countries
+    private String country; // one of the 12 USU member countries
     @Column(nullable = false)
     private boolean feePaid = false;
     private Double feeAmount; // Health Services Fee owed, in FJD, set at registration time

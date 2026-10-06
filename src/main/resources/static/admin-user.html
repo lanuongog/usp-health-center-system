@@ -2,135 +2,93 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>Manage User — Laucala Health Center</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Manage Account — USU Health Center</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/css/design-system.css">
 <style>
-:root {
---bg: #F4F8F8;
---panel: #FFFFFF;
---ink: #14213D;
---ink-soft: #5C7070;
---line: #D8E6E6;
---brand: #0D7377;
---brand-dark: #095558;
---brand-soft: #E3F1F1;
-}
-* { box-sizing: border-box; }
-body {
-font-family: -apple-system, Segoe UI, Roboto, Arial, sans-serif;
-background: var(--bg);
-margin: 0;
-color: var(--ink);
-}
-header {
-background: var(--brand);
-color: white;
-padding: 18px 30px;
-font-size: 20px;
-font-weight: 600;
-}
-header a.home-link {
-color: #fff; text-decoration: none; opacity: 0.85;
-margin-right: 14px; font-size: 14px;
-}
-header a.home-link:hover { opacity: 1; text-decoration: underline; }
-.container { max-width: 640px; margin: 30px auto; padding: 0 20px; }
-
-button {
-background: var(--brand); color: white; border: none;
-padding: 10px 18px; border-radius: 6px; cursor: pointer; font-size: 14px;
-}
-button:hover { background: var(--brand-dark); }
-#pageError {
-background: #FDEAEA; color: #B03A2E; border: 1px solid #f2b8b8;
-border-radius: 6px; padding: 10px 14px; font-size: 13px; margin-bottom: 16px; display: none;
-}
-#pageMsg {
-background: #E3F6EC; color: #1E5B3A; border: 1px solid #b9e6cc;
-border-radius: 6px; padding: 10px 14px; font-size: 13px; margin-bottom: 16px; display: none;
-}
-
-.topbar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
-
-.panel {
-background: white; border-radius: 10px; padding: 24px; margin-bottom: 20px;
-box-shadow: 0 1px 4px rgba(0,0,0,0.06);
-}
-.panel h3 { margin-top: 0; color: #17324A; font-size: 15px; }
-
-.info-row { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #eee; font-size: 14px; }
-.info-row:last-child { border-bottom: none; }
-.info-row .label { color: #6b7280; }
-.info-row .value { font-weight: 600; color: #17324A; }
-
-.status-badge { padding: 2px 10px; border-radius: 10px; font-size: 11px; font-weight: 600; }
-.status-badge.active { background: #DCEBFA; color: #17324A; }
-.status-badge.inactive { background: #eee; color: #666; }
-.fee-badge { padding: 2px 10px; border-radius: 10px; font-size: 11px; font-weight: 600; }
-.fee-badge.paid { background: #DCF3E4; color: #1E5B3A; }
-.fee-badge.unpaid { background: #FBEAE8; color: #B23A2E; }
-.fee-badge.pending { background: #FDF2D8; color: #6B4400; }
-
-.action-row { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 16px; }
-.btn-deactivate { background: #B03A2E; }
-.btn-deactivate:hover { background: #8f2e24; }
-.btn-approve { background: #2E8B57; }
-.btn-approve:hover { background: #256E45; }
-.btn-reject { background: #B03A2E; }
-.btn-reject:hover { background: #8f2e24; }
-.btn-secondary { background: #2C5F8A; }
-.btn-secondary:hover { background: #234c70; }
-
-.rejection-note {
-background: #FDEAEA; color: #B03A2E; border: 1px solid #f2b8b8;
-border-radius: 6px; padding: 10px 14px; font-size: 13px; margin-top: 16px;
-}
-.auto-check-note {
-background: #EEF4FB; color: #2C5F8A; border: 1px solid #cfe0f0;
-border-radius: 6px; padding: 10px 14px; font-size: 12.5px; margin-top: 16px;
-}
-
-.empty-state { color: #6b7280; font-size: 14px; }
+.confirm-panel { background: var(--panel-muted); border-radius: var(--radius); padding: 16px; margin-top: 18px; }
+.confirm-panel .cp-head { display: flex; justify-content: space-between; align-items: center; gap: 10px; margin-bottom: 8px; }
+.confirm-panel h3 { font-size: 14px; font-weight: 600; }
+.user-grid { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+@media (max-width: 900px) { .user-grid { grid-template-columns: minmax(0, 1fr); } }
 </style>
 </head>
 <body>
 
-<header><a href="/admin.html?tab=users" class="home-link">← Back to Users</a></header>
-
-<div class="container">
-<div class="topbar">
-<h2 style="color:#17324A;margin:0;">Manage User</h2>
+<div class="app">
+<div class="app-main">
+<main class="app-content">
+  <section data-view="user">
+    <div class="page-head">
+      <div>
+        <a class="back" href="/admin.html#accounts">← Back to accounts</a>
+        <h1 id="user-title">Manage account</h1>
+        <p>Account metadata and payment verification only. No clinical data is shown or granted here.</p>
+      </div>
+    </div>
+    <div id="pageError" class="notice danger" style="margin-bottom:20px;" hidden></div>
+    <div id="pageMsg" class="notice ok" style="margin-bottom:20px;" hidden></div>
+    <div class="grid-2 user-grid" id="content"></div>
+  </section>
+</main>
+</div>
 </div>
 
-<div id="pageError"></div>
-<div id="pageMsg"></div>
-
-<div id="content"></div>
+<!-- Change password (own account) -->
+<div class="modal-overlay" id="change-password-modal-overlay" hidden onclick="if (event.target === this) closeChangePasswordModal()">
+  <div class="modal-box">
+    <div class="modal-head"><h2>Change password</h2><button class="modal-close" aria-label="Close" onclick="closeChangePasswordModal()">✕</button></div>
+    <div class="field"><label for="cpCurrentPassword">Current password</label><input type="password" id="cpCurrentPassword" /></div>
+    <div class="field"><label for="cpNewPassword">New password <span class="unit">(min 6 characters)</span></label><input type="password" id="cpNewPassword" minlength="6" maxlength="100" /></div>
+    <div class="field"><label for="cpConfirmPassword">Confirm new password</label><input type="password" id="cpConfirmPassword" minlength="6" maxlength="100" /></div>
+    <div class="toast" id="cpResult"></div>
+    <div class="btn-row" style="margin-top:16px;">
+      <button class="btn btn-primary" onclick="submitChangePassword()">Change password</button>
+      <button class="btn" onclick="closeChangePasswordModal()">Cancel</button>
+    </div>
+  </div>
 </div>
 
+<script src="/js/app-shell.js"></script>
 <script>
+const esc = HC.esc;
 let authHeader = null;
 let userId = null;
 let currentUser = null;
+let panel = null; // which inline confirmation panel is open: 'toggle' | 'reset' | 'reject' | null
+let toggleWarning = '';
 
 window.addEventListener('DOMContentLoaded', () => {
   const storedAuth = localStorage.getItem('authHeader');
   const storedRole = localStorage.getItem('userRole');
-
   if (!storedAuth || storedRole !== 'ADMIN') {
     window.location.href = '/login.html';
     return;
   }
-
   authHeader = storedAuth;
+
+  const staff = Shell.staff('ADMIN');
+  Shell.mount({
+    workspace: staff.workspace,
+    foot: staff.foot,
+    nav: staff.nav,
+    user: localStorage.getItem('currentUser'),
+    alerts: 'none',
+    activeKey: 'accounts'
+  });
+
   userId = new URLSearchParams(window.location.search).get('id');
-
-  if (!userId) {
-    showError('No user was specified.');
-    return;
-  }
-
+  if (!userId) { showError('No user was specified.'); return; }
   loadUser();
 });
+
+function logout() {
+  localStorage.clear();
+  window.location.href = '/login.html';
+}
 
 // Auth here is stateless (Basic Auth cached in localStorage), so there's no
 // server-side session to expire - this client-side idle timer is what
@@ -151,32 +109,25 @@ resetIdleTimer();
 
 function showError(message) {
   const box = document.getElementById('pageError');
-  box.textContent = message;
-  box.style.display = message ? 'block' : 'none';
+  box.textContent = message || '';
+  box.hidden = !message;
+  if (message) document.getElementById('pageMsg').hidden = true;
 }
 
 function showMsg(message) {
   const box = document.getElementById('pageMsg');
-  box.textContent = message;
-  box.style.display = message ? 'block' : 'none';
+  box.textContent = message || '';
+  box.hidden = !message;
 }
 
-function escapeHtml(str) {
-  if (str === null || str === undefined) return '';
-  return String(str)
-    .replaceAll('&', '&amp;')
-    .replaceAll('<', '&lt;')
-    .replaceAll('>', '&gt;')
-    .replaceAll('"', '&quot;');
+function roleLabel(r) {
+  return { STUDENT: 'Student', DOCTOR: 'Doctor', NURSE: 'Nurse', ADMIN: 'Admin' }[r] || r;
 }
 
 async function loadUser() {
   try {
     const res = await fetch(`/admin/users/${userId}`, { headers: { 'Authorization': authHeader } });
-    if (!res.ok) {
-      showError('Unable to load this user account.');
-      return;
-    }
+    if (!res.ok) { showError('Unable to load this user account.'); return; }
     currentUser = await res.json();
     showError(null);
     render();
@@ -185,100 +136,99 @@ async function loadUser() {
   }
 }
 
+function openPanel(name) {
+  panel = panel === name ? null : name;
+  if (name !== 'toggle') toggleWarning = '';
+  render();
+  const input = document.querySelector('.confirm-panel input, .confirm-panel textarea');
+  if (input) input.focus();
+}
+
 function render() {
   const u = currentUser;
   const isStudent = u.role === 'STUDENT';
   const pending = u.hasReceipt && !u.feePaid;
+  document.getElementById('user-title').textContent = u.username;
 
-  let feeBadgeClass = 'unpaid';
-  let feeBadgeText = 'Unpaid';
-  if (u.feePaid) {
-    feeBadgeClass = 'paid';
-    feeBadgeText = 'Paid';
-  } else if (pending) {
-    feeBadgeClass = 'pending';
-    feeBadgeText = 'Pending Verification';
+  const kv = (k, v) => `<div class="kv"><span>${k}</span><strong>${v}</strong></div>`;
+  const statusPill = u.active ? '<span class="pill teal">Active</span>' : '<span class="pill">Inactive</span>';
+
+  let togglePanel = '';
+  if (panel === 'toggle') {
+    togglePanel = `
+      <div class="confirm-panel">
+        <div class="cp-head"><h3>${esc(u.username)} · ${esc(roleLabel(u.role))} account</h3>${statusPill}</div>
+        <p class="small">${toggleWarning ? esc(toggleWarning) : `${u.active ? 'Deactivate' : 'Activate'} access for this account? No clinical data is shown or granted by this panel.`}</p>
+        <div class="btn-row" style="margin-top:14px;">
+          <button class="btn ${u.active ? 'btn-danger' : 'btn-primary'}" onclick="toggleActive(${toggleWarning ? 'true' : 'false'})">${u.active ? 'Deactivate account' : 'Activate account'}</button>
+          <button class="btn" onclick="openPanel(null)">Cancel</button>
+        </div>
+      </div>`;
+  }
+  let resetPanel = '';
+  if (panel === 'reset') {
+    resetPanel = `
+      <div class="confirm-panel">
+        <h3>Reset password</h3>
+        <div class="field" style="margin-top:12px;"><label for="resetPw">New password <span class="unit">(min 6 characters)</span></label><input type="password" id="resetPw" minlength="6" maxlength="100" /></div>
+        <div class="btn-row"><button class="btn btn-primary" onclick="resetPassword()">Reset password</button><button class="btn" onclick="openPanel(null)">Cancel</button></div>
+      </div>`;
   }
 
-  let studentSection = '';
-  if (isStudent) {
-    const receiptActions = [];
-    if (u.hasReceipt) {
-      receiptActions.push('<button class="btn-secondary" onclick="viewReceipt()">View Receipt</button>');
-    }
-    if (pending) {
-      receiptActions.push('<button class="btn-approve" onclick="approveReceipt()">Approve Payment</button>');
-      receiptActions.push('<button class="btn-reject" onclick="rejectReceipt()">Reject Receipt</button>');
-    } else if (u.hasReceipt && u.feePaid) {
-      receiptActions.push('<button class="btn-reject" onclick="rejectReceipt()">Revoke Verification</button>');
-    }
-
-    const rejectionNote = u.receiptRejectionReason
-      ? `<div class="rejection-note">Last rejection reason: ${escapeHtml(u.receiptRejectionReason)}</div>`
-      : '';
-
-    const autoCheckNote = u.receiptAutoCheckNote
-      ? `<div class="auto-check-note">${escapeHtml(u.receiptAutoCheckNote)}</div>`
-      : '';
-
-    studentSection = `
-      <div class="panel">
-        <h3>Payment Status</h3>
-        <div class="info-row">
-          <span class="label">Country</span>
-          <span class="value">${escapeHtml(u.country) || '—'}</span>
-        </div>
-        <div class="info-row">
-          <span class="label">Marital Status</span>
-          <span class="value">${escapeHtml(u.maritalStatus) || '—'}</span>
-        </div>
-        <div class="info-row">
-          <span class="label">Fee Amount</span>
-          <span class="value">${u.feeAmount != null ? 'FJ$' + Number(u.feeAmount).toFixed(2) : '—'}</span>
-        </div>
-        <div class="info-row">
-          <span class="label">Status</span>
-          <span class="fee-badge ${feeBadgeClass}">${feeBadgeText}</span>
-        </div>
-        <div class="info-row">
-          <span class="label">Receipt Uploaded</span>
-          <span class="value">${u.hasReceipt ? 'Yes' : 'No'}</span>
-        </div>
-        ${autoCheckNote}
-        ${rejectionNote}
-        <div class="action-row">${receiptActions.join('')}</div>
+  const accountCard = `
+    <div class="card">
+      <h2>Account details</h2>
+      <p class="card-sub">Account metadata only</p>
+      <div style="margin-top:12px;">
+        ${kv('Account ID', esc(u.username))}
+        ${kv('Full name', esc(u.fullName) || '—')}
+        ${kv('Role', esc(roleLabel(u.role)))}
+        ${kv('Status', statusPill)}
       </div>
-    `;
-  }
-
-  document.getElementById('content').innerHTML = `
-    <div class="panel">
-      <h3>Account Details</h3>
-      <div class="info-row">
-        <span class="label">Username</span>
-        <span class="value">${escapeHtml(u.username)}</span>
-      </div>
-      <div class="info-row">
-        <span class="label">Full Name</span>
-        <span class="value">${escapeHtml(u.fullName) || '—'}</span>
-      </div>
-      <div class="info-row">
-        <span class="label">Role</span>
-        <span class="value">${escapeHtml(u.role)}</span>
-      </div>
-      <div class="info-row">
-        <span class="label">Account Status</span>
-        <span class="status-badge ${u.active ? 'active' : 'inactive'}">${u.active ? 'Active' : 'Inactive'}</span>
-      </div>
-      <div class="action-row">
+      <div class="btn-row" style="margin-top:18px;">
         ${u.role === 'ADMIN'
-          ? '<span class="empty-state">Admin accounts cannot be activated or deactivated from here.</span>'
-          : `<button class="${u.active ? 'btn-deactivate' : ''}" onclick="toggleActive(false)">${u.active ? 'Deactivate Account' : 'Activate Account'}</button>`}
-        <button class="btn-secondary" onclick="resetPassword()">Reset Password</button>
+          ? '<span class="small muted">Admin accounts cannot be activated or deactivated here.</span>'
+          : `<button class="btn${u.active ? '' : ' btn-primary'}" onclick="openPanel('toggle')">${u.active ? 'Deactivate' : 'Activate'}</button>`}
+        <button class="btn" onclick="openPanel('reset')">Reset password</button>
       </div>
-    </div>
-    ${studentSection}
-  `;
+      ${togglePanel}${resetPanel}
+    </div>`;
+
+  let paymentCard = '';
+  if (isStudent) {
+    const actions = [];
+    if (u.hasReceipt) actions.push('<button class="btn" onclick="viewReceipt()">View receipt</button>');
+    if (pending) {
+      actions.push('<button class="btn btn-primary" onclick="approveReceipt()">Approve payment</button>');
+      actions.push(`<button class="btn btn-ghost" style="color:var(--emergency);" onclick="openPanel('reject')">Reject receipt</button>`);
+    } else if (u.hasReceipt && u.feePaid) {
+      actions.push(`<button class="btn btn-ghost" style="color:var(--emergency);" onclick="openPanel('reject')">Revoke verification</button>`);
+    }
+    const rejectPanel = panel === 'reject' ? `
+      <div class="confirm-panel">
+        <h3>${u.feePaid ? 'Revoke verification' : 'Reject receipt'}</h3>
+        <div class="field" style="margin-top:12px;"><label for="rejectReason">Reason (shown to the student)</label><textarea id="rejectReason" rows="2" maxlength="300"></textarea></div>
+        <div class="btn-row"><button class="btn btn-danger" onclick="rejectReceipt()">${u.feePaid ? 'Revoke' : 'Reject'}</button><button class="btn" onclick="openPanel(null)">Cancel</button></div>
+      </div>` : '';
+    paymentCard = `
+      <div class="card">
+        <h2>Payment status</h2>
+        <p class="card-sub">Laucala Health Services Fee</p>
+        <div style="margin-top:12px;">
+          ${kv('Country', esc(u.country) || '—')}
+          ${kv('Marital status', esc(u.maritalStatus) || '—')}
+          ${kv('Fee amount', u.feeAmount != null ? 'FJ$' + Number(u.feeAmount).toFixed(2) : '—')}
+          ${kv('Status', HC.feePill(u))}
+          ${kv('Receipt uploaded', u.hasReceipt ? 'Yes' : 'No')}
+        </div>
+        ${u.receiptAutoCheckNote ? `<div class="notice info" style="margin-top:14px;">${esc(u.receiptAutoCheckNote)}</div>` : ''}
+        ${u.receiptRejectionReason ? `<div class="notice danger" style="margin-top:14px;"><strong>Last rejection reason</strong><span class="notice-body">${esc(u.receiptRejectionReason)}</span></div>` : ''}
+        ${actions.length ? `<div class="btn-row" style="margin-top:18px;">${actions.join('')}</div>` : ''}
+        ${rejectPanel}
+      </div>`;
+  }
+
+  document.getElementById('content').innerHTML = accountCard + paymentCard;
 }
 
 async function toggleActive(confirmed) {
@@ -288,21 +238,21 @@ async function toggleActive(confirmed) {
       headers: { 'Authorization': authHeader, 'Content-Type': 'application/json' },
       body: JSON.stringify({ confirm: confirmed })
     });
-
     if (!res.ok) {
       const err = await res.json();
       showError(err.message || 'Unable to update account');
       return;
     }
-
     const result = await res.json();
     if (result.requiresConfirmation) {
-      if (window.confirm(result.message)) {
-        toggleActive(true);
-      }
+      // The server wants an explicit second confirmation - show its warning in the panel.
+      toggleWarning = result.message;
+      panel = 'toggle';
+      render();
       return;
     }
-
+    panel = null;
+    toggleWarning = '';
     showError(null);
     showMsg('Account status updated.');
     loadUser();
@@ -314,13 +264,9 @@ async function toggleActive(confirmed) {
 async function viewReceipt() {
   try {
     const res = await fetch(`/admin/users/${userId}/receipt`, { headers: { 'Authorization': authHeader } });
-    if (!res.ok) {
-      showError('Unable to load this receipt.');
-      return;
-    }
+    if (!res.ok) { showError('Unable to load this receipt.'); return; }
     const blob = await res.blob();
-    const url = URL.createObjectURL(blob);
-    window.open(url, '_blank');
+    window.open(URL.createObjectURL(blob), '_blank');
   } catch (e) {
     showError('Service temporarily unavailable');
   }
@@ -328,18 +274,13 @@ async function viewReceipt() {
 
 async function approveReceipt() {
   try {
-    const res = await fetch(`/admin/users/${userId}/verify-receipt`, {
-      method: 'POST',
-      headers: { 'Authorization': authHeader }
-    });
+    const res = await fetch(`/admin/users/${userId}/verify-receipt`, { method: 'POST', headers: { 'Authorization': authHeader } });
     const data = await res.json();
-    if (!res.ok || data.error) {
-      showError(data.error || 'Unable to approve this receipt.');
-      return;
-    }
+    if (!res.ok || data.error) { showError(data.error || 'Unable to approve this receipt.'); return; }
     showError(null);
     showMsg('Payment approved. The student can now book appointments.');
     currentUser = data;
+    panel = null;
     render();
   } catch (e) {
     showError('Service temporarily unavailable');
@@ -347,13 +288,8 @@ async function approveReceipt() {
 }
 
 async function resetPassword() {
-  const newPassword = window.prompt('Enter a new password for this account (min 6 characters):', '');
-  if (newPassword === null) return;
-  if (newPassword.length < 6) {
-    showError('Password must be at least 6 characters.');
-    return;
-  }
-
+  const newPassword = document.getElementById('resetPw').value;
+  if (newPassword.length < 6) { showError('Password must be at least 6 characters.'); return; }
   try {
     const res = await fetch(`/admin/users/${userId}/reset-password`, {
       method: 'POST',
@@ -361,21 +297,18 @@ async function resetPassword() {
       body: JSON.stringify({ newPassword })
     });
     const data = await res.json();
-    if (!res.ok || data.error) {
-      showError(data.error || 'Unable to reset password.');
-      return;
-    }
+    if (!res.ok || data.error) { showError(data.error || 'Unable to reset password.'); return; }
     showError(null);
     showMsg(data.message);
+    panel = null;
+    render();
   } catch (e) {
     showError('Service temporarily unavailable');
   }
 }
 
 async function rejectReceipt() {
-  const reason = window.prompt('Reason for rejecting this receipt (shown to the student):', '');
-  if (reason === null) return;
-
+  const reason = document.getElementById('rejectReason').value.trim();
   try {
     const res = await fetch(`/admin/users/${userId}/reject-receipt`, {
       method: 'POST',
@@ -383,19 +316,50 @@ async function rejectReceipt() {
       body: JSON.stringify({ reason })
     });
     const data = await res.json();
-    if (!res.ok || data.error) {
-      showError(data.error || 'Unable to reject this receipt.');
-      return;
-    }
+    if (!res.ok || data.error) { showError(data.error || 'Unable to reject this receipt.'); return; }
     showError(null);
     showMsg('Receipt rejected. The student can upload a new one.');
     currentUser = data;
+    panel = null;
     render();
   } catch (e) {
     showError('Service temporarily unavailable');
   }
 }
-</script>
 
+// ---------- Change password (own account) ----------
+function openChangePasswordModal() {
+  ['cpCurrentPassword', 'cpNewPassword', 'cpConfirmPassword'].forEach(id => { document.getElementById(id).value = ''; });
+  document.getElementById('cpResult').textContent = '';
+  document.getElementById('change-password-modal-overlay').hidden = false;
+}
+
+function closeChangePasswordModal() {
+  document.getElementById('change-password-modal-overlay').hidden = true;
+}
+
+function submitChangePassword() {
+  const currentPassword = document.getElementById('cpCurrentPassword').value;
+  const newPassword = document.getElementById('cpNewPassword').value;
+  const confirmPassword = document.getElementById('cpConfirmPassword').value;
+  const resultEl = document.getElementById('cpResult');
+  if (!currentPassword || !newPassword) { resultEl.className = 'toast err'; resultEl.textContent = 'Both fields are required.'; return; }
+  if (newPassword !== confirmPassword) { resultEl.className = 'toast err'; resultEl.textContent = 'New password and confirmation do not match.'; return; }
+
+  fetch('/account/change-password', {
+    method: 'POST',
+    headers: { 'Authorization': authHeader, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ currentPassword, newPassword })
+  })
+  .then(res => res.json())
+  .then(data => {
+    if (data.error) { resultEl.className = 'toast err'; resultEl.textContent = data.error; return; }
+    resultEl.className = 'toast ok';
+    resultEl.textContent = data.message;
+    setTimeout(closeChangePasswordModal, 1500);
+  })
+  .catch(() => { resultEl.className = 'toast err'; resultEl.textContent = 'Unable to reach the server.'; });
+}
+</script>
 </body>
 </html>
