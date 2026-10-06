@@ -1,19 +1,14 @@
 package com.example.demo;
 import org.springframework.transaction.annotation.Transactional;
-
 import java.time.LocalDate;
-<<<<<<< HEAD
 import java.time.LocalDateTime;
-=======
 import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeFormatterBuilder;
 import java.time.format.DateTimeParseException;
->>>>>>> origin/main
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
-
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -29,13 +24,8 @@ public class BookingController {
     // emergencies go through the portal's Emergency button instead.
     private static final String STUDENT_BOOKING_URGENCY = "Routine";
     private static final int MAX_REASON_LENGTH = 300;
-<<<<<<< HEAD
-    private static final int MAX_UPCOMING_APPOINTMENTS = 3;
-=======
-    private static final DateTimeFormatter SLOT_TIME_FORMAT = new DateTimeFormatterBuilder()
+    private static final int MAX_UPCOMING_APPOINTMENTS = 3;    private static final DateTimeFormatter SLOT_TIME_FORMAT = new DateTimeFormatterBuilder()
             .parseCaseInsensitive().appendPattern("h:mm a").toFormatter(Locale.US);
->>>>>>> origin/main
-
     private final DoctorScheduleRepository scheduleRepository;
     private final AppointmentRepository appointmentRepository;
     private final CheckInRepository checkInRepository;
@@ -246,54 +236,3 @@ public class BookingController {
         if (!"BOOKED".equals(appointment.getStatus())) {
             return Map.of("error", "This appointment can no longer be changed.");
         }
-
-<<<<<<< HEAD
-        DoctorSchedule peekSlot = scheduleRepository.findById(request.newSlotId).orElse(null);
-        // DEF-07: rescheduling into a slot dated before today must be rejected as well
-        if (peekSlot != null && peekSlot.getScheduleDate() != null
-                && peekSlot.getScheduleDate().isBefore(LocalDate.now())) {
-            return Map.of("error", "This slot has already passed. Please select a current or future slot.");
-=======
-        DoctorSchedule peekSlot = request.newSlotId == null ? null : scheduleRepository.findById(request.newSlotId).orElse(null);
-        if (peekSlot != null && isSlotInPast(peekSlot)) {
-            return Map.of("error", "You can't reschedule to a date or time that has already passed.");
->>>>>>> origin/main
-        }
-        if (peekSlot != null) {
-            boolean conflictsWithOtherAppointment = appointmentRepository
-                    .findByStudentNameAndStatusAndAppointmentDateAndTimeSlot(
-                            auth.getName(), "BOOKED", peekSlot.getScheduleDate(), peekSlot.getTimeSlot())
-                    .stream()
-                    .anyMatch(a -> !a.getId().equals(appointment.getId()));
-            if (conflictsWithOtherAppointment) {
-                return Map.of("error", "You already have an appointment booked for this date and time slot.");
-            }
-        }
-
-        DoctorSchedule newSlot;
-        synchronized (this) {
-            newSlot = scheduleRepository.findById(request.newSlotId).orElse(null);
-            if (newSlot == null || newSlot.isBooked()) {
-                return Map.of("error", "This slot is no longer available.");
-            }
-            newSlot.setBooked(true);
-            scheduleRepository.save(newSlot);
-        }
-
-        scheduleRepository.freeSlot(appointment.getScheduleSlotId());
-
-        appointment.setAppointmentDate(newSlot.getScheduleDate());
-        appointment.setTimeSlot(newSlot.getTimeSlot());
-        appointment.setScheduleSlotId(newSlot.getId());
-        appointmentRepository.save(appointment);
-
-        boolean delayed = delayNoticeService.notifyLateBookingIfEmergencyToday(appointment);
-
-        return Map.of(
-                "message", "Appointment rescheduled.",
-                "emergencyDelay", delayed,
-                "newDate", newSlot.getScheduleDate().toString(),
-                "newTimeSlot", newSlot.getTimeSlot()
-        );
-    }
-}
