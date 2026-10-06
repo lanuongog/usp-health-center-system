@@ -2,7 +2,6 @@ package com.example.demo;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.util.List;
 import java.util.Map;
 
 import org.springframework.security.core.Authentication;
@@ -27,15 +26,18 @@ public class EmergencyController {
     private final AppointmentRepository appointmentRepository;
     private final CheckInRepository checkInRepository;
     private final NotificationRepository notificationRepository;
+    private final DelayNoticeService delayNoticeService;
 
     public EmergencyController(UserRepository userRepository,
                                 AppointmentRepository appointmentRepository,
                                 CheckInRepository checkInRepository,
-                                NotificationRepository notificationRepository) {
+                                NotificationRepository notificationRepository,
+                                DelayNoticeService delayNoticeService) {
         this.userRepository = userRepository;
         this.appointmentRepository = appointmentRepository;
         this.checkInRepository = checkInRepository;
         this.notificationRepository = notificationRepository;
+        this.delayNoticeService = delayNoticeService;
     }
 
     // Tries the ID as typed first, then upper-cased - new registrations are
@@ -66,10 +68,8 @@ public class EmergencyController {
 
     // Registers AND checks in the student in a single step, skipping the
     // normal BOOKED -> nurse-queue -> check-in flow, so they land directly at
-    // the top of the doctor's active queue. Every student currently waiting -
-    // whether booked for today or already checked in ahead of a doctor - is
-    // warned of a possible delay; they'll be seen once the doctor is free of
-    // the emergency.
+    // the top of the doctor's active queue. Students booked for today are
+    // warned of a possible delay (see DelayNoticeService).
     @PostMapping("/checkin")
     public Object emergencyCheckIn(@RequestBody EmergencyCheckInRequest request, Authentication auth) {
         User student = findStudent(request.studentId);
@@ -109,37 +109,15 @@ public class EmergencyController {
         staffAlert.setCreatedAt(LocalDateTime.now());
         notificationRepository.save(staffAlert);
 
-        // Everyone currently waiting - booked for today, or already checked in
-        // ahead of a doctor - gets bumped behind this emergency and is notified.
-        LocalDate today = LocalDate.now();
-        List<Appointment> waiting = new java.util.ArrayList<>();
-        waiting.addAll(appointmentRepository.findByStatus("BOOKED").stream()
-                .filter(a -> today.equals(a.getAppointmentDate()))
-                .filter(a -> !studentId.equals(a.getStudentName()))
-                .toList());
-        waiting.addAll(appointmentRepository.findByStatus("CHECKED_IN").stream()
-                .filter(a -> !a.getId().equals(appointment.getId()))
-                .filter(a -> !studentId.equals(a.getStudentName()))
-                .toList());
-
-        for (Appointment prior : waiting) {
-            Notification delayNotice = new Notification();
-            delayNotice.setType("DELAY_NOTICE");
-            delayNotice.setRecipientUsername(prior.getStudentName());
-            delayNotice.setStudentUsername(studentId);
-            delayNotice.setStudentName(displayName);
-            delayNotice.setAppointmentId(prior.getId());
-            delayNotice.setMessage("An emergency patient is currently being prioritized at the Health Center and will be seen "
-                    + "first. Your visit today may be delayed - you'll be seen once the doctor is free. Thank you for your patience.");
-            delayNotice.setCreatedAt(LocalDateTime.now());
-            notificationRepository.save(delayNotice);
-        }
+        // Students booked for today are warned their visit may be delayed
+        // (skipping anyone already told when this student sent their alert).
+        int notifiedCount = delayNoticeService.notifyTodaysBookings(studentId, displayName);
 
         return Map.of(
                 "message", "Emergency check-in complete for " + displayName + ". Doctors have been alerted and "
-                        + waiting.size() + " student(s) notified of a possible delay.",
+                        + notifiedCount + " student(s) notified of a possible delay.",
                 "appointmentId", appointment.getId(),
-                "notifiedCount", waiting.size()
+                "notifiedCount", notifiedCount
         );
     }
 }

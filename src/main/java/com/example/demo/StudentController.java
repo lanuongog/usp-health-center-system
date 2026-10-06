@@ -45,14 +45,17 @@ public class StudentController {
     private final PasswordEncoder passwordEncoder;
     private final NotificationRepository notificationRepository;
     private final ReceiptVerificationService receiptVerificationService;
+    private final DelayNoticeService delayNoticeService;
 
     public StudentController(UserRepository userRepository, PasswordEncoder passwordEncoder,
                               NotificationRepository notificationRepository,
-                              ReceiptVerificationService receiptVerificationService) {
+                              ReceiptVerificationService receiptVerificationService,
+                              DelayNoticeService delayNoticeService) {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
         this.notificationRepository = notificationRepository;
         this.receiptVerificationService = receiptVerificationService;
+        this.delayNoticeService = delayNoticeService;
     }
 
     // student self-registration logic
@@ -235,8 +238,23 @@ public class StudentController {
     // appointment or check the student in, since they aren't physically here
     // yet. The actual check-in still happens through the nurse/doctor
     // dashboard's Emergency Check-in action once the student arrives.
+    @GetMapping("/emergency-alert/status")
+    public Map<String, Object> getEmergencyAlertStatus(Authentication auth) {
+        return Map.of("sentRecently", hasSentEmergencyAlertRecently(auth.getName()));
+    }
+
+    // One alert per student per rolling 24 hours: staff are already on it after the
+    // first, and repeats would just flood the staff feed with popups. synchronized
+    // so a burst of simultaneous requests can't all pass the check before any of
+    // them saves.
     @PostMapping("/emergency-alert")
-    public Object sendEmergencyAlert(@RequestBody EmergencyAlertRequest request, Authentication auth) {
+    public synchronized Object sendEmergencyAlert(@RequestBody EmergencyAlertRequest request, Authentication auth) {
+        if (hasSentEmergencyAlertRecently(auth.getName())) {
+            return Map.of("error", "You have already sent an emergency alert in the last 24 hours - Health Center staff have been "
+                    + "notified and are expecting you. If your situation has worsened or is life-threatening, "
+                    + "call campus security or emergency services directly.",
+                    "alreadySent", true);
+        }
         if (request.reason == null || request.reason.isBlank()) {
             return Map.of("error", "Please briefly describe what's happening.");
         }
@@ -257,8 +275,16 @@ public class StudentController {
         alert.setCreatedAt(LocalDateTime.now());
         notificationRepository.save(alert);
 
+        // Let students booked for today know their visit may be pushed back.
+        delayNoticeService.notifyTodaysBookings(auth.getName(), displayName);
+
         return Map.of("message", "Alert sent. Health Center staff have been notified and will prioritize you on "
                 + "arrival. If this is life-threatening, also contact campus security or emergency services immediately.");
+    }
+
+    private boolean hasSentEmergencyAlertRecently(String username) {
+        return notificationRepository.existsByTypeAndStudentUsernameAndCreatedAtGreaterThanEqual(
+                "EMERGENCY_ALERT", username, LocalDateTime.now().minusHours(24));
     }
 
     private static final byte[] PDF_SIGNATURE = "%PDF-".getBytes(java.nio.charset.StandardCharsets.US_ASCII);

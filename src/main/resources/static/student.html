@@ -66,10 +66,11 @@ padding: 22px 24px; max-width: 1180px; margin: 0 auto;
 .field-row .field { flex: 1; margin-bottom: 0; }
 .field { margin-bottom: 14px; }
 .field label { display: block; font-size: 12px; color: var(--ink-soft); margin-bottom: 5px; }
-.field input, select {
+.field input, .field textarea, select {
 width: 100%; padding: 9px 10px; border: 1px solid var(--line); border-radius: 6px;
 font-size: 13px; background: #fff; font-family: inherit;
 }
+.field textarea { min-height: 70px; resize: vertical; line-height: 1.4; }
 .slot-list { display: flex; flex-direction: column; gap: 7px; margin: 10px 0 16px; max-height: 220px; overflow-y: auto; }
 .slot-option {
 border: 1px solid var(--line); border-radius: 7px; padding: 9px 12px;
@@ -83,6 +84,9 @@ background: var(--emergency-bg); border-color: #EBD3D0; color: var(--emergency);
 cursor: not-allowed;
 }
 .slot-option.booked:hover { background: var(--emergency-bg); }
+.slot-option.passed { background: var(--bg); color: var(--ink-soft); cursor: not-allowed; }
+.slot-option.passed:hover { background: var(--bg); }
+.badge.Passed { background: var(--line); color: var(--ink-soft); }
 .empty-state { padding: 30px 20px; text-align: center; color: var(--ink-soft); font-size: 13px; }
 
 .appt-card {
@@ -169,6 +173,13 @@ padding: 14px 22px; font-size: 14px; font-weight: 800; cursor: pointer;
 box-shadow: 0 4px 14px rgba(178,58,46,0.45);
 }
 #emergency-fab:hover { background: #8f2d23; }
+#emergency-send-btn:disabled { opacity: 0.75; cursor: not-allowed; }
+.spinner {
+display: inline-block; width: 13px; height: 13px; margin-right: 7px; vertical-align: -2px;
+border: 2px solid rgba(255,255,255,0.4); border-top-color: #fff; border-radius: 50%;
+animation: spin 0.8s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
 
 #notif-wrap { position: relative; }
 #notif-badge {
@@ -207,6 +218,11 @@ z-index: 200; max-height: 380px; overflow-y: auto; padding: 10px; text-align: le
 </div>
 </div>
 
+<div id="delay-banner" hidden style="background:var(--urgent-bg);color:var(--urgent);border-bottom:1px solid #EFD9B8;padding:10px 24px;font-size:13px;text-align:center;font-weight:600;">
+⚠️ <span id="delay-banner-text"></span>
+<button class="btn-small" style="margin-left:10px;" onclick="dismissDelayBanner()">Got it</button>
+</div>
+
 <div id="fee-banner" style="display:none;background:#FBEAE8;color:#B23A2E;border-bottom:1px solid #EBD3D0;padding:9px 24px;font-size:13px;text-align:center;">
 <div id="fee-banner-text"></div>
 <div id="receipt-upload" style="display:none;margin-top:8px;">
@@ -227,19 +243,9 @@ z-index: 200; max-height: 380px; overflow-y: auto; padding: 10px; text-align: le
 <div id="slot-container">
 <div class="empty-state">Pick a date to see open slots.</div>
 </div>
-<div class="field-row">
 <div class="field">
 <label for="reason-input">Reason for visit</label>
-<input id="reason-input" type="text" placeholder="e.g. Fever" maxlength="300" />
-</div>
-<div class="field">
-<label for="urgency-input">Urgency</label>
-<select id="urgency-input">
-<option value="Routine">Routine</option>
-<option value="Urgent">Urgent</option>
-<option value="Emergency">Emergency</option>
-</select>
-</div>
+<textarea id="reason-input" rows="3" placeholder="e.g. Fever and sore throat since yesterday" maxlength="300"></textarea>
 </div>
 <button class="btn-primary" id="book-btn" onclick="bookAppointment()">Confirm Booking</button>
 <div class="toast" id="book-toast"></div>
@@ -267,8 +273,7 @@ z-index: 200; max-height: 380px; overflow-y: auto; padding: 10px; text-align: le
 <div class="panel-body">
 <div class="confirm-row"><span>Date</span><strong id="confirm-date"></strong></div>
 <div class="confirm-row"><span>Time</span><strong id="confirm-time"></strong></div>
-<div class="confirm-row"><span>Reason</span><strong id="confirm-reason"></strong></div>
-<div class="confirm-row"><span>Urgency</span><strong id="confirm-urgency"></strong></div>
+<div class="confirm-row"><span>Reason</span><strong id="confirm-reason" style="white-space:pre-wrap;text-align:right;"></strong></div>
 <p style="font-size:12.5px;color:var(--ink-soft);margin-top:14px;">Please double-check these details before confirming. This will reserve the slot.</p>
 <div style="display:flex;gap:8px;margin-top:14px;">
 <button class="btn-primary" style="margin-top:0;" onclick="submitBooking()">Yes, Confirm Booking</button>
@@ -336,7 +341,7 @@ z-index: 200; max-height: 380px; overflow-y: auto; padding: 10px; text-align: le
 <p style="font-size:13px;color:var(--ink-soft);margin-top:0;">If this is life-threatening, call campus security or emergency services immediately. Sending this alert notifies Health Center staff now so they can prioritize you as soon as you arrive.</p>
 <div class="field">
 <label for="emergencyReason">What's happening? (brief)</label>
-<input id="emergencyReason" type="text" placeholder="e.g. Severe allergic reaction, on my way now" maxlength="300" />
+<textarea id="emergencyReason" rows="3" placeholder="e.g. Severe allergic reaction, on my way now" maxlength="300"></textarea>
 </div>
 <div class="toast" id="emergencyResult"></div>
 <div style="display:flex;gap:8px;margin-top:6px;">
@@ -370,24 +375,63 @@ window.addEventListener('DOMContentLoaded', () => {
   const dateInput = document.getElementById('date-input');
   const tomorrow = new Date();
   tomorrow.setDate(tomorrow.getDate() + 1);
-  dateInput.value = tomorrow.toISOString().split('T')[0];
+  dateInput.min = localDateString(new Date());
+  dateInput.value = localDateString(tomorrow);
   loadSlots();
   refreshAppointments();
   loadFeeStatus();
   pollNotifCount();
   setInterval(pollNotifCount, 4000);
+  loadEmergencyAlertStatus();
 });
 
 function pollNotifCount() {
   fetch('/student/notifications/unread-count', { headers: { 'Authorization': authHeader } })
     .then(res => res.ok ? res.json() : null)
     .then(data => {
+      const count = data && data.count ? data.count : 0;
       const badge = document.getElementById('notif-badge');
-      if (!data || !data.count) { badge.style.display = 'none'; return; }
-      badge.textContent = data.count;
+      if (count !== lastUnreadCount) {
+        lastUnreadCount = count;
+        refreshDelayBanner();
+      }
+      if (!count) { badge.style.display = 'none'; return; }
+      badge.textContent = count;
       badge.style.display = 'inline-block';
     })
     .catch(() => {});
+}
+
+// Unread "your appointment may be delayed" notices from today are shown as a
+// banner at the top of the page, not just in the Alerts list, so a student
+// booked for today can't miss that an emergency is pushing their visit back.
+// Only re-checked when the unread count changes, to avoid fetching the full
+// list on every 4s poll.
+let lastUnreadCount = null;
+let shownDelayNoticeIds = [];
+
+function refreshDelayBanner() {
+  fetch('/student/notifications', { headers: { 'Authorization': authHeader } })
+    .then(res => res.ok ? res.json() : [])
+    .then(items => {
+      const todayStr = new Date().toDateString();
+      const notices = items.filter(n => n.type === 'DELAY_NOTICE' && !n.read
+        && n.createdAt && new Date(n.createdAt).toDateString() === todayStr);
+      const banner = document.getElementById('delay-banner');
+      if (!notices.length) { banner.hidden = true; shownDelayNoticeIds = []; return; }
+      shownDelayNoticeIds = notices.map(n => n.id);
+      document.getElementById('delay-banner-text').textContent = notices[0].message;
+      banner.hidden = false;
+    })
+    .catch(() => {});
+}
+
+function dismissDelayBanner() {
+  document.getElementById('delay-banner').hidden = true;
+  Promise.all(shownDelayNoticeIds.map(id =>
+    fetch('/student/notifications/' + id + '/read', { method: 'POST', headers: { 'Authorization': authHeader } })
+  )).then(() => pollNotifCount()).catch(() => {});
+  shownDelayNoticeIds = [];
 }
 
 function toggleNotifPanel() {
@@ -528,12 +572,50 @@ function timeSlotSortKey(timeSlot) {
   return hours * 60 + parseInt(match[2], 10);
 }
 
+// YYYY-MM-DD in the student's local time zone (toISOString() would give the
+// UTC date, which is a day behind for part of the day in Fiji).
+function localDateString(d) {
+  return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+}
+
+function isPastDate(dateStr) {
+  return dateStr < localDateString(new Date());
+}
+
+// A slot is in the past if its date is before today, or it's today and its
+// start time has already gone by. The backend enforces the same rule.
+function isSlotPast(dateStr, timeSlot) {
+  if (isPastDate(dateStr)) return true;
+  if (dateStr !== localDateString(new Date())) return false;
+  if (!/(\d{1,2}):(\d{2})\s*(AM|PM)/i.test(timeSlot.split('-')[0])) return false;
+  const now = new Date();
+  return timeSlotSortKey(timeSlot) <= now.getHours() * 60 + now.getMinutes();
+}
+
+function renderSlotOption(s, dateStr, pickFn) {
+  const passed = !s.booked && isSlotPast(dateStr, s.timeSlot);
+  const cls = s.booked ? ' booked' : (passed ? ' passed' : '');
+  const clickable = !s.booked && !passed;
+  return `
+    <div class="slot-option${cls}" data-id="${s.id}"
+         ${clickable ? `onclick='${pickFn}(${s.id}, this)'` : ''}>
+      <span class="time">${escapeHtml(s.timeSlot)}</span>
+      ${s.booked ? '<span class="badge Booked">Booked</span>' : ''}
+      ${passed ? '<span class="badge Passed">Passed</span>' : ''}
+    </div>
+  `;
+}
+
 function loadSlots() {
   const date = document.getElementById('date-input').value;
   if (!date) return;
   selectedSlot = null;
 
   const container = document.getElementById('slot-container');
+  if (isPastDate(date)) {
+    container.innerHTML = '<div class="empty-state">You can\'t book a date in the past. Please pick today or a later date.</div>';
+    return;
+  }
 
   fetch('/schedule/available?date=' + date)
     .then(res => {
@@ -559,13 +641,8 @@ function loadSlots() {
       });
       uniqueSlots.sort((a, b) => timeSlotSortKey(a.timeSlot) - timeSlotSortKey(b.timeSlot));
 
-      container.innerHTML = '<div class="slot-list">' + uniqueSlots.map(s => `
-        <div class="slot-option${s.booked ? ' booked' : ''}" data-id="${s.id}"
-             ${s.booked ? '' : `onclick='pickSlot(${s.id}, this)'`}>
-          <span class="time">${escapeHtml(s.timeSlot)}</span>
-          ${s.booked ? '<span class="badge Booked">Booked</span>' : ''}
-        </div>
-      `).join('') + '</div>';
+      container.innerHTML = '<div class="slot-list">'
+        + uniqueSlots.map(s => renderSlotOption(s, date, 'pickSlot')).join('') + '</div>';
     })
     .catch(() => {
       container.innerHTML = '<div class="empty-state">Unable to load availability.</div>';
@@ -585,7 +662,6 @@ function pickSlot(slotId, el) {
 function bookAppointment() {
   const toast = document.getElementById('book-toast');
   const reason = document.getElementById('reason-input').value.trim();
-  const urgency = document.getElementById('urgency-input').value;
 
   if (!selectedSlot) {
     toast.textContent = 'Select an available slot first.';
@@ -602,7 +678,6 @@ function bookAppointment() {
   document.getElementById('confirm-date').textContent = document.getElementById('date-input').value;
   document.getElementById('confirm-time').textContent = selectedSlotTime || '';
   document.getElementById('confirm-reason').textContent = reason;
-  document.getElementById('confirm-urgency').textContent = urgency;
   document.getElementById('confirm-toast').textContent = '';
   document.getElementById('confirm-modal-overlay').hidden = false;
 }
@@ -616,12 +691,11 @@ function submitBooking() {
   const toast = document.getElementById('book-toast');
   const confirmToast = document.getElementById('confirm-toast');
   const reason = document.getElementById('reason-input').value.trim();
-  const urgency = document.getElementById('urgency-input').value;
 
   fetch('/student/book', {
     method: 'POST',
     headers: { 'Authorization': authHeader, 'Content-Type': 'application/json' },
-    body: JSON.stringify({ slotId: selectedSlot, visitReason: reason, urgencyLevel: urgency })
+    body: JSON.stringify({ slotId: selectedSlot, visitReason: reason })
   })
   .then(res => res.json())
   .then(data => {
@@ -678,7 +752,7 @@ function loadHistory() {
               <span class="h-date">${escapeHtml(h.appointmentDate)}${h.timeSlot ? ' · ' + escapeHtml(h.timeSlot) : ''}</span>
               <span class="status-tag ${escapeHtml(h.status)}">${escapeHtml(h.status)}</span>
             </div>
-            <div class="h-detail">${escapeHtml(h.visitReason)} · ${escapeHtml(h.urgencyLevel)}</div>
+            <div class="h-detail">${escapeHtml(h.visitReason)}</div>
             ${detail ? `<div class="h-detail">${detail}</div>` : ''}
           </div>
         `;
@@ -708,7 +782,6 @@ function renderAppointments(appointments) {
     <div class="appt-card">
       <div class="appt-top">
         <span class="doc">${escapeHtml(a.appointmentDate)}${a.timeSlot ? ' · ' + escapeHtml(a.timeSlot) : ''}</span>
-        <span class="badge ${a.urgencyLevel}">${escapeHtml(a.urgencyLevel)}</span>
       </div>
       <div class="appt-meta">${escapeHtml(a.visitReason)}</div>
       <div class="appt-actions">
@@ -749,7 +822,8 @@ function openRescheduleModal(appointmentId, date, timeSlot) {
   const dateInput = document.getElementById('reschedule-date-input');
   const tomorrow = new Date();
   tomorrow.setDate(tomorrow.getDate() + 1);
-  dateInput.value = tomorrow.toISOString().split('T')[0];
+  dateInput.min = localDateString(new Date());
+  dateInput.value = localDateString(tomorrow);
   loadRescheduleSlots();
   document.getElementById('reschedule-modal-overlay').hidden = false;
 }
@@ -767,6 +841,10 @@ function loadRescheduleSlots() {
   document.getElementById('reschedule-new-row').style.display = 'none';
   document.getElementById('reschedule-confirm-btn').disabled = true;
   if (!date) return;
+  if (isPastDate(date)) {
+    container.innerHTML = '<div class="empty-state">You can\'t move an appointment to a date in the past. Please pick today or a later date.</div>';
+    return;
+  }
 
   fetch('/schedule/available?date=' + date)
     .then(res => {
@@ -787,13 +865,8 @@ function loadRescheduleSlots() {
       });
       uniqueSlots.sort((a, b) => timeSlotSortKey(a.timeSlot) - timeSlotSortKey(b.timeSlot));
 
-      container.innerHTML = '<div class="slot-list">' + uniqueSlots.map(s => `
-        <div class="slot-option${s.booked ? ' booked' : ''}" data-id="${s.id}"
-             ${s.booked ? '' : `onclick='pickRescheduleSlot(${s.id}, this)'`}>
-          <span class="time">${escapeHtml(s.timeSlot)}</span>
-          ${s.booked ? '<span class="badge Booked">Booked</span>' : ''}
-        </div>
-      `).join('') + '</div>';
+      container.innerHTML = '<div class="slot-list">'
+        + uniqueSlots.map(s => renderSlotOption(s, date, 'pickRescheduleSlot')).join('') + '</div>';
     })
     .catch(() => {
       container.innerHTML = '<div class="empty-state">Unable to load availability.</div>';
@@ -910,10 +983,38 @@ function submitChangePassword() {
   });
 }
 
+// The backend allows one emergency alert per student per rolling 24 hours, so
+// once one is sent (this session or earlier) the send button stays locked.
+let emergencyAlertSentRecently = false;
+let emergencyAlertSending = false;
+
+function loadEmergencyAlertStatus() {
+  fetch('/student/emergency-alert/status', { headers: { 'Authorization': authHeader } })
+    .then(res => res.ok ? res.json() : null)
+    .then(data => {
+      if (data && data.sentRecently) markEmergencyAlertSent();
+    })
+    .catch(() => {});
+}
+
+function markEmergencyAlertSent() {
+  emergencyAlertSentRecently = true;
+  document.getElementById('emergency-fab').textContent = '🚨 Alert sent';
+  const btn = document.getElementById('emergency-send-btn');
+  btn.disabled = true;
+  btn.textContent = '✓ Alert already sent';
+}
+
 function openEmergencyModal() {
+  const resultEl = document.getElementById('emergencyResult');
   document.getElementById('emergencyReason').value = '';
-  document.getElementById('emergencyResult').textContent = '';
-  document.getElementById('emergencyResult').className = 'toast';
+  resultEl.textContent = '';
+  resultEl.className = 'toast';
+  if (emergencyAlertSentRecently) {
+    resultEl.className = 'toast ok';
+    resultEl.textContent = 'You have already sent an emergency alert in the last 24 hours - staff are expecting you. '
+      + 'If your situation has worsened or is life-threatening, call campus security or emergency services directly.';
+  }
   document.getElementById('emergency-modal-overlay').hidden = false;
 }
 
@@ -926,13 +1027,22 @@ function sendEmergencyAlert() {
   const resultEl = document.getElementById('emergencyResult');
   const btn = document.getElementById('emergency-send-btn');
 
+  if (emergencyAlertSending || emergencyAlertSentRecently) return;
   if (!reason) {
     resultEl.className = 'toast err';
     resultEl.textContent = "Please briefly describe what's happening.";
     return;
   }
 
+  emergencyAlertSending = true;
   btn.disabled = true;
+  btn.innerHTML = '<span class="spinner"></span>Sending…';
+  const resetBtn = () => {
+    emergencyAlertSending = false;
+    btn.disabled = false;
+    btn.textContent = '🚨 Send Alert Now';
+  };
+
   fetch('/student/emergency-alert', {
     method: 'POST',
     headers: { 'Authorization': authHeader, 'Content-Type': 'application/json' },
@@ -940,18 +1050,23 @@ function sendEmergencyAlert() {
   })
   .then(res => res.json())
   .then(data => {
-    btn.disabled = false;
+    emergencyAlertSending = false;
     if (data.error) {
       resultEl.className = 'toast err';
       resultEl.textContent = data.error;
+      // The server rejects repeats within 24 hours of the last alert - lock the button
+      // rather than letting the student keep retrying.
+      if (data.alreadySent) markEmergencyAlertSent();
+      else resetBtn();
       return;
     }
+    markEmergencyAlertSent();
     resultEl.className = 'toast ok';
     resultEl.textContent = data.message;
     setTimeout(closeEmergencyModal, 3000);
   })
   .catch(() => {
-    btn.disabled = false;
+    resetBtn();
     resultEl.className = 'toast err';
     resultEl.textContent = 'Unable to reach the server. If this is an emergency, call campus security directly.';
   });
