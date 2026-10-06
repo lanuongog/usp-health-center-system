@@ -66,10 +66,11 @@ padding: 22px 24px; max-width: 1180px; margin: 0 auto;
 .field-row .field { flex: 1; margin-bottom: 0; }
 .field { margin-bottom: 14px; }
 .field label { display: block; font-size: 12px; color: var(--ink-soft); margin-bottom: 5px; }
-.field input, select {
+.field input, .field textarea, select {
 width: 100%; padding: 9px 10px; border: 1px solid var(--line); border-radius: 6px;
 font-size: 13px; background: #fff; font-family: inherit;
 }
+.field textarea { resize: vertical; min-height: 72px; line-height: 1.4; }
 .slot-list { display: flex; flex-direction: column; gap: 7px; margin: 10px 0 16px; max-height: 220px; overflow-y: auto; }
 .slot-option {
 border: 1px solid var(--line); border-radius: 7px; padding: 9px 12px;
@@ -83,6 +84,9 @@ background: var(--emergency-bg); border-color: #EBD3D0; color: var(--emergency);
 cursor: not-allowed;
 }
 .slot-option.booked:hover { background: var(--emergency-bg); }
+.slot-option.past { background: #F3F4F6; border-color: var(--line); color: var(--ink-soft); cursor: not-allowed; }
+.slot-option.past:hover { background: #F3F4F6; }
+.badge.Past { background: #E5E7EB; color: #6B7280; }
 .empty-state { padding: 30px 20px; text-align: center; color: var(--ink-soft); font-size: 13px; }
 
 .appt-card {
@@ -169,6 +173,14 @@ padding: 14px 22px; font-size: 14px; font-weight: 800; cursor: pointer;
 box-shadow: 0 4px 14px rgba(178,58,46,0.45);
 }
 #emergency-fab:hover { background: #8f2d23; }
+#emergency-fab:disabled { cursor: not-allowed; }
+#emergency-fab.sent, #emergency-fab.sent:hover { background: #6B7280; box-shadow: 0 4px 14px rgba(0,0,0,0.25); }
+.spinner {
+display: inline-block; width: 14px; height: 14px; margin-right: 7px; vertical-align: -2px;
+border: 2px solid rgba(255,255,255,0.45); border-top-color: #fff; border-radius: 50%;
+animation: spin 0.8s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
 
 #notif-wrap { position: relative; }
 #notif-badge {
@@ -183,6 +195,9 @@ z-index: 200; max-height: 380px; overflow-y: auto; padding: 10px; text-align: le
 #notif-panel[hidden] { display: none; }
 .notif-item { border-bottom: 1px solid var(--line); padding: 8px 2px; font-size: 12.5px; cursor: pointer; }
 .notif-item:last-child { border-bottom: none; }
+.notif-item.unread { font-weight: 700; background: var(--emergency-bg); border-left: 3px solid var(--emergency); padding-left: 8px; }
+.notif-item.unread .notif-time { font-weight: 600; }
+.notif-item.read { font-weight: 400; opacity: 0.6; }
 .notif-item .notif-time { font-size: 11px; color: var(--ink-soft); margin-top: 2px; }
 </style>
 </head>
@@ -216,6 +231,8 @@ z-index: 200; max-height: 380px; overflow-y: auto; padding: 10px; text-align: le
 </div>
 </div>
 
+<div id="delay-banner" style="display:none;background:#FEF3C7;color:#92400E;border-bottom:1px solid #FCD34D;padding:10px 24px;font-size:13px;text-align:center;font-weight:600;"></div>
+
 <div class="layout">
 <div class="panel">
 <div class="panel-head"><h2>Book an Appointment</h2></div>
@@ -227,19 +244,9 @@ z-index: 200; max-height: 380px; overflow-y: auto; padding: 10px; text-align: le
 <div id="slot-container">
 <div class="empty-state">Pick a date to see open slots.</div>
 </div>
-<div class="field-row">
 <div class="field">
 <label for="reason-input">Reason for visit</label>
-<input id="reason-input" type="text" placeholder="e.g. Fever" maxlength="300" />
-</div>
-<div class="field">
-<label for="urgency-input">Urgency</label>
-<select id="urgency-input">
-<option value="Routine">Routine</option>
-<option value="Urgent">Urgent</option>
-<option value="Emergency">Emergency</option>
-</select>
-</div>
+<textarea id="reason-input" rows="3" placeholder="e.g. Fever and headache since yesterday" maxlength="300"></textarea>
 </div>
 <button class="btn-primary" id="book-btn" onclick="bookAppointment()">Confirm Booking</button>
 <div class="toast" id="book-toast"></div>
@@ -268,7 +275,6 @@ z-index: 200; max-height: 380px; overflow-y: auto; padding: 10px; text-align: le
 <div class="confirm-row"><span>Date</span><strong id="confirm-date"></strong></div>
 <div class="confirm-row"><span>Time</span><strong id="confirm-time"></strong></div>
 <div class="confirm-row"><span>Reason</span><strong id="confirm-reason"></strong></div>
-<div class="confirm-row"><span>Urgency</span><strong id="confirm-urgency"></strong></div>
 <p style="font-size:12.5px;color:var(--ink-soft);margin-top:14px;">Please double-check these details before confirming. This will reserve the slot.</p>
 <div style="display:flex;gap:8px;margin-top:14px;">
 <button class="btn-primary" style="margin-top:0;" onclick="submitBooking()">Yes, Confirm Booking</button>
@@ -336,7 +342,7 @@ z-index: 200; max-height: 380px; overflow-y: auto; padding: 10px; text-align: le
 <p style="font-size:13px;color:var(--ink-soft);margin-top:0;">If this is life-threatening, call campus security or emergency services immediately. Sending this alert notifies Health Center staff now so they can prioritize you as soon as you arrive.</p>
 <div class="field">
 <label for="emergencyReason">What's happening? (brief)</label>
-<input id="emergencyReason" type="text" placeholder="e.g. Severe allergic reaction, on my way now" maxlength="300" />
+<textarea id="emergencyReason" rows="3" placeholder="e.g. Severe allergic reaction, on my way now" maxlength="300"></textarea>
 </div>
 <div class="toast" id="emergencyResult"></div>
 <div style="display:flex;gap:8px;margin-top:6px;">
@@ -370,12 +376,16 @@ window.addEventListener('DOMContentLoaded', () => {
   const dateInput = document.getElementById('date-input');
   const tomorrow = new Date();
   tomorrow.setDate(tomorrow.getDate() + 1);
-  dateInput.value = tomorrow.toISOString().split('T')[0];
+  dateInput.min = localDateString(new Date());
+  dateInput.value = localDateString(tomorrow);
   loadSlots();
   refreshAppointments();
   loadFeeStatus();
+  loadEmergencyAlertStatus();
   pollNotifCount();
   setInterval(pollNotifCount, 4000);
+  checkTodayDelay();
+  setInterval(checkTodayDelay, 15000);
 });
 
 function pollNotifCount() {
@@ -408,7 +418,7 @@ function loadNotifPanel() {
         return;
       }
       panel.innerHTML = items.map(n => `
-        <div class="notif-item" style="${n.read ? 'opacity:0.55;' : 'font-weight:600;'}" onclick="markNotifRead(${n.id})">
+        <div class="notif-item ${n.read ? 'read' : 'unread'}" onclick="markNotifRead(${n.id})">
           <div>${escapeHtml(n.message)}</div>
           <div class="notif-time">${n.createdAt ? new Date(n.createdAt).toLocaleString() : ''}</div>
         </div>
@@ -528,12 +538,51 @@ function timeSlotSortKey(timeSlot) {
   return hours * 60 + parseInt(match[2], 10);
 }
 
+// YYYY-MM-DD in the student's local time zone (toISOString() is UTC, which
+// can be a day off here in the Pacific).
+function localDateString(d) {
+  return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+}
+
+function isPastDate(date) {
+  return !date || date < localDateString(new Date());
+}
+
+// A slot is in the past if its date is before today, or it's today and its
+// start time has already gone by. The server enforces the same rule.
+function isSlotPast(date, timeSlot) {
+  if (isPastDate(date)) return true;
+  if (date !== localDateString(new Date())) return false;
+  if (!/(\d{1,2}):(\d{2})\s*(AM|PM)/i.test(timeSlot.split('-')[0])) return false;
+  const now = new Date();
+  return timeSlotSortKey(timeSlot) <= now.getHours() * 60 + now.getMinutes();
+}
+
+function renderSlotOption(s, date, pickFn) {
+  const past = isSlotPast(date, s.timeSlot);
+  const cls = s.booked ? ' booked' : (past ? ' past' : '');
+  const clickable = !s.booked && !past;
+  const badge = s.booked ? '<span class="badge Booked">Booked</span>' : (past ? '<span class="badge Past">Passed</span>' : '');
+  return `
+    <div class="slot-option${cls}" data-id="${s.id}"
+         ${clickable ? `onclick='${pickFn}(${s.id}, this)'` : ''}>
+      <span class="time">${escapeHtml(s.timeSlot)}</span>
+      ${badge}
+    </div>
+  `;
+}
+
 function loadSlots() {
   const date = document.getElementById('date-input').value;
   if (!date) return;
   selectedSlot = null;
 
   const container = document.getElementById('slot-container');
+
+  if (isPastDate(date)) {
+    container.innerHTML = '<div class="empty-state">You can\'t book a date in the past. Please pick today or a later date.</div>';
+    return;
+  }
 
   fetch('/schedule/available?date=' + date)
     .then(res => {
@@ -559,13 +608,7 @@ function loadSlots() {
       });
       uniqueSlots.sort((a, b) => timeSlotSortKey(a.timeSlot) - timeSlotSortKey(b.timeSlot));
 
-      container.innerHTML = '<div class="slot-list">' + uniqueSlots.map(s => `
-        <div class="slot-option${s.booked ? ' booked' : ''}" data-id="${s.id}"
-             ${s.booked ? '' : `onclick='pickSlot(${s.id}, this)'`}>
-          <span class="time">${escapeHtml(s.timeSlot)}</span>
-          ${s.booked ? '<span class="badge Booked">Booked</span>' : ''}
-        </div>
-      `).join('') + '</div>';
+      container.innerHTML = '<div class="slot-list">' + uniqueSlots.map(s => renderSlotOption(s, date, 'pickSlot')).join('') + '</div>';
     })
     .catch(() => {
       container.innerHTML = '<div class="empty-state">Unable to load availability.</div>';
@@ -585,11 +628,17 @@ function pickSlot(slotId, el) {
 function bookAppointment() {
   const toast = document.getElementById('book-toast');
   const reason = document.getElementById('reason-input').value.trim();
-  const urgency = document.getElementById('urgency-input').value;
+  const date = document.getElementById('date-input').value;
 
   if (!selectedSlot) {
     toast.textContent = 'Select an available slot first.';
     toast.className = 'toast err';
+    return;
+  }
+  if (isSlotPast(date, selectedSlotTime || '')) {
+    toast.textContent = "That time has already passed. Please pick a later slot.";
+    toast.className = 'toast err';
+    loadSlots();
     return;
   }
   if (!reason) {
@@ -602,7 +651,6 @@ function bookAppointment() {
   document.getElementById('confirm-date').textContent = document.getElementById('date-input').value;
   document.getElementById('confirm-time').textContent = selectedSlotTime || '';
   document.getElementById('confirm-reason').textContent = reason;
-  document.getElementById('confirm-urgency').textContent = urgency;
   document.getElementById('confirm-toast').textContent = '';
   document.getElementById('confirm-modal-overlay').hidden = false;
 }
@@ -616,12 +664,11 @@ function submitBooking() {
   const toast = document.getElementById('book-toast');
   const confirmToast = document.getElementById('confirm-toast');
   const reason = document.getElementById('reason-input').value.trim();
-  const urgency = document.getElementById('urgency-input').value;
 
   fetch('/student/book', {
     method: 'POST',
     headers: { 'Authorization': authHeader, 'Content-Type': 'application/json' },
-    body: JSON.stringify({ slotId: selectedSlot, visitReason: reason, urgencyLevel: urgency })
+    body: JSON.stringify({ slotId: selectedSlot, visitReason: reason })
   })
   .then(res => res.json())
   .then(data => {
@@ -631,8 +678,11 @@ function submitBooking() {
       return;
     }
     closeConfirmModal();
-    toast.textContent = 'Appointment confirmed for ' + data.timeSlot + '.';
+    toast.textContent = 'Appointment confirmed for ' + data.timeSlot + '.'
+      + (data.emergencyDelay ? ' Note: there is an emergency at the Health Center today, so your visit may be delayed.' : '');
     toast.className = 'toast ok';
+    checkTodayDelay();
+    pollNotifCount();
     document.getElementById('reason-input').value = '';
     selectedSlot = null;
     selectedSlotTime = null;
@@ -678,7 +728,7 @@ function loadHistory() {
               <span class="h-date">${escapeHtml(h.appointmentDate)}${h.timeSlot ? ' · ' + escapeHtml(h.timeSlot) : ''}</span>
               <span class="status-tag ${escapeHtml(h.status)}">${escapeHtml(h.status)}</span>
             </div>
-            <div class="h-detail">${escapeHtml(h.visitReason)} · ${escapeHtml(h.urgencyLevel)}</div>
+            <div class="h-detail">${escapeHtml(h.visitReason)}</div>
             ${detail ? `<div class="h-detail">${detail}</div>` : ''}
           </div>
         `;
@@ -708,7 +758,6 @@ function renderAppointments(appointments) {
     <div class="appt-card">
       <div class="appt-top">
         <span class="doc">${escapeHtml(a.appointmentDate)}${a.timeSlot ? ' · ' + escapeHtml(a.timeSlot) : ''}</span>
-        <span class="badge ${a.urgencyLevel}">${escapeHtml(a.urgencyLevel)}</span>
       </div>
       <div class="appt-meta">${escapeHtml(a.visitReason)}</div>
       <div class="appt-actions">
@@ -749,7 +798,8 @@ function openRescheduleModal(appointmentId, date, timeSlot) {
   const dateInput = document.getElementById('reschedule-date-input');
   const tomorrow = new Date();
   tomorrow.setDate(tomorrow.getDate() + 1);
-  dateInput.value = tomorrow.toISOString().split('T')[0];
+  dateInput.min = localDateString(new Date());
+  dateInput.value = localDateString(tomorrow);
   loadRescheduleSlots();
   document.getElementById('reschedule-modal-overlay').hidden = false;
 }
@@ -767,6 +817,10 @@ function loadRescheduleSlots() {
   document.getElementById('reschedule-new-row').style.display = 'none';
   document.getElementById('reschedule-confirm-btn').disabled = true;
   if (!date) return;
+  if (isPastDate(date)) {
+    container.innerHTML = '<div class="empty-state">You can\'t reschedule to a date in the past. Please pick today or a later date.</div>';
+    return;
+  }
 
   fetch('/schedule/available?date=' + date)
     .then(res => {
@@ -787,13 +841,7 @@ function loadRescheduleSlots() {
       });
       uniqueSlots.sort((a, b) => timeSlotSortKey(a.timeSlot) - timeSlotSortKey(b.timeSlot));
 
-      container.innerHTML = '<div class="slot-list">' + uniqueSlots.map(s => `
-        <div class="slot-option${s.booked ? ' booked' : ''}" data-id="${s.id}"
-             ${s.booked ? '' : `onclick='pickRescheduleSlot(${s.id}, this)'`}>
-          <span class="time">${escapeHtml(s.timeSlot)}</span>
-          ${s.booked ? '<span class="badge Booked">Booked</span>' : ''}
-        </div>
-      `).join('') + '</div>';
+      container.innerHTML = '<div class="slot-list">' + uniqueSlots.map(s => renderSlotOption(s, date, 'pickRescheduleSlot')).join('') + '</div>';
     })
     .catch(() => {
       container.innerHTML = '<div class="empty-state">Unable to load availability.</div>';
@@ -833,7 +881,10 @@ function confirmReschedule() {
       btn.disabled = false;
       return;
     }
-    toast.textContent = 'Appointment rescheduled to ' + data.newDate + ' at ' + data.newTimeSlot + '.';
+    toast.textContent = 'Appointment rescheduled to ' + data.newDate + ' at ' + data.newTimeSlot + '.'
+      + (data.emergencyDelay ? ' Note: there is an emergency at the Health Center today, so your visit may be delayed.' : '');
+    checkTodayDelay();
+    pollNotifCount();
     toast.className = 'toast ok';
     refreshAppointments();
     loadSlots();
@@ -910,8 +961,55 @@ function submitChangePassword() {
   });
 }
 
+// A student may send one emergency alert per day (enforced server-side too).
+// Once it's sent - or while it's being sent - the buttons are locked so a
+// panicked double/triple click can never fire more than one request.
+let emergencyAlertSending = false;
+let emergencyAlertSent = false;
+
+const EMERGENCY_FAB_LABEL = '🚨 Emergency';
+const EMERGENCY_SEND_LABEL = '🚨 Send Alert Now';
+
+function loadEmergencyAlertStatus() {
+  fetch('/student/emergency-alert/status', { headers: { 'Authorization': authHeader } })
+    .then(res => res.ok ? res.json() : null)
+    .then(data => { if (data && data.sentToday) markEmergencyAlertSent(); })
+    .catch(() => {});
+}
+
+function markEmergencyAlertSent() {
+  emergencyAlertSent = true;
+  emergencyAlertSending = false;
+  const fab = document.getElementById('emergency-fab');
+  fab.disabled = true;
+  fab.classList.add('sent');
+  fab.textContent = '✓ Alert sent – help is on the way';
+  fab.title = "You've already alerted the Health Center today. If this is life-threatening, call campus security or emergency services.";
+  const btn = document.getElementById('emergency-send-btn');
+  btn.disabled = true;
+  btn.textContent = '✓ Alert Sent';
+}
+
+function setEmergencySending(sending) {
+  emergencyAlertSending = sending;
+  const fab = document.getElementById('emergency-fab');
+  const btn = document.getElementById('emergency-send-btn');
+  document.getElementById('emergencyReason').disabled = sending;
+  fab.disabled = sending;
+  btn.disabled = sending;
+  if (sending) {
+    fab.innerHTML = '<span class="spinner"></span>Sending alert…';
+    btn.innerHTML = '<span class="spinner"></span>Sending…';
+  } else {
+    fab.textContent = EMERGENCY_FAB_LABEL;
+    btn.textContent = EMERGENCY_SEND_LABEL;
+  }
+}
+
 function openEmergencyModal() {
+  if (emergencyAlertSent || emergencyAlertSending) return;
   document.getElementById('emergencyReason').value = '';
+  document.getElementById('emergencyReason').disabled = false;
   document.getElementById('emergencyResult').textContent = '';
   document.getElementById('emergencyResult').className = 'toast';
   document.getElementById('emergency-modal-overlay').hidden = false;
@@ -922,9 +1020,10 @@ function closeEmergencyModal() {
 }
 
 function sendEmergencyAlert() {
+  if (emergencyAlertSending || emergencyAlertSent) return;
+
   const reason = document.getElementById('emergencyReason').value.trim();
   const resultEl = document.getElementById('emergencyResult');
-  const btn = document.getElementById('emergency-send-btn');
 
   if (!reason) {
     resultEl.className = 'toast err';
@@ -932,7 +1031,7 @@ function sendEmergencyAlert() {
     return;
   }
 
-  btn.disabled = true;
+  setEmergencySending(true);
   fetch('/student/emergency-alert', {
     method: 'POST',
     headers: { 'Authorization': authHeader, 'Content-Type': 'application/json' },
@@ -940,21 +1039,40 @@ function sendEmergencyAlert() {
   })
   .then(res => res.json())
   .then(data => {
-    btn.disabled = false;
     if (data.error) {
+      setEmergencySending(false);
       resultEl.className = 'toast err';
       resultEl.textContent = data.error;
+      // Already alerted earlier today (e.g. from another tab) - lock it.
+      if (/already sent/i.test(data.error)) markEmergencyAlertSent();
       return;
     }
+    markEmergencyAlertSent();
     resultEl.className = 'toast ok';
     resultEl.textContent = data.message;
     setTimeout(closeEmergencyModal, 3000);
   })
   .catch(() => {
-    btn.disabled = false;
+    setEmergencySending(false);
     resultEl.className = 'toast err';
     resultEl.textContent = 'Unable to reach the server. If this is an emergency, call campus security directly.';
   });
+}
+
+// Shows a banner when another student's emergency today may delay THIS
+// student's appointment today. Bookings on other days never show it.
+function checkTodayDelay() {
+  fetch('/student/today-delay', { headers: { 'Authorization': authHeader } })
+    .then(res => res.ok ? res.json() : null)
+    .then(data => {
+      const banner = document.getElementById('delay-banner');
+      if (!data || !data.delayed) { banner.style.display = 'none'; return; }
+      banner.textContent = '⚠ Emergency at the Health Center today: your appointment today'
+        + (data.timeSlot ? ' (' + data.timeSlot + ')' : '')
+        + ' may be delayed while an emergency patient is prioritized. You\'ll be seen once the doctor is free - thank you for your patience.';
+      banner.style.display = 'block';
+    })
+    .catch(() => {});
 }
 
 function escapeHtml(str) {
