@@ -14,9 +14,14 @@ public interface NotificationRepository extends JpaRepository<Notification, Long
     List<Notification> findByRecipientUsernameOrderByCreatedAtDesc(String recipientUsername);
     long countByRecipientUsernameAndReadFalse(String recipientUsername);
 
-    // Used to cap students at one emergency alert per rolling 24 hours.
+    // Limits a student to one emergency alert per day.
     boolean existsByTypeAndStudentUsernameAndCreatedAtGreaterThanEqual(String type, String studentUsername, LocalDateTime since);
 
-    // Used so a booking only gets one delay notice per emergency student.
-    boolean existsByTypeAndAppointmentIdAndStudentUsername(String type, Long appointmentId, String studentUsername);
+    // Avoids sending a student a second delay notice about the same emergency
+    // (e.g. once when the alert is sent, again when they're checked in).
+    boolean existsByTypeAndRecipientUsernameAndStudentUsernameAndCreatedAtGreaterThanEqual(
+            String type, String recipientUsername, String studentUsername, LocalDateTime since);
+
+    // Staff-feed emergencies raised since a given time (today's emergencies).
+    List<Notification> findByRecipientUsernameIsNullAndTypeInAndCreatedAtGreaterThanEqual(List<String> types, LocalDateTime since);
 }
