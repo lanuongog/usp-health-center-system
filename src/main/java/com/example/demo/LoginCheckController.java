@@ -76,6 +76,9 @@ public class LoginCheckController {
             }
         }
 
+        // a fresh sign-in re-arms the student's Emergency button
+        if ("STUDENT".equals(user.getRole())) StudentController.markLogin(user.getUsername());
+
         return Map.of(
             "ok", true,
             "role", user.getRole(),

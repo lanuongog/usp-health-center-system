@@ -208,6 +208,7 @@
 </div>
 
 <script src="/js/app-shell.js"></script>
+<script src="/js/validation.js"></script>
 <script>
 const esc = HC.esc;
 let authHeader = null;
@@ -266,7 +267,8 @@ function norm(a) {
 }
 
 // ---------- Session ----------
-function logout() {
+async function logout() {
+  if (!(await VAL.ask({ title: 'Log out', note: 'Are you sure you want to log out?', okText: 'Yes, log out' }))) return;
   localStorage.clear();
   window.location.href = '/login.html';
 }
@@ -510,11 +512,19 @@ function recordConsultation(appointmentId) {
   const notes = document.getElementById('notes-input').value.trim();
   const toast = document.getElementById('record-toast');
   const btn = document.getElementById('record-btn');
-  if (!diagnosis || !notes) {
+  const bad = !diagnosis || !notes ? 'Diagnosis and consultation notes are both required.'
+    : diagnosis.length > 200 ? 'Diagnosis must be 200 characters or fewer.'
+    : notes.length > 2000 ? 'Consultation notes must be 2000 characters or fewer.' : null;
+  if (bad) {
     toast.className = 'toast err';
-    toast.textContent = 'Diagnosis and consultation notes are both required.';
+    toast.textContent = bad;
+    VAL.alert(bad);
     return;
   }
+  VAL.ask({ title: 'Save consultation', rows: [['Diagnosis', diagnosis.length > 60 ? diagnosis.slice(0, 60) + '…' : diagnosis]], note: 'Record this consultation and complete the appointment? It cannot be edited afterwards.', okText: 'Yes, save record' }).then(okay => { if (okay && VAL.once('consult', 2000)) doRecordConsultation(appointmentId, diagnosis, notes, toast, btn); });
+}
+
+function doRecordConsultation(appointmentId, diagnosis, notes, toast, btn) {
   btn.disabled = true;
   toast.textContent = '';
 
@@ -536,6 +546,7 @@ function recordConsultation(appointmentId) {
   .catch(err => {
     toast.className = 'toast err';
     toast.textContent = err.message;
+    VAL.alert(err.message);
     btn.disabled = false;
   });
 }
@@ -857,12 +868,14 @@ function closeEmergencyModal() {
   document.getElementById('emergency-modal-overlay').hidden = true;
 }
 
-function submitEmergencyCheckIn() {
+async function submitEmergencyCheckIn() {
   const studentId = document.getElementById('emergencyStudentId').value.trim();
   const reason = document.getElementById('emergencyReason').value.trim();
   const resultEl = document.getElementById('emergencyResult');
-  if (!studentId) { resultEl.className = 'toast err'; resultEl.textContent = 'Student ID is required.'; return; }
+  if (!studentId) { resultEl.className = 'toast err'; resultEl.textContent = 'Student ID is required.'; VAL.alert('Student ID is required.'); return; }
+  if (!/^[Ss]\d{8}$/.test(studentId)) { resultEl.className = 'toast err'; resultEl.textContent = 'Student ID must be S followed by 8 digits.'; VAL.alert('Student ID must be S followed by 8 digits (e.g. S12345678).'); return; }
 
+  if (!(await VAL.ask({ title: 'Emergency check-in', rows: [['Student', studentId.toUpperCase()]], note: 'Check this student in as an emergency and notify the clinic?', okText: 'Yes, check in', danger: true }))) return;
   fetch('/emergency/checkin', {
     method: 'POST',
     headers: { 'Authorization': authHeader, 'Content-Type': 'application/json' },
@@ -890,14 +903,17 @@ function closeChangePasswordModal() {
   document.getElementById('change-password-modal-overlay').hidden = true;
 }
 
-function submitChangePassword() {
+async function submitChangePassword() {
   const currentPassword = document.getElementById('cpCurrentPassword').value;
   const newPassword = document.getElementById('cpNewPassword').value;
   const confirmPassword = document.getElementById('cpConfirmPassword').value;
   const resultEl = document.getElementById('cpResult');
   if (!currentPassword || !newPassword) { resultEl.className = 'toast err'; resultEl.textContent = 'Both fields are required.'; return; }
   if (newPassword !== confirmPassword) { resultEl.className = 'toast err'; resultEl.textContent = 'New password and confirmation do not match.'; return; }
+  { const pe = VAL.password(newPassword, localStorage.getItem('currentUser')); if (pe) { resultEl.className = 'toast err'; resultEl.textContent = pe; VAL.alert(pe); return; } }
+  if (newPassword === currentPassword) { const m = 'The new password must be different from your current password.'; resultEl.className = 'toast err'; resultEl.textContent = m; VAL.alert(m); return; }
 
+  if (!(await VAL.ask({ title: 'Change password', note: 'Change your password now?', okText: 'Yes, change password' }))) return;
   fetch('/account/change-password', {
     method: 'POST',
     headers: { 'Authorization': authHeader, 'Content-Type': 'application/json' },

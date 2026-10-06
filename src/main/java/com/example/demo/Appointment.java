@@ -2,6 +2,7 @@ package com.example.demo;
 
 import java.time.LocalDate;
 
+import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
@@ -16,16 +17,25 @@ public class Appointment {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    @Column(length = 100)
     private String studentName;
+    @Column(length = 100)
     private String doctorName;
     private LocalDate appointmentDate;
+    @Column(length = 50)
     private String timeSlot;
+    @Column(length = 300)
     private String visitReason;
+    @Column(length = 30)
     private String urgencyLevel; 
+    @Column(length = 30)
     private String status; 
     private Long scheduleSlotId;
+    @Column(length = 200)
     private String diagnosis;
+    @Column(length = 2000)
     private String consultationNotes;
+    @Column(length = 100)
     private String consultedByDoctor;
 
     public Appointment() {}

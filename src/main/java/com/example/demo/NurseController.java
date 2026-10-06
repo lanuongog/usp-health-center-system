@@ -1,4 +1,5 @@
 package com.example.demo;
+import org.springframework.transaction.annotation.Transactional;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.Authentication;
@@ -113,6 +114,7 @@ public class NurseController {
 
     // check in a booked student, record vitals + complaint,
     // prevent the same student being checked in twice for the same visit
+    @Transactional
     @PostMapping("/checkin")
     public CheckIn checkInStudent(@RequestBody CheckInRequest request, Authentication auth) {
         Appointment appointment = appointmentRepository.findById(request.appointmentId)
@@ -126,6 +128,12 @@ public class NurseController {
         // turn up after all, in addition to the normal booked-and-waiting case
         if (!"BOOKED".equals(appointment.getStatus()) && !"NO_SHOW".equals(appointment.getStatus())) {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "No valid appointment found");
+        }
+
+        // a future-dated appointment cannot be checked in yet
+        if (appointment.getAppointmentDate() != null && appointment.getAppointmentDate().isAfter(LocalDate.now())) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT,
+                    "This appointment is scheduled for a future date and cannot be checked in yet.");
         }
 
         // required fields must be present
@@ -193,6 +201,7 @@ public class NurseController {
     // booking, and checks them in with vitals in the same step - the same
     // combined check-in+vitals pattern used for booked students above, just
     // without an existing Appointment/schedule slot to attach to.
+    @Transactional
     @PostMapping("/walk-in-checkin")
     public Object walkInCheckIn(@RequestBody WalkInCheckInRequest request, Authentication auth) {
         if (request.studentId == null || request.studentId.isBlank()) {
@@ -203,6 +212,10 @@ public class NurseController {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Student record not found");
         }
         String studentId = student.getUsername();
+
+        if (!student.isActive()) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "This student account is deactivated.");
+        }
 
         boolean hasActiveVisit = appointmentRepository.findByStudentName(studentId).stream()
                 .anyMatch(a -> "BOOKED".equals(a.getStatus()) || "CHECKED_IN".equals(a.getStatus()));
@@ -293,6 +306,11 @@ public class NurseController {
 
         if (!"BOOKED".equals(appointment.getStatus())) {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "No valid appointment found");
+        }
+
+        if (appointment.getAppointmentDate() != null && appointment.getAppointmentDate().isAfter(LocalDate.now())) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT,
+                    "A future appointment cannot be marked as a no-show.");
         }
 
         appointment.setStatus("NO_SHOW");

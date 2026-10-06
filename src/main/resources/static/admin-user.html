@@ -53,6 +53,7 @@
 </div>
 
 <script src="/js/app-shell.js"></script>
+<script src="/js/validation.js"></script>
 <script>
 const esc = HC.esc;
 let authHeader = null;
@@ -85,7 +86,8 @@ window.addEventListener('DOMContentLoaded', () => {
   loadUser();
 });
 
-function logout() {
+async function logout() {
+  if (!(await VAL.ask({ title: 'Log out', note: 'Are you sure you want to log out?', okText: 'Yes, log out' }))) return;
   localStorage.clear();
   window.location.href = '/login.html';
 }
@@ -111,7 +113,7 @@ function showError(message) {
   const box = document.getElementById('pageError');
   box.textContent = message || '';
   box.hidden = !message;
-  if (message) document.getElementById('pageMsg').hidden = true;
+  if (message) { document.getElementById('pageMsg').hidden = true; VAL.alert(message); }
 }
 
 function showMsg(message) {
@@ -232,6 +234,10 @@ function render() {
 }
 
 async function toggleActive(confirmed) {
+  const _u = (typeof currentUser !== 'undefined' && currentUser) || {};
+  const _act = _u.active;
+  if (!(await VAL.ask({ title: _act ? 'Deactivate account' : 'Activate account', rows: [['Account', _u.username || ''], ['Role', _u.role || '']], note: _act ? 'This user will no longer be able to sign in. Continue?' : 'This user will be able to sign in again. Continue?', okText: _act ? 'Yes, deactivate' : 'Yes, activate', danger: !!_act }))) return;
+  if (!VAL.once('toggle' + userId, 2000)) return;
   try {
     const res = await fetch(`/admin/users/${userId}/toggle`, {
       method: 'POST',
@@ -273,6 +279,7 @@ async function viewReceipt() {
 }
 
 async function approveReceipt() {
+  if (!(await VAL.ask({ title: 'Approve payment', note: 'Confirm the receipt is valid? The student will be able to book appointments.', okText: 'Yes, approve' }))) return;
   try {
     const res = await fetch(`/admin/users/${userId}/verify-receipt`, { method: 'POST', headers: { 'Authorization': authHeader } });
     const data = await res.json();
@@ -289,7 +296,11 @@ async function approveReceipt() {
 
 async function resetPassword() {
   const newPassword = document.getElementById('resetPw').value;
-  if (newPassword.length < 6) { showError('Password must be at least 6 characters.'); return; }
+  const _u = (typeof currentUser !== 'undefined' && currentUser) || {};
+  const pe = VAL.password(newPassword, _u.username);
+  if (pe) { showError(pe); return; }
+  if (!(await VAL.ask({ title: 'Reset password', rows: [['Account', _u.username || '']], note: 'Set this as the new password for this account?', okText: 'Yes, reset password' }))) return;
+  if (!VAL.once('resetpw' + userId, 2000)) return;
   try {
     const res = await fetch(`/admin/users/${userId}/reset-password`, {
       method: 'POST',
@@ -309,6 +320,9 @@ async function resetPassword() {
 
 async function rejectReceipt() {
   const reason = document.getElementById('rejectReason').value.trim();
+  if (!reason) { showError('Please enter a reason for rejecting the receipt.'); return; }
+  if (reason.length > 500) { showError('The reason must be 500 characters or fewer.'); return; }
+  if (!(await VAL.ask({ title: 'Reject receipt', note: 'Reject this payment receipt? The student will need to upload a new one.', okText: 'Yes, reject', danger: true }))) return;
   try {
     const res = await fetch(`/admin/users/${userId}/reject-receipt`, {
       method: 'POST',
@@ -338,14 +352,17 @@ function closeChangePasswordModal() {
   document.getElementById('change-password-modal-overlay').hidden = true;
 }
 
-function submitChangePassword() {
+async function submitChangePassword() {
   const currentPassword = document.getElementById('cpCurrentPassword').value;
   const newPassword = document.getElementById('cpNewPassword').value;
   const confirmPassword = document.getElementById('cpConfirmPassword').value;
   const resultEl = document.getElementById('cpResult');
   if (!currentPassword || !newPassword) { resultEl.className = 'toast err'; resultEl.textContent = 'Both fields are required.'; return; }
   if (newPassword !== confirmPassword) { resultEl.className = 'toast err'; resultEl.textContent = 'New password and confirmation do not match.'; return; }
+  { const pe = VAL.password(newPassword, localStorage.getItem('currentUser')); if (pe) { resultEl.className = 'toast err'; resultEl.textContent = pe; VAL.alert(pe); return; } }
+  if (newPassword === currentPassword) { const m = 'The new password must be different from your current password.'; resultEl.className = 'toast err'; resultEl.textContent = m; VAL.alert(m); return; }
 
+  if (!(await VAL.ask({ title: 'Change password', note: 'Change your password now?', okText: 'Yes, change password' }))) return;
   fetch('/account/change-password', {
     method: 'POST',
     headers: { 'Authorization': authHeader, 'Content-Type': 'application/json' },

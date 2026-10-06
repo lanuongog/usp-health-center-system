@@ -1,4 +1,5 @@
 package com.example.demo;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
 import java.time.LocalTime;
@@ -23,6 +24,7 @@ public class BookingController {
     // Students no longer choose an urgency - every online booking is Routine;
     // emergencies go through the portal's Emergency button instead.
     private static final String STUDENT_BOOKING_URGENCY = "Routine";
+    private static final int MAX_UPCOMING_APPOINTMENTS = 3;
     private static final int MAX_REASON_LENGTH = 300;
     private static final DateTimeFormatter SLOT_TIME_FORMAT = new DateTimeFormatterBuilder()
             .parseCaseInsensitive().appendPattern("h:mm a").toFormatter(Locale.US);
@@ -102,6 +104,7 @@ public class BookingController {
     }
 
     // book an available slot, tied to the logged-in student
+    @Transactional
     @PostMapping("/book")
     public Object bookAppointment(@RequestBody BookingRequest request, Authentication auth) {
         User student = userRepository.findByUsername(auth.getName()).orElse(null);
@@ -124,6 +127,15 @@ public class BookingController {
         }
         if (isSlotInPast(slot)) {
             return Map.of("error", "You can't book a date or time that has already passed.");
+        }
+
+        // limit how many upcoming appointments one student can hold at a time
+        long upcoming = appointmentRepository.findByStudentNameAndStatus(auth.getName(), "BOOKED").stream()
+                .filter(x -> x.getAppointmentDate() != null && !x.getAppointmentDate().isBefore(LocalDate.now()))
+                .count();
+        if (upcoming >= MAX_UPCOMING_APPOINTMENTS) {
+            return Map.of("error", "You already have " + MAX_UPCOMING_APPOINTMENTS
+                    + " upcoming appointments. Please cancel one or attend it before booking another.");
         }
 
         boolean alreadyBookedAtThisTime = !appointmentRepository.findByStudentNameAndStatusAndAppointmentDateAndTimeSlot(
@@ -180,6 +192,7 @@ public class BookingController {
     }
 
     // cancel an upcoming appointment, freeing the slot back up
+    @Transactional
     @PostMapping("/cancel")
     public Object cancelAppointment(@RequestBody CancelRequest request, Authentication auth) {
         Appointment appointment = appointmentRepository.findById(request.appointmentId).orElse(null);
@@ -207,6 +220,7 @@ public class BookingController {
     }
 
     // reschedule to a new open slot, freeing the old one
+    @Transactional
     @PostMapping("/reschedule")
     public Object rescheduleAppointment(@RequestBody RescheduleRequest request, Authentication auth) {
         Appointment appointment = appointmentRepository.findById(request.appointmentId).orElse(null);

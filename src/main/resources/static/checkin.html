@@ -230,6 +230,7 @@
 </div>
 
 <script src="/js/app-shell.js"></script>
+<script src="/js/validation.js"></script>
 <script>
 const esc = HC.esc;
 let authHeader = null;
@@ -285,7 +286,8 @@ function displayName(id, fallback) {
 }
 
 // ---------- Session ----------
-function logout() {
+async function logout() {
+  if (!(await VAL.ask({ title: 'Log out', note: 'Are you sure you want to log out?', okText: 'Yes, log out' }))) return;
   localStorage.clear();
   window.location.href = '/login.html';
 }
@@ -413,7 +415,7 @@ function cancelCheckIn() {
 
 async function markNoShow(appointmentId) {
   const a = findAppointment(appointmentId);
-  if (!confirm(`Mark ${displayName(a ? a.studentName : '')} as a no-show for this appointment?`)) return;
+  if (!(await VAL.ask({ title: 'Mark as no-show', rows: [['Student', displayName(a ? a.studentName : '')]], note: 'Mark this student as a no-show for this appointment?', okText: 'Yes, mark no-show', danger: true }))) return;
   try {
     const res = await fetch('/nurse/no-show', {
       method: 'POST',
@@ -467,7 +469,10 @@ async function submitCheckIn() {
     if (!sysOk) problems.push(`Systolic BP ${sys} is invalid. Enter a whole number from 60 to 250.`);
     if (!diaOk) problems.push(`Diastolic BP ${dia} is invalid. Enter a whole number from 40 to 150, lower than systolic.`);
   }
-  if (problems.length) { showFormError(problems.join(' ')); return; }
+  if (presentingComplaint.length > 500) problems.push('Presenting complaint must be 500 characters or fewer.');
+  if (problems.length) { showFormError(problems.join(' ')); VAL.alert(problems.join('\n')); return; }
+  if (!(await VAL.ask({ title: 'Save check-in', rows: [['Temperature', temperature + ' °C'], ['Blood pressure', sys + '/' + dia], ['Complaint', presentingComplaint.length > 60 ? presentingComplaint.slice(0, 60) + '…' : presentingComplaint]], note: 'Save these vital signs and check the patient in?', okText: 'Yes, check in' }))) return;
+  if (!VAL.once('checkin', 2000)) return;
 
   const btn = document.getElementById('checkin-submit');
   btn.disabled = true;
@@ -484,6 +489,7 @@ async function submitCheckIn() {
     if (!res.ok) {
       const err = await res.json();
       showFormError(err.message || 'Unable to save check-in.');
+      VAL.alert(err.message || 'Unable to save check-in.');
       return;
     }
     cancelCheckIn();
@@ -809,12 +815,14 @@ function closeEmergencyModal() {
   document.getElementById('emergency-modal-overlay').hidden = true;
 }
 
-function submitEmergencyCheckIn() {
+async function submitEmergencyCheckIn() {
   const studentId = document.getElementById('emergencyStudentId').value.trim();
   const reason = document.getElementById('emergencyReason').value.trim();
   const resultEl = document.getElementById('emergencyResult');
-  if (!studentId) { resultEl.className = 'toast err'; resultEl.textContent = 'Student ID is required.'; return; }
+  if (!studentId) { resultEl.className = 'toast err'; resultEl.textContent = 'Student ID is required.'; VAL.alert('Student ID is required.'); return; }
+  if (!/^[Ss]\d{8}$/.test(studentId)) { resultEl.className = 'toast err'; resultEl.textContent = 'Student ID must be S followed by 8 digits.'; VAL.alert('Student ID must be S followed by 8 digits (e.g. S12345678).'); return; }
 
+  if (!(await VAL.ask({ title: 'Emergency check-in', rows: [['Student', studentId.toUpperCase()]], note: 'Check this student in as an emergency and notify the clinic?', okText: 'Yes, check in', danger: true }))) return;
   fetch('/emergency/checkin', {
     method: 'POST',
     headers: { 'Authorization': authHeader, 'Content-Type': 'application/json' },
@@ -845,14 +853,17 @@ function closeChangePasswordModal() {
   document.getElementById('change-password-modal-overlay').hidden = true;
 }
 
-function submitChangePassword() {
+async function submitChangePassword() {
   const currentPassword = document.getElementById('cpCurrentPassword').value;
   const newPassword = document.getElementById('cpNewPassword').value;
   const confirmPassword = document.getElementById('cpConfirmPassword').value;
   const resultEl = document.getElementById('cpResult');
   if (!currentPassword || !newPassword) { resultEl.className = 'toast err'; resultEl.textContent = 'Both fields are required.'; return; }
   if (newPassword !== confirmPassword) { resultEl.className = 'toast err'; resultEl.textContent = 'New password and confirmation do not match.'; return; }
+  { const pe = VAL.password(newPassword, localStorage.getItem('currentUser')); if (pe) { resultEl.className = 'toast err'; resultEl.textContent = pe; VAL.alert(pe); return; } }
+  if (newPassword === currentPassword) { const m = 'The new password must be different from your current password.'; resultEl.className = 'toast err'; resultEl.textContent = m; VAL.alert(m); return; }
 
+  if (!(await VAL.ask({ title: 'Change password', note: 'Change your password now?', okText: 'Yes, change password' }))) return;
   fetch('/account/change-password', {
     method: 'POST',
     headers: { 'Authorization': authHeader, 'Content-Type': 'application/json' },
