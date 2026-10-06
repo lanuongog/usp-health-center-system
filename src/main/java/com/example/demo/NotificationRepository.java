@@ -16,6 +16,8 @@ public interface NotificationRepository extends JpaRepository<Notification, Long
 
     // Limits a student to one emergency alert per day.
     boolean existsByTypeAndStudentUsernameAndCreatedAtGreaterThanEqual(String type, String studentUsername, LocalDateTime since);
+    Notification findFirstByTypeAndStudentUsernameAndCreatedAtGreaterThanEqualOrderByCreatedAtDesc(
+            String type, String studentUsername, LocalDateTime since);
 
     // Avoids sending a student a second delay notice about the same emergency
     // (e.g. once when the alert is sent, again when they're checked in).

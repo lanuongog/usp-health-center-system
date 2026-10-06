@@ -2,272 +2,206 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>Laucala Health Center - Admin Reporting Dashboard</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Admin Workspace — USU Health Center</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/css/design-system.css">
 <style>
-:root {
---bg: #F4F8F8;
---panel: #FFFFFF;
---ink: #14213D;
---ink-soft: #5C7070;
---line: #D8E6E6;
---brand: #0D7377;
---brand-dark: #095558;
---brand-soft: #E3F1F1;
+.filter-card { display: flex; gap: 14px; flex-wrap: wrap; align-items: flex-end; padding: 18px 20px; margin-bottom: 20px; }
+.filter-card .field { margin-bottom: 0; min-width: 150px; }
+.filter-note { display: flex; flex-direction: column; gap: 4px; font-size: 11px; color: var(--ink-soft); }
+.dash-row { grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr); }
+@media (max-width: 900px) { .dash-row { grid-template-columns: minmax(0, 1fr); } }
+.add-panel { background: var(--panel-muted); border-radius: var(--radius); padding: 16px; margin-top: 16px; }
+.accounts-top { display: flex; gap: 14px; align-items: flex-end; flex-wrap: wrap; margin-top: 18px; }
+.accounts-top .field { margin-bottom: 0; flex: 1; min-width: 220px; max-width: 360px; }
+.report-controls { display: flex; gap: 14px; flex-wrap: wrap; align-items: flex-end; }
+.report-controls .field { margin-bottom: 0; min-width: 160px; }
+@media print {
+  body * { visibility: hidden; }
+  #printable-report, #printable-report * { visibility: visible; }
+  #printable-report { position: absolute; left: 0; top: 0; width: 100%; padding: 20px; }
 }
-* { box-sizing: border-box; }
-body {
-font-family: -apple-system, Segoe UI, Roboto, Arial, sans-serif;
-background: var(--bg);
-margin: 0;
-color: var(--ink);
-}
-header {
-background: var(--brand);
-color: white;
-padding: 18px 30px;
-font-size: 20px;
-font-weight: 600;
-}
-header a.home-link {
-color: #fff; text-decoration: none; opacity: 0.85;
-margin-right: 14px; font-size: 14px;
-}
-header a.home-link:hover { opacity: 1; text-decoration: underline; }
-.container { max-width: 1000px; margin: 30px auto; padding: 0 20px; }
-
-button, .filterBar button, #logoutBtn {
-background: var(--brand); color: white; border: none;
-padding: 10px 18px; border-radius: 6px; cursor: pointer; font-size: 14px;
-}
-button:hover, .filterBar button:hover, #logoutBtn:hover { background: var(--brand-dark); }
-#pageError {
-background: #FDEAEA; color: #B03A2E; border: 1px solid #f2b8b8;
-border-radius: 6px; padding: 10px 14px; font-size: 13px; margin-bottom: 16px; display: none;
-}
-.filterBar input.invalid { border-color: #B03A2E; }
-
-#dashboard { display: block; }
-.topbar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
-
-.cards { display: flex; gap: 16px; margin-bottom: 24px; flex-wrap: wrap; }
-.card {
-background: white; border-radius: 10px; padding: 20px; flex: 1; min-width: 150px;
-box-shadow: 0 1px 4px rgba(0,0,0,0.06);
-}
-.card .label { font-size: 13px; color: #6b7280; margin-bottom: 6px; }
-.card .value { font-size: 28px; font-weight: 700; color: #17324A; }
-.card.warn .value { color: #B03A2E; }
-
-.panel {
-background: white; border-radius: 10px; padding: 20px; margin-bottom: 20px;
-box-shadow: 0 1px 4px rgba(0,0,0,0.06);
-}
-.panel h3 { margin-top: 0; color: #17324A; font-size: 15px; }
-
-.bar-row { display: flex; align-items: center; margin-bottom: 10px; font-size: 13px; }
-.bar-label { width: 160px; flex-shrink: 0; color: #374151; }
-.bar-track { flex: 1; background: #e5e7eb; border-radius: 4px; height: 18px; margin: 0 10px; overflow: hidden; }
-.bar-fill { background: #5B9BD5; height: 100%; border-radius: 4px; }
-.bar-count { width: 30px; text-align: right; font-weight: 600; color: #17324A; }
-
-.filterBar { display: flex; gap: 10px; align-items: center; margin-bottom: 20px; flex-wrap: wrap; }
-.filterBar label { font-size: 13px; color: #374151; }
-.filterBar input { padding: 7px; border: 1px solid #d1d5db; border-radius: 6px; }
-.filterBar .clearBtn { background: #9ca3af; }
-.filterBar .clearBtn:hover { background: #6b7280; }
-
-.tabs { display: flex; gap: 4px; margin-bottom: 20px; border-bottom: 2px solid #e5e7eb; }
-.tab-btn {
-background: none; border: none; padding: 10px 18px; cursor: pointer; font-size: 14px;
-color: #6b7280; border-bottom: 2px solid transparent; margin-bottom: -2px;
-}
-.tab-btn.active { color: #17324A; border-bottom-color: #17324A; font-weight: 600; }
-.tab-panel { display: none; }
-.tab-panel.active { display: block; }
-
-.reportBar { display: flex; gap: 10px; align-items: center; margin-bottom: 20px; flex-wrap: wrap; }
-.reportBar select { padding: 7px; border: 1px solid #d1d5db; border-radius: 6px; }
-.addUserBar { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin-bottom: 16px; }
-.addUserBar input, .addUserBar select {
-padding: 8px 10px; border: 1px solid #d1d5db; border-radius: 6px; font-size: 13px;
-}
-.addUserBar input[type="text"], .addUserBar input[type="password"] { width: 160px; }
-.report-meta { font-size: 12px; color: #6b7280; margin-bottom: 16px; }
-
-.user-table { width: 100%; border-collapse: collapse; font-size: 13px; }
-.user-table th, .user-table td { text-align: left; padding: 10px; border-bottom: 1px solid #eee; }
-.user-table th { color: #6b7280; font-weight: 600; }
-.status-badge { padding: 2px 10px; border-radius: 10px; font-size: 11px; font-weight: 600; }
-.status-badge.active { background: #DCEBFA; color: #17324A; }
-.status-badge.inactive { background: #eee; color: #666; }
-.fee-badge { padding: 2px 10px; border-radius: 10px; font-size: 11px; font-weight: 600; }
-.fee-badge.paid { background: #DCF3E4; color: #1E5B3A; }
-.fee-badge.unpaid { background: #FBEAE8; color: #B23A2E; }
-.fee-badge.pending { background: #FDF2D8; color: #6B4400; }
-.toggle-btn {
-background: #2C5F8A; color: white; border: none; padding: 6px 12px;
-border-radius: 6px; cursor: pointer; font-size: 12px;
-}
-
-.modal-overlay {
-position: fixed; inset: 0; background: rgba(20, 33, 61, 0.45);
-display: flex; align-items: flex-start; justify-content: center;
-padding: 40px 16px; overflow-y: auto; z-index: 100;
-}
-.modal-overlay[hidden] { display: none; }
-.modal-box { background: #fff; border-radius: 10px; width: 100%; max-width: 400px; padding: 20px; box-shadow: 0 12px 32px rgba(20,33,61,0.25); }
-.modal-box h3 { margin-top: 0; color: #17324A; }
-.modal-box label { display: block; font-size: 13px; color: #374151; margin-top: 12px; margin-bottom: 4px; }
-.modal-box input { width: 100%; padding: 8px; border: 1px solid #d1d5db; border-radius: 6px; font-size: 14px; box-sizing: border-box; }
-.modal-actions { margin-top: 16px; display: flex; gap: 10px; }
-.toast { font-size: 12.5px; margin-top: 10px; min-height: 16px; }
-.toast.ok { color: #1E5B3A; }
-.toast.err { color: #B23A2E; }
 </style>
 </head>
 <body>
 
-<header><a href="/" class="home-link">← Home</a></header>
+<div class="app">
+<div class="app-main">
+<main class="app-content">
 
+<!-- ================= DASHBOARD ================= -->
+<section data-view="dashboard">
+  <div class="page-head">
+    <div>
+      <h1>Clinic overview</h1>
+      <p>Anonymised operational insights, with clinical records kept out of admin views.</p>
+    </div>
+    <a class="btn btn-primary" href="#reports"><span data-icon="download"></span>Export aggregate report</a>
+  </div>
+  <div id="pageError" class="notice danger" style="margin-bottom:20px;" hidden></div>
+
+  <div class="card filter-card">
+    <div class="field"><label for="startDate">From</label><input type="date" id="startDate"></div>
+    <div class="field"><label for="endDate">To</label><input type="date" id="endDate"></div>
+    <button class="btn btn-primary" onclick="applyFilter()">Apply filters</button>
+    <button class="btn" onclick="clearFilter()">Clear</button>
+    <div class="filter-note"><span class="pill" style="align-self:flex-start;" id="range-pill">All dates</span><span>Fiji time</span></div>
+  </div>
+
+  <div class="stat-grid">
+    <div class="card stat">
+      <div class="s-label">Total appointments</div>
+      <div class="s-value" id="statTotal">–</div>
+      <div class="s-sub" id="statTotalSub">&nbsp;</div>
+    </div>
+    <div class="card stat">
+      <div class="s-label">No-shows</div>
+      <div class="s-value" id="statNoShow">–</div>
+      <div class="s-sub">Booked but not attended</div>
+    </div>
+    <div class="card stat">
+      <div class="s-label">No-show rate</div>
+      <div class="s-value" id="statRate">–</div>
+      <div class="s-sub" id="statRateSub">&nbsp;</div>
+    </div>
+  </div>
+
+  <div class="grid-2 dash-row">
+    <div class="card">
+      <h2>Anonymous reason categories</h2>
+      <p class="card-sub">No student identifiers or individual clinical notes</p>
+      <div id="byReason" style="margin-top:20px;"></div>
+    </div>
+    <div class="card">
+      <h2>Doctor workload</h2>
+      <p class="card-sub">Aggregate appointments by doctor</p>
+      <div class="table-wrap" style="margin-top:16px;">
+        <table class="table">
+          <thead><tr><th>Doctor</th><th>Visits</th><th>Share</th></tr></thead>
+          <tbody id="byDoctor"></tbody>
+        </table>
+      </div>
+      <p class="tiny muted" style="margin-top:12px;">No patient-level drill-down or record access.</p>
+    </div>
+  </div>
+
+  <div class="notice info" style="margin-top:20px;">
+    <strong>Privacy boundary</strong>
+    Administrators see only anonymised aggregates and account role/status metadata. Individual medical histories, diagnoses and consultation reports are not available.
+  </div>
+</section>
+
+<!-- ================= ACCOUNTS ================= -->
+<section data-view="accounts" hidden>
+  <div class="page-head">
+    <div>
+      <h1>Accounts</h1>
+      <p>Account metadata only · clinical information is not accessible here.</p>
+    </div>
+  </div>
+  <div class="card">
+    <h2>Account management</h2>
+    <p class="card-sub">Staff accounts are created here. Students register themselves.</p>
+    <div class="accounts-top">
+      <div class="field"><label for="userSearchInput">Find account</label><input type="text" id="userSearchInput" placeholder="Search account ID or name" oninput="onUserSearch(this.value)"></div>
+      <button class="btn" onclick="toggleAddPanel()"><span data-icon="userPlus"></span>Add account</button>
+    </div>
+
+    <div class="add-panel" id="add-panel" hidden>
+      <h3>Add staff account</h3>
+      <div class="field-row" style="margin-top:14px;">
+        <div class="field"><label for="newUsername">Username *</label><input type="text" id="newUsername" minlength="3" maxlength="50" /></div>
+        <div class="field"><label for="newPassword">Password *</label><input type="password" id="newPassword" placeholder="Min 6 characters" minlength="6" maxlength="100" /></div>
+        <div class="field"><label for="newRole">Role *</label>
+          <select id="newRole"><option value="DOCTOR">Doctor</option><option value="NURSE">Nurse</option><option value="ADMIN">Admin</option></select>
+        </div>
+      </div>
+      <div class="btn-row" style="margin-top:16px;">
+        <button class="btn btn-primary" onclick="createStaffAccount()">Create account</button>
+        <button class="btn" onclick="toggleAddPanel(false)">Cancel</button>
+      </div>
+      <div class="form-msg" id="addUserMsg"></div>
+    </div>
+
+    <div class="form-msg err" id="userMgmtError"></div>
+    <div class="table-wrap" style="margin-top:18px;">
+      <table class="table">
+        <thead><tr><th>Account ID</th><th>Full name</th><th>Role</th><th>Fee</th><th>Status</th><th>Manage</th></tr></thead>
+        <tbody id="userTableBody"></tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<!-- ================= AGGREGATE REPORTS ================= -->
+<section data-view="reports" hidden>
+  <div class="page-head">
+    <div>
+      <h1>Aggregate reports</h1>
+      <p>Export uses the selected type and date range. Output contains totals only — no patient names, student IDs or clinical records.</p>
+    </div>
+  </div>
+  <div class="card">
+    <div class="report-controls">
+      <div class="field"><label for="reportType">Report type</label><select id="reportType"></select></div>
+      <div class="field"><label for="reportStartDate">From</label><input type="date" id="reportStartDate"></div>
+      <div class="field"><label for="reportEndDate">To</label><input type="date" id="reportEndDate"></div>
+      <button class="btn btn-primary" onclick="generateReport()">Generate report</button>
+    </div>
+    <div class="form-msg err" id="reportError"></div>
+    <div id="printable-report" style="margin-top:22px;">
+      <p class="small muted" id="reportMeta"></p>
+      <div id="reportResults" style="margin-top:16px;"></div>
+    </div>
+    <div class="btn-row no-print" id="report-actions" style="margin-top:18px;" hidden>
+      <button class="btn" onclick="window.print()"><span data-icon="download"></span>Print / save as PDF</button>
+    </div>
+  </div>
+</section>
+
+<!-- ================= AUDIT LOG ================= -->
+<section data-view="audit" hidden>
+  <div class="page-head">
+    <div>
+      <h1>Audit log</h1>
+      <p>Every time staff view or record a student’s medical record, it is logged here for accountability.</p>
+    </div>
+  </div>
+  <div class="card">
+    <div class="table-wrap">
+      <table class="table">
+        <thead><tr><th>When</th><th>Staff member</th><th>Role</th><th>Action</th><th>Student</th><th>Details</th></tr></thead>
+        <tbody id="auditLogTableBody"></tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+</main>
+</div>
+</div>
+
+<!-- Change password -->
 <div class="modal-overlay" id="change-password-modal-overlay" hidden onclick="if (event.target === this) closeChangePasswordModal()">
-<div class="modal-box">
-<h3>Change Password</h3>
-<label>Current Password</label>
-<input type="password" id="cpCurrentPassword" />
-<label>New Password (min 6 characters)</label>
-<input type="password" id="cpNewPassword" minlength="6" maxlength="100" />
-<label>Confirm New Password</label>
-<input type="password" id="cpConfirmPassword" minlength="6" maxlength="100" />
-<div class="toast" id="cpResult"></div>
-<div class="modal-actions">
-<button onclick="submitChangePassword()">Change Password</button>
-<button class="secondary" onclick="closeChangePasswordModal()" style="background:#9ca3af;">Cancel</button>
-</div>
-</div>
+  <div class="modal-box">
+    <div class="modal-head"><h2>Change password</h2><button class="modal-close" aria-label="Close" onclick="closeChangePasswordModal()">✕</button></div>
+    <div class="field"><label for="cpCurrentPassword">Current password</label><input type="password" id="cpCurrentPassword" /></div>
+    <div class="field"><label for="cpNewPassword">New password <span class="unit">(min 6 characters)</span></label><input type="password" id="cpNewPassword" minlength="6" maxlength="100" /></div>
+    <div class="field"><label for="cpConfirmPassword">Confirm new password</label><input type="password" id="cpConfirmPassword" minlength="6" maxlength="100" /></div>
+    <div class="toast" id="cpResult"></div>
+    <div class="btn-row" style="margin-top:16px;">
+      <button class="btn btn-primary" onclick="submitChangePassword()">Change password</button>
+      <button class="btn" onclick="closeChangePasswordModal()">Cancel</button>
+    </div>
+  </div>
 </div>
 
-<div class="container">
-
-<div id="dashboard">
-<div class="topbar">
-<h2 style="color:#17324A;margin:0;">Reporting &amp; Analytics Dashboard</h2>
-<div style="display:flex;gap:10px;align-items:center;">
-<a href="/checkin.html" style="background:#2C5F8A;color:#fff;border:none;padding:10px 16px;border-radius:6px;font-size:14px;text-decoration:none;">Check-in / Triage</a>
-<a href="/schedule.html" style="background:#2C5F8A;color:#fff;border:none;padding:10px 16px;border-radius:6px;font-size:14px;text-decoration:none;">Manage Schedule</a>
-<button onclick="openChangePasswordModal()">🔑 Change Password</button>
-<button id="logoutBtn" onclick="logout()">Log Out</button>
-</div>
-</div>
-
-<div id="pageError"></div>
-
-<div class="tabs">
-<button class="tab-btn active" id="tab-btn-dashboard" onclick="switchTab('dashboard')">Dashboard</button>
-<button class="tab-btn" id="tab-btn-reports" onclick="switchTab('reports')">Reports</button>
-<button class="tab-btn" id="tab-btn-users" onclick="switchTab('users')">User Management</button>
-<button class="tab-btn" id="tab-btn-audit" onclick="switchTab('audit')">Audit Log</button>
-</div>
-
-<div id="tab-dashboard" class="tab-panel active">
-<div class="filterBar">
-<label>From <input type="date" id="startDate"></label>
-<label>To <input type="date" id="endDate"></label>
-<button onclick="applyFilter()">Apply Filter</button>
-<button class="clearBtn" onclick="clearFilter()">Clear Filter</button>
-</div>
-
-<div class="cards">
-<div class="card">
-<div class="label">Total Appointments</div>
-<div class="value" id="statTotal">-</div>
-</div>
-<div class="card warn">
-<div class="label">No-Shows</div>
-<div class="value" id="statNoShow">-</div>
-</div>
-<div class="card warn">
-<div class="label">No-Show Rate</div>
-<div class="value" id="statRate">-</div>
-</div>
-</div>
-
-<div class="panel">
-<h3>Appointments by Visit Reason</h3>
-<div id="byReason"></div>
-</div>
-
-<div class="panel">
-<h3>Appointments by Doctor (Caseload)</h3>
-<div id="byDoctor"></div>
-</div>
-</div>
-
-<div id="tab-reports" class="tab-panel">
-<div class="panel">
-<h3>Generate Report</h3>
-<div class="reportBar">
-<select id="reportType"></select>
-<label>From <input type="date" id="reportStartDate"></label>
-<label>To <input type="date" id="reportEndDate"></label>
-<button onclick="generateReport()">Generate</button>
-</div>
-<div id="reportError" style="color:#B03A2E;font-size:13px;margin-bottom:12px;display:none;"></div>
-<div id="reportMeta" class="report-meta"></div>
-<div id="reportResults"></div>
-</div>
-</div>
-
-<div id="tab-users" class="tab-panel">
-<div class="panel">
-<h3>User Accounts</h3>
-<div id="userMgmtError" style="color:#B03A2E;font-size:13px;margin-bottom:12px;display:none;"></div>
-
-<div class="addUserBar">
-<input type="text" id="newUsername" placeholder="Username" minlength="3" maxlength="50" />
-<input type="password" id="newPassword" placeholder="Password (min 6 characters)" minlength="6" maxlength="100" />
-<select id="newRole">
-<option value="DOCTOR">Doctor</option>
-<option value="NURSE">Nurse</option>
-<option value="ADMIN">Admin</option>
-</select>
-<button onclick="createStaffAccount()">Add Staff Account</button>
-</div>
-<div id="addUserMsg" style="font-size:12.5px;margin-bottom:12px;display:none;"></div>
-
-<div class="filterBar">
-<label>Search <input type="text" id="userSearchInput" placeholder="Search by username or full name..." oninput="onUserSearch(this.value)" style="width:260px;"></label>
-</div>
-
-<table class="user-table">
-<thead><tr><th>Username</th><th>Full Name</th><th>Role</th><th>Country</th><th>Fee</th><th>Status</th><th></th></tr></thead>
-<tbody id="userTableBody"></tbody>
-</table>
-</div>
-</div>
-
-<div id="tab-audit" class="tab-panel">
-<div class="panel">
-<h3>Staff Activity Overview</h3>
-<p style="font-size:12.5px;color:#6b7280;margin-top:-6px;">How much medical-record-related work each staff member has logged, for accountability (NFR-PRIV-03).</p>
-<table class="user-table">
-<thead><tr><th>Staff Member</th><th>Role</th><th>Total Actions</th><th>Breakdown</th><th>Last Active</th></tr></thead>
-<tbody id="auditOverviewTableBody"></tbody>
-</table>
-</div>
-
-<div class="panel">
-<h3>Look Up Activity</h3>
-<p style="font-size:12.5px;color:#6b7280;margin-top:-6px;">Search for a doctor or nurse to see what they've done, or a student to see who has accessed their records.</p>
-<input type="text" id="auditSearchInput" placeholder="Search by name, username, or student ID..." oninput="onAuditSearch(this.value)" style="padding:8px;border:1px solid var(--line, #D8E6E6);border-radius:6px;width:100%;max-width:400px;">
-<div id="auditSearchResults"></div>
-<div id="auditLookupResult" style="margin-top:16px;"></div>
-</div>
-</div>
-</div>
-
-</div>
-
+<script src="/js/app-shell.js"></script>
 <script>
+const esc = HC.esc;
 let authHeader = null;
 let fullUserList = [];
 let userSearchTerm = '';
@@ -275,19 +209,32 @@ let userSearchTerm = '';
 window.addEventListener('DOMContentLoaded', () => {
   const storedAuth = localStorage.getItem('authHeader');
   const storedRole = localStorage.getItem('userRole');
-
   if (!storedAuth || storedRole !== 'ADMIN') {
     window.location.href = '/login.html';
     return;
   }
-
   authHeader = storedAuth;
-  loadDashboard();
 
-  const requestedTab = new URLSearchParams(window.location.search).get('tab');
-  if (requestedTab === 'users') {
-    switchTab('users');
+  // Old links used ?tab=users
+  if (new URLSearchParams(location.search).get('tab') === 'users' && !location.hash) {
+    history.replaceState(null, '', '/admin.html#accounts');
   }
+
+  const staff = Shell.staff('ADMIN');
+  Shell.mount({
+    workspace: staff.workspace,
+    foot: staff.foot,
+    nav: staff.nav,
+    user: localStorage.getItem('currentUser'),
+    alerts: 'none',
+    defaultView: 'dashboard',
+    onView(view) {
+      if (view === 'accounts') loadUsers();
+      if (view === 'reports') loadReportTypes();
+      if (view === 'audit') loadAuditLogs();
+    }
+  });
+  loadDashboard();
 });
 
 function logout() {
@@ -312,63 +259,24 @@ function resetIdleTimer() {
 );
 resetIdleTimer();
 
-function openChangePasswordModal() {
-  document.getElementById('cpCurrentPassword').value = '';
-  document.getElementById('cpNewPassword').value = '';
-  document.getElementById('cpConfirmPassword').value = '';
-  document.getElementById('cpResult').textContent = '';
-  document.getElementById('change-password-modal-overlay').hidden = false;
-}
-
-function closeChangePasswordModal() {
-  document.getElementById('change-password-modal-overlay').hidden = true;
-}
-
-function submitChangePassword() {
-  const currentPassword = document.getElementById('cpCurrentPassword').value;
-  const newPassword = document.getElementById('cpNewPassword').value;
-  const confirmPassword = document.getElementById('cpConfirmPassword').value;
-  const resultEl = document.getElementById('cpResult');
-
-  if (!currentPassword || !newPassword) {
-    resultEl.className = 'toast err';
-    resultEl.textContent = 'Both fields are required.';
-    return;
-  }
-  if (newPassword !== confirmPassword) {
-    resultEl.className = 'toast err';
-    resultEl.textContent = 'New password and confirmation do not match.';
-    return;
-  }
-
-  fetch('/account/change-password', {
-    method: 'POST',
-    headers: { 'Authorization': authHeader, 'Content-Type': 'application/json' },
-    body: JSON.stringify({ currentPassword, newPassword })
-  })
-  .then(res => res.json())
-  .then(data => {
-    if (data.error) {
-      resultEl.className = 'toast err';
-      resultEl.textContent = data.error;
-      return;
-    }
-    resultEl.className = 'toast ok';
-    resultEl.textContent = data.message;
-    setTimeout(closeChangePasswordModal, 1500);
-  })
-  .catch(() => {
-    resultEl.className = 'toast err';
-    resultEl.textContent = 'Unable to reach the server.';
-  });
-}
-
 function showPageError(message) {
   const box = document.getElementById('pageError');
-  box.innerText = message;
-  box.style.display = message ? 'block' : 'none';
+  box.textContent = message || '';
+  box.hidden = !message;
 }
 
+function doctorLabel(name) {
+  if (!name) return '';
+  const m = String(name).trim().match(/^dr\.?\s*(.+)$/i);
+  if (!m) return name;
+  return 'Dr ' + m[1].split(/[\s._]+/).map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
+}
+
+function roleLabel(r) {
+  return { STUDENT: 'Student', DOCTOR: 'Doctor', NURSE: 'Nurse', ADMIN: 'Admin' }[r] || r;
+}
+
+// ---------- Dashboard ----------
 async function loadDashboard() {
   try {
     const res = await fetch('/dashboard/summary', { headers: { 'Authorization': authHeader } });
@@ -378,8 +286,7 @@ async function loadDashboard() {
       return;
     }
     showPageError(null);
-    const data = await res.json();
-    renderSummary(data);
+    renderSummary(await res.json());
   } catch (e) {
     showPageError('Service temporarily unavailable');
   }
@@ -390,14 +297,10 @@ async function applyFilter() {
   const endInput = document.getElementById('endDate');
   const start = startInput.value;
   const end = endInput.value;
-
   startInput.classList.remove('invalid');
   endInput.classList.remove('invalid');
 
-  if (!start || !end) {
-    showPageError('Please select both a start and end date.');
-    return;
-  }
+  if (!start || !end) { showPageError('Please select both a start and end date.'); return; }
   if (start > end) {
     startInput.classList.add('invalid');
     endInput.classList.add('invalid');
@@ -413,295 +316,76 @@ async function applyFilter() {
       return;
     }
     showPageError(null);
-    const data = await res.json();
-    renderSummary(data);
+    document.getElementById('range-pill').textContent = `${HC.fmtDate(start, 'dm')} – ${HC.fmtDate(end, 'day')}`;
+    renderSummary(await res.json());
   } catch (e) {
     showPageError('Service temporarily unavailable');
   }
 }
 
 function clearFilter() {
-  document.getElementById('startDate').value = '';
-  document.getElementById('endDate').value = '';
-  document.getElementById('startDate').classList.remove('invalid');
-  document.getElementById('endDate').classList.remove('invalid');
+  ['startDate', 'endDate'].forEach(id => {
+    document.getElementById(id).value = '';
+    document.getElementById(id).classList.remove('invalid');
+  });
+  document.getElementById('range-pill').textContent = 'All dates';
   showPageError(null);
   loadDashboard();
 }
 
-function switchTab(tab) {
-  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-  document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
-  document.getElementById('tab-btn-' + tab).classList.add('active');
-  document.getElementById('tab-' + tab).classList.add('active');
+function renderSummary(data) {
+  document.getElementById('statTotal').textContent = data.totalAppointments;
+  document.getElementById('statTotalSub').textContent = `${data.totalAppointments - data.noShowCount} not marked as no-show`;
+  document.getElementById('statNoShow').textContent = data.noShowCount;
+  document.getElementById('statRate').textContent = data.noShowRate.toFixed(1) + '%';
+  document.getElementById('statRateSub').textContent = `${data.noShowCount} unattended / ${data.totalAppointments} booked`;
 
-  if (tab === 'reports') loadReportTypes();
-  if (tab === 'users') loadUsers();
-  if (tab === 'audit') loadAuditLogs();
+  renderBars('byReason', data.byVisitReason);
+
+  const body = document.getElementById('byDoctor');
+  const entries = Object.entries(data.byDoctor || {}).sort((a, b) => b[1] - a[1]);
+  const total = entries.reduce((sum, [, v]) => sum + v, 0);
+  body.innerHTML = entries.length
+    ? entries.map(([doc, n]) => `<tr><td>${esc(doctorLabel(doc))}</td><td>${n}</td><td style="color:var(--brand);">${total ? (n / total * 100).toFixed(1) : '0.0'}%</td></tr>`).join('')
+    : '<tr><td colspan="3" class="muted">No data for the selected period.</td></tr>';
 }
 
-function escapeHtml(str) {
-  if (str === null || str === undefined) return '';
-  return String(str)
-    .replaceAll('&', '&amp;')
-    .replaceAll('<', '&lt;')
-    .replaceAll('>', '&gt;')
-    .replaceAll('"', '&quot;');
-}
-
-let allAuditLogs = [];
-let auditUsersByUsername = {};
-let auditAllUsers = [];
-let auditSelectedValue = '';
-
-const ACTION_LABELS = {
-  VIEW_MEDICAL_HISTORY: 'Viewed medical history',
-  VIEW_CHECKIN_VITALS: 'Viewed check-in vitals',
-  RECORD_CONSULTATION: 'Recorded a consultation',
-  VIEW_CONSULTATION_REPORT: 'Viewed a consultation report',
-  RECORD_CHECKIN_VITALS: 'Recorded check-in vitals',
-  WALK_IN_CHECKIN: 'Checked in a walk-in student'
-};
-function actionLabel(action) {
-  return ACTION_LABELS[action] || action;
-}
-
-async function loadAuditLogs() {
-  const overviewBody = document.getElementById('auditOverviewTableBody');
-  try {
-    const [logsRes, usersRes] = await Promise.all([
-      fetch('/admin/audit-logs', { headers: { 'Authorization': authHeader } }),
-      fetch('/admin/users', { headers: { 'Authorization': authHeader } })
-    ]);
-    if (!logsRes.ok || !usersRes.ok) {
-      overviewBody.innerHTML = '<tr><td colspan="5" style="color:#9ca3af;">Unable to load audit log.</td></tr>';
-      return;
-    }
-    allAuditLogs = await logsRes.json();
-    auditAllUsers = await usersRes.json();
-    auditUsersByUsername = {};
-    auditAllUsers.forEach(u => { auditUsersByUsername[u.username] = u; });
-
-    renderAuditOverview();
-    if (auditSelectedValue) renderAuditLookupResult(auditSelectedValue);
-  } catch (e) {
-    overviewBody.innerHTML = '<tr><td colspan="5" style="color:#9ca3af;">Service temporarily unavailable.</td></tr>';
-  }
-}
-
-function onAuditSearch(term) {
-  const trimmed = term.trim().toLowerCase();
-  const box = document.getElementById('auditSearchResults');
-  if (!trimmed) {
-    box.innerHTML = '';
+function renderBars(containerId, obj) {
+  const container = document.getElementById(containerId);
+  const entries = Object.entries(obj || {}).sort((a, b) => b[1] - a[1]);
+  if (!entries.length) {
+    container.innerHTML = '<p class="small muted">No data available for the selected period.</p>';
     return;
   }
-  const matches = auditAllUsers.filter(u =>
-    (u.role === 'DOCTOR' || u.role === 'NURSE' || u.role === 'STUDENT') &&
-    ((u.fullName || '').toLowerCase().includes(trimmed) || u.username.toLowerCase().includes(trimmed))
-  ).slice(0, 20);
-
-  if (matches.length === 0) {
-    box.innerHTML = '<div style="color:#9ca3af;font-size:13px;padding:8px 0;">No matching staff or students.</div>';
-    return;
-  }
-  box.innerHTML = `<div style="border:1px solid var(--line, #D8E6E6);border-radius:6px;margin-top:6px;max-width:400px;overflow:hidden;">` +
-    matches.map(u => {
-      const kind = u.role === 'STUDENT' ? 'student' : 'actor';
-      const label = u.fullName ? `${escapeHtml(u.fullName)} (${escapeHtml(u.username)})` : escapeHtml(u.username);
-      return `<div onclick="selectAuditLookup('${kind}:${escapeHtml(u.username)}')"
-                   style="padding:9px 12px;border-bottom:1px solid #eee;cursor:pointer;font-size:13.5px;"
-                   onmouseover="this.style.background='#F4F8F8'" onmouseout="this.style.background=''">
-                ${label} <span style="color:#6b7280;">— ${escapeHtml(u.role)}</span>
-              </div>`;
-    }).join('') + `</div>`;
+  const max = Math.max(...entries.map(([, v]) => v));
+  container.innerHTML = entries.map(([key, count]) => `
+    <div class="bar-row">
+      <div class="br-top"><span>${esc(key)}</span><strong>${count}</strong></div>
+      <div class="bar-track"><div class="bar-fill" style="width:${max ? count / max * 100 : 0}%"></div></div>
+    </div>`).join('');
 }
 
-function selectAuditLookup(value) {
-  document.getElementById('auditSearchInput').value = '';
-  document.getElementById('auditSearchResults').innerHTML = '';
-  auditSelectedValue = value;
-  renderAuditLookupResult(value);
-}
-
-function renderAuditOverview() {
-  const overviewBody = document.getElementById('auditOverviewTableBody');
-  const byActor = {};
-  allAuditLogs.forEach(l => {
-    if (!byActor[l.actorUsername]) {
-      byActor[l.actorUsername] = { actorUsername: l.actorUsername, actorRole: l.actorRole, total: 0, byAction: {}, lastActive: l.timestamp };
-    }
-    const entry = byActor[l.actorUsername];
-    entry.total++;
-    entry.byAction[l.action] = (entry.byAction[l.action] || 0) + 1;
-    if (!entry.lastActive || l.timestamp > entry.lastActive) entry.lastActive = l.timestamp;
-  });
-
-  const rows = Object.values(byActor).sort((a, b) => b.total - a.total);
-  if (rows.length === 0) {
-    overviewBody.innerHTML = '<tr><td colspan="5" style="color:#9ca3af;">No medical record activity has been logged yet.</td></tr>';
-    return;
-  }
-  overviewBody.innerHTML = rows.map(r => {
-    const breakdown = Object.entries(r.byAction).map(([action, count]) => `${count} × ${actionLabel(action)}`).join(', ');
-    const user = auditUsersByUsername[r.actorUsername];
-    const displayName = user && user.fullName ? `${escapeHtml(user.fullName)} (${escapeHtml(r.actorUsername)})` : escapeHtml(r.actorUsername);
-    return `
-      <tr>
-        <td>${displayName}</td>
-        <td>${escapeHtml(r.actorRole)}</td>
-        <td>${r.total}</td>
-        <td>${escapeHtml(breakdown)}</td>
-        <td>${r.lastActive ? new Date(r.lastActive).toLocaleString() : '—'}</td>
-      </tr>
-    `;
-  }).join('');
-}
-
-function renderAuditLookupResult(value) {
-  const resultBox = document.getElementById('auditLookupResult');
-  if (!value) {
-    resultBox.innerHTML = '';
-    return;
-  }
-
-  const [kind, username] = value.split(':');
-  const user = auditUsersByUsername[username];
-  const displayName = user && user.fullName ? `${escapeHtml(user.fullName)} (${escapeHtml(username)})` : escapeHtml(username);
-
-  if (kind === 'actor') {
-    const entries = allAuditLogs.filter(l => l.actorUsername === username)
-      .sort((a, b) => (b.timestamp || '').localeCompare(a.timestamp || ''));
-    const byAction = {};
-    entries.forEach(l => { byAction[l.action] = (byAction[l.action] || 0) + 1; });
-    const breakdown = Object.entries(byAction).map(([action, count]) => `${count} × ${actionLabel(action)}`).join(', ') || 'No activity recorded yet.';
-
-    resultBox.innerHTML = `
-      <div class="panel" style="margin-bottom:0;">
-        <h3 style="margin-top:0;">${displayName} — ${entries.length} total action(s)</h3>
-        <p style="font-size:12.5px;color:#6b7280;">${escapeHtml(breakdown)}</p>
-        ${renderAuditEntryTable(entries, true)}
-      </div>
-    `;
-  } else {
-    const entries = allAuditLogs.filter(l => l.targetStudent === username)
-      .sort((a, b) => (b.timestamp || '').localeCompare(a.timestamp || ''));
-    const byActor = {};
-    entries.forEach(l => { byActor[l.actorUsername] = (byActor[l.actorUsername] || 0) + 1; });
-    const accessedBy = Object.entries(byActor).map(([actor, count]) => {
-      const actorUser = auditUsersByUsername[actor];
-      const actorName = actorUser && actorUser.fullName ? `${actorUser.fullName} (${actor})` : actor;
-      return `${count} × ${escapeHtml(actorName)}`;
-    }).join(', ') || 'No staff have accessed this student\'s records yet.';
-
-    resultBox.innerHTML = `
-      <div class="panel" style="margin-bottom:0;">
-        <h3 style="margin-top:0;">${displayName} — ${entries.length} record access(es)</h3>
-        <p style="font-size:12.5px;color:#6b7280;">Accessed by: ${accessedBy}</p>
-        ${renderAuditEntryTable(entries, false)}
-      </div>
-    `;
-  }
-}
-
-// hideActorColumn=true: viewing one staff member's activity, so show which
-// student instead. hideActorColumn=false: viewing one student's record, so
-// show which staff member accessed it instead.
-function renderAuditEntryTable(entries, hideActorColumn) {
-  if (entries.length === 0) {
-    return '<p style="color:#9ca3af;font-size:13px;">Nothing recorded yet.</p>';
-  }
-  const headerCells = hideActorColumn
-    ? '<th>When</th><th>Action</th><th>Student</th><th>Details</th>'
-    : '<th>When</th><th>Staff Member</th><th>Action</th><th>Details</th>';
-  const rows = entries.map(l => {
-    const when = l.timestamp ? new Date(l.timestamp).toLocaleString() : '';
-    const cells = hideActorColumn
-      ? [when, actionLabel(l.action), escapeHtml(l.targetStudent), escapeHtml(l.details)]
-      : [when, escapeHtml(l.actorUsername), actionLabel(l.action), escapeHtml(l.details)];
-    return `<tr>${cells.map(c => `<td>${c}</td>`).join('')}</tr>`;
-  }).join('');
-  return `<table class="user-table"><thead><tr>${headerCells}</tr></thead><tbody>${rows}</tbody></table>`;
-}
-
-async function loadReportTypes() {
-  const select = document.getElementById('reportType');
-  if (select.options.length > 0) return;
-  try {
-    const res = await fetch('/admin/reports/types', { headers: { 'Authorization': authHeader } });
-    const types = await res.json();
-    select.innerHTML = types.map(t => `<option value="${t}">${t}</option>`).join('');
-  } catch (e) {
-    select.innerHTML = '<option>Unable to load report types</option>';
-  }
-}
-
-function showReportError(message) {
-  const box = document.getElementById('reportError');
-  box.innerText = message;
-  box.style.display = message ? 'block' : 'none';
-}
-
-async function generateReport() {
-  const type = document.getElementById('reportType').value;
-  const start = document.getElementById('reportStartDate').value;
-  const end = document.getElementById('reportEndDate').value;
-  const resultsBox = document.getElementById('reportResults');
-  const metaBox = document.getElementById('reportMeta');
-
-  if (!start || !end) {
-    showReportError('Please provide both a start and end date for the report');
-    metaBox.innerText = '';
-    resultsBox.innerHTML = '';
-    return;
-  }
-  if (start > end) {
-    showReportError('Invalid date range: start date must be on or before the end date');
-    metaBox.innerText = '';
-    resultsBox.innerHTML = '';
-    return;
-  }
-
-  try {
-    const res = await fetch(`/admin/reports?type=${encodeURIComponent(type)}&startDate=${start}&endDate=${end}`,
-      { headers: { 'Authorization': authHeader } });
-
-    if (!res.ok) {
-      const err = await res.json();
-      showReportError(err.message || 'Unable to generate report');
-      metaBox.innerText = '';
-      resultsBox.innerHTML = '';
-      return;
-    }
-
-    showReportError(null);
-    const report = await res.json();
-    metaBox.innerText = `${report.reportType} · ${report.dateRangeStart} to ${report.dateRangeEnd} · Generated ${new Date(report.generatedAt).toLocaleString()}`;
-    renderBars('reportResults', report.data, report.totalAppointments);
-  } catch (e) {
-    showReportError('Service temporarily unavailable');
-  }
-}
-
-function showUserMgmtError(message) {
-  const box = document.getElementById('userMgmtError');
-  box.innerText = message;
-  box.style.display = message ? 'block' : 'none';
+// ---------- Accounts ----------
+function toggleAddPanel(show) {
+  const panel = document.getElementById('add-panel');
+  panel.hidden = show === undefined ? !panel.hidden : !show;
+  if (!panel.hidden) document.getElementById('newUsername').focus();
 }
 
 async function loadUsers() {
+  const errBox = document.getElementById('userMgmtError');
   try {
     const res = await fetch('/admin/users', { headers: { 'Authorization': authHeader } });
     if (!res.ok) {
       const err = await res.json();
-      showUserMgmtError(err.message || 'Unable to load user accounts');
+      errBox.textContent = err.message || 'Unable to load user accounts';
       return;
     }
-    showUserMgmtError(null);
+    errBox.textContent = '';
     fullUserList = await res.json();
     renderUserTable();
   } catch (e) {
-    showUserMgmtError('Service temporarily unavailable');
+    errBox.textContent = 'Service temporarily unavailable';
   }
 }
 
@@ -713,52 +397,26 @@ function onUserSearch(term) {
 function renderUserTable() {
   const term = userSearchTerm.trim().toLowerCase();
   const users = term
-    ? fullUserList.filter(u =>
-        (u.username || '').toLowerCase().includes(term) ||
-        (u.fullName || '').toLowerCase().includes(term))
+    ? fullUserList.filter(u => (u.username || '').toLowerCase().includes(term) || (u.fullName || '').toLowerCase().includes(term))
     : fullUserList;
-
   const body = document.getElementById('userTableBody');
-  if (users.length === 0) {
-    body.innerHTML = `<tr><td colspan="7" style="text-align:center;color:#6b7280;">No matching user accounts.</td></tr>`;
+  if (!users.length) {
+    body.innerHTML = '<tr><td colspan="6" class="muted">No matching user accounts.</td></tr>';
     return;
   }
-
   body.innerHTML = users.map(u => {
-      const isStudent = u.role === 'STUDENT';
-      const pending = u.hasReceipt && !u.feePaid;
-      let badgeClass = 'unpaid';
-      let badgeText = 'Unpaid';
-      if (u.feePaid) {
-        badgeClass = 'paid';
-        badgeText = 'Paid';
-      } else if (pending) {
-        badgeClass = 'pending';
-        badgeText = 'Pending Verification';
-      }
-      let checksBadge = '';
-      if (pending && u.receiptAutoCheckNote) {
-        const passed = (u.receiptAutoCheckNote.match(/✓/g) || []).length;
-        const checksColor = passed >= 4 ? '#1E5B3A' : passed >= 2 ? '#6B4400' : '#B23A2E';
-        const checksBg = passed >= 4 ? '#DCF3E4' : passed >= 2 ? '#FDF2D8' : '#FBEAE8';
-        checksBadge = ` <span class="fee-badge" style="background:${checksBg};color:${checksColor};" title="${escapeHtml(u.receiptAutoCheckNote)}">${passed}/4 checks</span>`;
-      }
-      const feeCell = isStudent
-        ? `<span class="fee-badge ${badgeClass}">${badgeText}${u.feeAmount != null ? ' · FJ$' + Number(u.feeAmount).toFixed(2) : ''}</span>${checksBadge}`
-        : '—';
-      return `
+    const fee = u.role === 'STUDENT'
+      ? HC.feePill(u) + (u.feeAmount != null ? ` <span class="tiny muted">FJ$${Number(u.feeAmount).toFixed(2)}</span>` : '')
+      : '<span class="muted">—</span>';
+    return `
       <tr>
-        <td><a href="/admin-user.html?id=${u.id}" style="color:var(--brand);font-weight:600;text-decoration:none;">${escapeHtml(u.username)}</a></td>
-        <td>${escapeHtml(u.fullName) || '—'}</td>
-        <td>${escapeHtml(u.role)}</td>
-        <td>${escapeHtml(u.country) || '—'}</td>
-        <td>${feeCell}</td>
-        <td><span class="status-badge ${u.active ? 'active' : 'inactive'}">${u.active ? 'Active' : 'Inactive'}</span></td>
-        <td>
-          <button class="toggle-btn" onclick="window.location.href='/admin-user.html?id=${u.id}'">Manage</button>
-        </td>
-      </tr>
-    `;
+        <td><a href="/admin-user.html?id=${u.id}">${esc(u.username)}</a></td>
+        <td>${esc(u.fullName) || '<span class="muted">—</span>'}</td>
+        <td>${esc(roleLabel(u.role))}</td>
+        <td>${fee}</td>
+        <td>${u.active ? 'Active' : 'Inactive'}</td>
+        <td><a href="/admin-user.html?id=${u.id}">Manage →</a></td>
+      </tr>`;
   }).join('');
 }
 
@@ -767,13 +425,7 @@ async function createStaffAccount() {
   const password = document.getElementById('newPassword').value;
   const role = document.getElementById('newRole').value;
   const msg = document.getElementById('addUserMsg');
-
-  if (!username || !password) {
-    msg.textContent = 'Username and password are required.';
-    msg.style.color = '#B03A2E';
-    msg.style.display = 'block';
-    return;
-  }
+  if (!username || !password) { msg.className = 'form-msg err'; msg.textContent = 'Username and password are required.'; return; }
 
   try {
     const res = await fetch('/admin/users', {
@@ -782,66 +434,121 @@ async function createStaffAccount() {
       body: JSON.stringify({ username, password, role })
     });
     const data = await res.json();
-
     if (!res.ok || data.error) {
+      msg.className = 'form-msg err';
       msg.textContent = data.error || data.message || 'Unable to create account.';
-      msg.style.color = '#B03A2E';
-      msg.style.display = 'block';
       return;
     }
-
-    msg.textContent = `Account "${data.username}" created.`;
-    msg.style.color = '#1E5B3A';
-    msg.style.display = 'block';
+    msg.className = 'form-msg ok';
+    msg.textContent = `Account “${data.username}” created.`;
     document.getElementById('newUsername').value = '';
     document.getElementById('newPassword').value = '';
     loadUsers();
   } catch (e) {
+    msg.className = 'form-msg err';
     msg.textContent = 'Service temporarily unavailable';
-    msg.style.color = '#B03A2E';
-    msg.style.display = 'block';
   }
 }
 
-function renderSummary(data) {
-  document.getElementById('statTotal').innerText = data.totalAppointments;
-  document.getElementById('statNoShow').innerText = data.noShowCount;
-  document.getElementById('statRate').innerText = data.noShowRate.toFixed(1) + '%';
-
-  renderBars('byReason', data.byVisitReason, data.totalAppointments);
-  renderBars('byDoctor', data.byDoctor, data.totalAppointments);
-}
-
-function renderBars(containerId, obj, total) {
-  const container = document.getElementById(containerId);
-  container.innerHTML = '';
-  if (!obj || Object.keys(obj).length === 0) {
-    container.innerHTML = '<p style="color:#9ca3af;font-size:13px;">No data available for the selected period.</p>';
-    return;
-  }
-  const max = Math.max(...Object.values(obj));
-  for (const [key, count] of Object.entries(obj)) {
-    const pct = max === 0 ? 0 : (count / max * 100);
-    const row = document.createElement('div');
-    row.className = 'bar-row';
-    row.innerHTML = `
-      <div class="bar-label">${key}</div>
-      <div class="bar-track"><div class="bar-fill" style="width:${pct}%"></div></div>
-      <div class="bar-count">${count}</div>
-    `;
-    container.appendChild(row);
+// ---------- Reports ----------
+async function loadReportTypes() {
+  const select = document.getElementById('reportType');
+  if (select.options.length > 0) return;
+  try {
+    const res = await fetch('/admin/reports/types', { headers: { 'Authorization': authHeader } });
+    const types = await res.json();
+    select.innerHTML = types.map(t => `<option value="${esc(t)}">${esc(t)}</option>`).join('');
+  } catch (e) {
+    select.innerHTML = '<option>Unable to load report types</option>';
   }
 }
 
-function escapeHtml(str) {
-  if (str === null || str === undefined) return '';
-  return String(str)
-    .replaceAll('&', '&amp;')
-    .replaceAll('<', '&lt;')
-    .replaceAll('>', '&gt;')
-    .replaceAll('"', '&quot;');
+async function generateReport() {
+  const type = document.getElementById('reportType').value;
+  const start = document.getElementById('reportStartDate').value;
+  const end = document.getElementById('reportEndDate').value;
+  const errBox = document.getElementById('reportError');
+  const metaBox = document.getElementById('reportMeta');
+  const resultsBox = document.getElementById('reportResults');
+  const actions = document.getElementById('report-actions');
+  const fail = message => { errBox.textContent = message; metaBox.textContent = ''; resultsBox.innerHTML = ''; actions.hidden = true; };
+
+  if (!start || !end) { fail('Please provide both a start and end date for the report'); return; }
+  if (start > end) { fail('Invalid date range: start date must be on or before the end date'); return; }
+
+  try {
+    const res = await fetch(`/admin/reports?type=${encodeURIComponent(type)}&startDate=${start}&endDate=${end}`,
+      { headers: { 'Authorization': authHeader } });
+    if (!res.ok) {
+      const err = await res.json();
+      fail(err.message || 'Unable to generate report');
+      return;
+    }
+    errBox.textContent = '';
+    const report = await res.json();
+    metaBox.innerHTML = `<strong style="color:var(--ink);font-size:16px;">${esc(report.reportType)}</strong><br>${esc(HC.fmtDate(report.dateRangeStart, 'day'))} – ${esc(HC.fmtDate(report.dateRangeEnd, 'day'))} · ${report.totalAppointments} appointments · Generated ${esc(HC.fmtDateTime(report.generatedAt))}`;
+    renderBars('reportResults', report.data);
+    actions.hidden = false;
+  } catch (e) {
+    fail('Service temporarily unavailable');
+  }
+}
+
+// ---------- Audit log ----------
+async function loadAuditLogs() {
+  const body = document.getElementById('auditLogTableBody');
+  try {
+    const res = await fetch('/admin/audit-logs', { headers: { 'Authorization': authHeader } });
+    if (!res.ok) { body.innerHTML = '<tr><td colspan="6" class="muted">Unable to load audit log.</td></tr>'; return; }
+    const logs = await res.json();
+    if (!logs.length) { body.innerHTML = '<tr><td colspan="6" class="muted">No medical record access has been logged yet.</td></tr>'; return; }
+    body.innerHTML = logs.map(l => `
+      <tr>
+        <td>${esc(HC.fmtDateTime(l.timestamp))}</td>
+        <td>${esc(l.actorUsername)}</td>
+        <td>${esc(roleLabel(l.actorRole))}</td>
+        <td>${esc(l.action)}</td>
+        <td>${esc(l.targetStudent)}</td>
+        <td>${esc(l.details)}</td>
+      </tr>`).join('');
+  } catch (e) {
+    body.innerHTML = '<tr><td colspan="6" class="muted">Service temporarily unavailable.</td></tr>';
+  }
+}
+
+// ---------- Change password ----------
+function openChangePasswordModal() {
+  ['cpCurrentPassword', 'cpNewPassword', 'cpConfirmPassword'].forEach(id => { document.getElementById(id).value = ''; });
+  document.getElementById('cpResult').textContent = '';
+  document.getElementById('change-password-modal-overlay').hidden = false;
+}
+
+function closeChangePasswordModal() {
+  document.getElementById('change-password-modal-overlay').hidden = true;
+}
+
+function submitChangePassword() {
+  const currentPassword = document.getElementById('cpCurrentPassword').value;
+  const newPassword = document.getElementById('cpNewPassword').value;
+  const confirmPassword = document.getElementById('cpConfirmPassword').value;
+  const resultEl = document.getElementById('cpResult');
+  if (!currentPassword || !newPassword) { resultEl.className = 'toast err'; resultEl.textContent = 'Both fields are required.'; return; }
+  if (newPassword !== confirmPassword) { resultEl.className = 'toast err'; resultEl.textContent = 'New password and confirmation do not match.'; return; }
+
+  fetch('/account/change-password', {
+    method: 'POST',
+    headers: { 'Authorization': authHeader, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ currentPassword, newPassword })
+  })
+  .then(res => res.json())
+  .then(data => {
+    if (data.error) { resultEl.className = 'toast err'; resultEl.textContent = data.error; return; }
+    resultEl.className = 'toast ok';
+    resultEl.textContent = data.message;
+    setTimeout(closeChangePasswordModal, 1500);
+  })
+  .catch(() => { resultEl.className = 'toast err'; resultEl.textContent = 'Unable to reach the server.'; });
 }
 </script>
-
 </body>
 </html>
