@@ -113,12 +113,15 @@ public class DataSeeder {
 
             // One-time correction for schedule rows left over from the old model, where
             // booking one doctor's slot incorrectly marked every OTHER doctor's row for
-            // that same date+time as booked too. A row is genuinely booked only if a
-            // still-BOOKED appointment actually references it via scheduleSlotId (a
-            // checked-in appointment already frees its slot, by design).
+            // that same date+time as booked too. A row is genuinely booked only if an
+            // appointment that still holds it references it via scheduleSlotId. This must
+            // match the runtime rule: a slot is only freed on cancellation, reschedule or
+            // no-show, so checked-in and completed appointments still hold theirs (DEF-02 -
+            // freeing them here let a restart open up a slot that was mid-consultation).
             {
+                java.util.Set<String> slotHoldingStatuses = java.util.Set.of("BOOKED", "CHECKED_IN", "COMPLETED");
                 java.util.Set<Long> actuallyBookedSlotIds = appointmentRepository.findAll().stream()
-                        .filter(a -> "BOOKED".equals(a.getStatus()))
+                        .filter(a -> slotHoldingStatuses.contains(a.getStatus()))
                         .map(Appointment::getScheduleSlotId)
                         .filter(java.util.Objects::nonNull)
                         .collect(java.util.stream.Collectors.toSet());

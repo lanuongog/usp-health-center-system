@@ -169,7 +169,6 @@
     },
     ADMIN: {
       workspace: 'Admin workspace',
-      foot: 'Aggregates and account metadata only. No clinical record access.',
       nav: [
         { key: 'dashboard', label: 'Dashboard', href: '/admin.html#dashboard' },
         { key: 'accounts', label: 'Accounts', href: '/admin.html#accounts' },

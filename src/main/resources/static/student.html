@@ -623,14 +623,17 @@ function apptSortKey(a) {
 }
 
 // Students pick a time, not a doctor; the backend lists one row per doctor on
-// duty for that time and books them as a unit, so collapse rows by time.
+// duty for that time and books each doctor's row separately. Collapse rows by
+// time, keeping a free doctor's row when there is one - so a time only shows as
+// Booked once every doctor is taken, and a cancellation frees it straight away.
+// (Keeping just the first row made the tile depend on the order rows came back in.)
 function uniqueSlots(slots) {
-  const seen = new Set();
-  return slots.filter(s => {
-    if (seen.has(s.timeSlot)) return false;
-    seen.add(s.timeSlot);
-    return true;
-  }).sort((a, b) => HC.parseSlot(a.timeSlot).startMin - HC.parseSlot(b.timeSlot).startMin);
+  const byTime = new Map();
+  for (const s of slots) {
+    const kept = byTime.get(s.timeSlot);
+    if (!kept || (kept.booked && !s.booked)) byTime.set(s.timeSlot, s);
+  }
+  return [...byTime.values()].sort((a, b) => HC.parseSlot(a.timeSlot).startMin - HC.parseSlot(b.timeSlot).startMin);
 }
 
 function fetchSlots(date) {

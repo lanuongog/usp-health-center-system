@@ -33,6 +33,13 @@
 .auth-links { margin-top: 22px; padding-top: 20px; border-top: 1px solid var(--line); font-size: 14px; color: var(--ink-soft); }
 .auth-links a, .auth-links button { color: var(--brand); font-weight: 600; text-decoration: none; }
 .legal { margin-top: 28px; font-size: 11.5px; color: var(--ink-faint); }
+.label-row { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; }
+.label-row .btn-link { font-size: 13px; margin-bottom: 7px; }
+.forgot-help { margin: -4px 0 18px; }
+.forgot-help dl { display: grid; grid-template-columns: auto 1fr; gap: 4px 14px; margin: 10px 0 0; }
+.forgot-help dt { font-weight: 600; color: var(--ink-soft); }
+.forgot-help dd { margin: 0; }
+.forgot-help a { font-weight: 700; }
 
 /* ===== Register ===== */
 #register-screen { min-height: 100vh; }
@@ -98,8 +105,20 @@
           <input type="text" id="loginUsername" required autofocus autocomplete="username" maxlength="200" placeholder="e.g. S12345678 or dr.patel" />
         </div>
         <div class="field">
-          <label for="loginPassword">Password *</label>
+          <div class="label-row">
+            <label for="loginPassword">Password *</label>
+            <button type="button" class="btn-link" id="forgotToggle" aria-expanded="false" aria-controls="forgotHelp" onclick="toggleForgotHelp()">Forgot password?</button>
+          </div>
           <input type="password" id="loginPassword" required autocomplete="current-password" maxlength="200" />
+        </div>
+        <div id="forgotHelp" class="notice info forgot-help" hidden>
+          <strong>Forgot your password?</strong>
+          <span>Contact the Health Center admin to reset it. Have your student ID or staff username ready.</span>
+          <dl>
+            <dt>Phone</dt><dd><a href="tel:3231618">3231618</a></dd>
+            <dt>In person</dt><dd>Health Center, Laucala Campus, Suva</dd>
+            <dt>Hours</dt><dd>Mon–Fri, 7:30 AM – 6:30 PM (closed 1–2 PM)</dd>
+          </dl>
         </div>
         <div id="loginAlert" class="notice danger" style="margin-bottom:18px;" hidden></div>
         <button type="submit" class="btn btn-primary btn-block" id="loginBtn"><span data-icon="arrow"></span>Sign in</button>
@@ -262,6 +281,13 @@ function showLoginAlert(title, body, ok) {
   box.className = 'notice ' + (ok ? 'ok' : 'danger');
   box.innerHTML = `<strong>${HC.esc(title)}</strong>${body ? `<span class="notice-body">${HC.esc(body)}</span>` : ''}`;
   box.hidden = false;
+}
+
+// Password resets are done by the Health Center admin, so this just shows who to contact.
+function toggleForgotHelp() {
+  const help = document.getElementById('forgotHelp');
+  help.hidden = !help.hidden;
+  document.getElementById('forgotToggle').setAttribute('aria-expanded', String(!help.hidden));
 }
 
 function hideLoginAlert() {
