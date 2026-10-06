@@ -63,6 +63,16 @@ public class ScheduleController {
         return slots;
     }
 
+    // Every active doctor account, so the student booking page can list new doctors straight away
+    @GetMapping("/bookable-doctors")
+    public List<String> getBookableDoctorsForStudents() {
+        return userRepository.findAll().stream()
+                .filter(u -> "DOCTOR".equals(u.getRole()) && u.isActive())
+                .map(User::getUsername)
+                .sorted(String.CASE_INSENSITIVE_ORDER)
+                .collect(Collectors.toList());
+    }
+
     // Returns the distinct list of doctor names for the homepage search bar
     @GetMapping("/doctors")
     public List<String> getDoctorNames() {

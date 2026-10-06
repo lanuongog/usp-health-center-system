@@ -162,6 +162,10 @@
             <p class="cal-legend">Today is outlined · Past dates disabled</p>
           </div>
           <div>
+            <div class="field" style="margin-bottom:14px;">
+              <label for="doctor-select">Doctor</label>
+              <select id="doctor-select" onchange="loadSlots()"><option value="">Any available doctor</option></select>
+            </div>
             <p class="slots-title" id="slots-title"></p>
             <div id="slot-container"></div>
             <p class="tiny muted" style="margin-top:12px;">Times at or before now are Passed and cannot be selected. Booked slots are unavailable.</p>
@@ -463,6 +467,7 @@ window.addEventListener('DOMContentLoaded', () => {
     if (selectedSlot && !document.getElementById('reason-input').value.trim()) setReasonError(true);
   });
   initCalendar();
+  loadDoctorList();
 
   Shell.mount({
     workspace: 'Student workspace',
@@ -629,16 +634,17 @@ function apptSortKey(a) {
 // Students pick a time, not a doctor; the backend lists one row per doctor on
 // duty for that time and books them as a unit, so collapse rows by time.
 function uniqueSlots(slots) {
-  const seen = new Set();
-  return slots.filter(s => {
-    if (seen.has(s.timeSlot)) return false;
-    seen.add(s.timeSlot);
-    return true;
-  }).sort((a, b) => HC.parseSlot(a.timeSlot).startMin - HC.parseSlot(b.timeSlot).startMin);
+  // one tile per time; if any doctor still has that time free, show it as Available
+  const byTime = new Map();
+  slots.forEach(s => {
+    const cur = byTime.get(s.timeSlot);
+    if (!cur || (cur.booked && !s.booked)) byTime.set(s.timeSlot, s);
+  });
+  return [...byTime.values()].sort((a, b) => HC.parseSlot(a.timeSlot).startMin - HC.parseSlot(b.timeSlot).startMin);
 }
 
-function fetchSlots(date) {
-  return fetch('/schedule/available?date=' + date)
+function fetchSlots(date, doctor) {
+  return fetch('/schedule/available?date=' + date + (doctor ? '&doctorName=' + encodeURIComponent(doctor) : ''))
     .then(res => {
       if (res.status === 404) return [];
       if (!res.ok) throw new Error();
@@ -785,11 +791,27 @@ function pickDate(iso) {
   loadSlots();
 }
 
+let selectedSlotDoctor = '';
+
+// Fills the Doctor dropdown with every active doctor account (so new doctors appear as soon as they are added)
+async function loadDoctorList() {
+  try {
+    const r = await fetch('/schedule/bookable-doctors');
+    if (!r.ok) return;
+    const docs = await r.json();
+    const sel = document.getElementById('doctor-select');
+    const cur = sel.value;
+    sel.innerHTML = '<option value="">Any available doctor</option>' + docs.map(d => `<option value="${esc(d)}">${esc(doctorLabel(d))}</option>`).join('');
+    if (cur) sel.value = cur;
+  } catch (e) {}
+}
+
 function loadSlots() {
   const date = selectedDate;
   const container = document.getElementById('slot-container');
   selectedSlot = null;
   selectedSlotTime = null;
+  selectedSlotDoctor = '';
   updateSummary();
   document.getElementById('slots-title').textContent = HC.fmtDate(date) + ' · consultations';
   document.getElementById('book-delay').hidden = !(date === HC.todayIso() && delayInfo.delayed);
@@ -799,11 +821,12 @@ function loadSlots() {
     return;
   }
   container.innerHTML = '<div class="empty">Loading available times…</div>';
-  fetchSlots(date)
+  const doctor = (document.getElementById('doctor-select') || {}).value || '';
+  fetchSlots(date, doctor)
     .then(slots => {
       if (date !== selectedDate) return;
       if (!slots.length) {
-        container.innerHTML = '<div class="empty">No consultations are scheduled on this date.</div>';
+        container.innerHTML = '<div class="empty">' + (doctor ? esc(doctorLabel(doctor)) + ' has no consultations on this date. Try another date or choose another doctor.' : 'No consultations are scheduled on this date.') + '</div>';
         return;
       }
       container.innerHTML = '<div class="slot-grid">' + uniqueSlots(slots).map(s => slotTile(s, date, 'pickSlot')).join('') + '</div>';
@@ -816,7 +839,7 @@ function slotTile(s, date, pickFn) {
   const off = s.booked || past;
   const label = past ? 'Passed' : (s.booked ? 'Booked' : 'Available');
   const start = HC.parseSlot(s.timeSlot).start || s.timeSlot;
-  return `<button type="button" class="slot${off ? ' off' : ''}" data-id="${s.id}" data-time="${esc(s.timeSlot)}"
+  return `<button type="button" class="slot${off ? ' off' : ''}" data-id="${s.id}" data-time="${esc(s.timeSlot)}" data-doctor="${esc(s.doctorName || '')}" title="${esc(doctorLabel(s.doctorName))}"
     ${off ? 'disabled' : `onclick="${pickFn}(${s.id}, this)"`}><strong>${esc(start)}</strong><span>${label}</span></button>`;
 }
 
@@ -832,6 +855,7 @@ function markSelectedTile(container, el) {
 function pickSlot(slotId, el) {
   selectedSlot = slotId;
   selectedSlotTime = el.dataset.time;
+  selectedSlotDoctor = el.dataset.doctor || '';
   markSelectedTile(document.getElementById('slot-container'), el);
   document.getElementById('conflict-card').hidden = true;
   updateSummary();
@@ -848,7 +872,7 @@ function updateSummary() {
   if (selectedSlot) {
     document.getElementById('sum-date').textContent =
       HC.parseDate(selectedDate).toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'long' }).replace(',', '');
-    document.getElementById('sum-time').textContent = HC.slotRange(selectedSlotTime).replace('–', ' – ') + ' Fiji';
+    document.getElementById('sum-time').textContent = HC.slotRange(selectedSlotTime).replace('–', ' – ') + ' Fiji' + (selectedSlotDoctor ? ' · ' + doctorLabel(selectedSlotDoctor) : '');
   } else {
     document.getElementById('sum-date').textContent = 'Choose a date';
     document.getElementById('sum-time').textContent = 'and an available time';
@@ -873,7 +897,7 @@ function submitBooking() {
     loadSlots();
     return;
   }
-  VAL.ask({ title: 'Confirm booking', rows: [['Date', document.getElementById('sum-date').textContent], ['Time', document.getElementById('sum-time').textContent], ['Reason', reason.length > 60 ? reason.slice(0, 60) + '…' : reason]], note: 'Book this appointment?', okText: 'Yes, book it' }).then(okay => { if (okay && VAL.once('book', 2000)) doBooking(reason, toast); });
+  VAL.ask({ title: 'Confirm booking', rows: [['Doctor', selectedSlotDoctor ? doctorLabel(selectedSlotDoctor) : 'Assigned by the clinic'], ['Date', document.getElementById('sum-date').textContent], ['Time', document.getElementById('sum-time').textContent], ['Reason', reason.length > 60 ? reason.slice(0, 60) + '…' : reason]], note: 'Book this appointment?', okText: 'Yes, book it' }).then(okay => { if (okay && VAL.once('book', 2000)) doBooking(reason, toast); });
 }
 
 function doBooking(reason, toast) {
