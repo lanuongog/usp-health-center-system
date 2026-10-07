@@ -116,6 +116,10 @@ public class AdminUserController {
         if (username.matches(".*\\s.*")) {
             return Map.of("error", "Username cannot contain spaces.");
         }
+        String unameError = InputRules.username(username);
+        if (unameError != null) {
+            return Map.of("error", unameError);
+        }
         String passwordError = PasswordRules.check(request.password, username);
         if (passwordError != null) {
             return Map.of("error", passwordError);
@@ -242,6 +246,12 @@ public class AdminUserController {
 
         if (request != null && request.reason != null && request.reason.trim().length() > 200) {
             return Map.of("error", "The rejection reason must be 200 characters or fewer.");
+        }
+        if (request != null) {
+            String rejError = InputRules.freeText(request.reason, "The rejection reason");
+            if (rejError != null) {
+                return Map.of("error", rejError);
+            }
         }
         String reason = (request != null && request.reason != null && !request.reason.isBlank())
                 ? request.reason.trim()

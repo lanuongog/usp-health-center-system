@@ -36,7 +36,7 @@ public class StudentController {
     private static final List<String> MARITAL_STATUSES = List.of("Single", "Married");
     private static final long MAX_RECEIPT_SIZE_BYTES = 5L * 1024 * 1024;
     // Official USU student ID format: "S" followed by exactly 8 digits.
-    private static final Pattern STUDENT_ID_PATTERN = Pattern.compile("^S\\d{8}$");
+    private static final Pattern STUDENT_ID_PATTERN = Pattern.compile("^S11\\d{6}$");
     private static final int MIN_PASSWORD_LENGTH = 6;
     private static final int MAX_PASSWORD_LENGTH = 100;
     private static final int MAX_FULL_NAME_LENGTH = 100;
@@ -78,7 +78,7 @@ public class StudentController {
         }
         String normalizedStudentId = studentId.trim().toUpperCase();
         if (!STUDENT_ID_PATTERN.matcher(normalizedStudentId).matches()) {
-            return Map.of("error", "Student ID must be in the format S followed by 8 digits (e.g. S12345678).");
+            return Map.of("error", "Student ID must be in the format S11 followed by 6 digits (e.g. S11234567).");
         }
         studentId = normalizedStudentId;
         String passwordError = PasswordRules.check(password, studentId);
@@ -290,6 +290,10 @@ public class StudentController {
         }
         if (request.reason.trim().length() > MAX_EMERGENCY_REASON_LENGTH) {
             return Map.of("error", "Description must be " + MAX_EMERGENCY_REASON_LENGTH + " characters or fewer.");
+        }
+        String alertError = InputRules.freeText(request.reason, "Description");
+        if (alertError != null) {
+            return Map.of("error", alertError);
         }
 
         User student = userRepository.findByUsername(auth.getName()).orElse(null);

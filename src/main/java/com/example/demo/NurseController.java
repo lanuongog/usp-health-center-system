@@ -145,6 +145,10 @@ public class NurseController {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
                     "Presenting complaint must be " + MAX_COMPLAINT_LENGTH + " characters or fewer.");
         }
+        String complaintError = InputRules.freeText(request.presentingComplaint, "Presenting complaint");
+        if (complaintError != null) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, complaintError);
+        }
 
         // reject out-of-range or malformed vital sign values
         validateVitals(request.temperature, request.bloodPressure);
@@ -230,6 +234,10 @@ public class NurseController {
         if (request.presentingComplaint.trim().length() > MAX_COMPLAINT_LENGTH) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
                     "Presenting complaint must be " + MAX_COMPLAINT_LENGTH + " characters or fewer.");
+        }
+        String complaintError = InputRules.freeText(request.presentingComplaint, "Presenting complaint");
+        if (complaintError != null) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, complaintError);
         }
         if (request.urgencyLevel == null || !URGENCY_LEVELS.contains(request.urgencyLevel)) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST,

@@ -322,6 +322,7 @@ async function rejectReceipt() {
   const reason = document.getElementById('rejectReason').value.trim();
   if (!reason) { showError('Please enter a reason for rejecting the receipt.'); return; }
   if (reason.length > 500) { showError('The reason must be 500 characters or fewer.'); return; }
+  { const te = VAL.textError(reason, 'The reason', true); if (te) { showError(te); return; } }
   if (!(await VAL.ask({ title: 'Reject receipt', note: 'Reject this payment receipt? The student will need to upload a new one.', okText: 'Yes, reject', danger: true }))) return;
   try {
     const res = await fetch(`/admin/users/${userId}/reject-receipt`, {

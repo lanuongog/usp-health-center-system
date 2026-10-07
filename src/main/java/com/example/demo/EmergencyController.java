@@ -91,6 +91,10 @@ public class EmergencyController {
         if (request.reason != null && request.reason.trim().length() > MAX_REASON_LENGTH) {
             return Map.of("error", "Reason must be " + MAX_REASON_LENGTH + " characters or fewer.");
         }
+        String rsnError = InputRules.freeText(request.reason, "Reason");
+        if (rsnError != null) {
+            return Map.of("error", rsnError);
+        }
         String reason = (request.reason == null || request.reason.isBlank()) ? "Emergency" : request.reason.trim();
         String displayName = displayNameFor(student, studentId);
 

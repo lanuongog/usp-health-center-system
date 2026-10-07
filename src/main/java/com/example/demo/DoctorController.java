@@ -214,6 +214,11 @@ public class DoctorController {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
                     "Consultation notes must be " + MAX_NOTES_LENGTH + " characters or fewer.");
         }
+        String dxError = InputRules.freeText(request.diagnosis, "Diagnosis");
+        if (dxError == null) dxError = InputRules.freeText(request.consultationNotes, "Consultation notes");
+        if (dxError != null) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, dxError);
+        }
 
         // prevent a doctor from editing another doctor's submitted consultation
         if (appointment.getConsultedByDoctor() != null &&

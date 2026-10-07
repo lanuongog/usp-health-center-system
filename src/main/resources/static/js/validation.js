@@ -159,7 +159,7 @@ VAL.forgotPassword = async function (prefill) {
   };
   // Step 1: ID
   const id = await VAL.askInput({ title: 'Forgot password', note: 'Enter your Student ID or staff username. A 6-digit code will be sent to your USP email address (valid for 15 minutes).',
-    input: { label: 'Student ID or username', required: true, maxlength: 50, placeholder: 'e.g. S12345678', value: prefill,
+    input: { label: 'Student ID or username', required: true, maxlength: 50, placeholder: 'e.g. S11234567', value: prefill,
       validate: v => /^[A-Za-z0-9._@-]{3,50}$/.test(v) ? null : 'Use 3-50 letters, numbers, . _ - only.' }, okText: 'Send code' });
   if (!id) return;
   const sent = await post('/auth/forgot-password', { username: id });
@@ -184,4 +184,67 @@ VAL.forgotPassword = async function (prefill) {
   const res = await post('/auth/reset-password', { username: id, code, newPassword: pw });
   if (!res.ok) { await VAL.alert(res.data.error || 'Unable to reset the password.'); return; }
   await VAL._dialog({ title: 'Password reset', note: res.data.message || 'Your password has been reset. You can now sign in.', okText: 'OK', noCancel: true });
+};
+
+// ---------- Field rules: each box accepts only what belongs in it ----------
+VAL.rules = {
+  name:     { strip: /[^\p{L} '’-]/gu, max: 50, hint: "Letters, spaces, ' and - only" },
+  username: { strip: /[^A-Za-z0-9._@-]/g, max: 50 },
+  studentId:{ strip: /[^A-Za-z0-9]/g, upper: true, max: 9 },
+  temp:     { strip: /[^0-9.]/g, max: 4 },
+  bp:       { strip: /[^0-9]/g, max: 3 },
+  search:   { strip: /[<>{}\\`]/g, max: 50 },
+  text:     { strip: /[^\p{L}\p{N}\s.,;:!?'’"()\-–—\/&%+#@°_\[\]*]/gu },
+  location: { strip: /[^\p{L}\p{N} ,.\-'’\/#()]/gu },
+  email:    { strip: /\s/g, max: 100 }
+};
+VAL.fieldMap = {
+  regGivenName: 'name', regFamilyName: 'name',
+  newUsername: 'username',
+  regStudentId: 'studentId', emergencyStudentId: 'studentId', quickEmergencyId: 'studentId',
+  temperature: 'temp', bpSystolic: 'bp', bpDiastolic: 'bp',
+  queueSearch: 'search', recordsSearchInput: 'search', directorySearchInput: 'search', userSearchInput: 'search',
+  'records-search': 'search', 'directory-search': 'search',
+  presentingComplaint: 'text', 'reason-input': 'text', 'diagnosis-input': 'text', 'notes-input': 'text',
+  emergencyReason: 'text', rejectReason: 'text', emergencyLocation: 'location',
+  newEmail: 'email'
+};
+document.addEventListener('input', function (e) {
+  const el = e.target;
+  const kind = el && VAL.fieldMap[el.id];
+  if (!kind) return;
+  const r = VAL.rules[kind];
+  let v = el.value.replace(r.strip, '');
+  if (r.upper) v = v.toUpperCase();
+  if (r.max && v.length > r.max) v = v.slice(0, r.max);
+  if (v !== el.value) el.value = v;
+});
+
+// Returns an error message or null.
+VAL.nameError = function (v, label) {
+  v = (v || '').trim();
+  if (!v) return label + ' is required.';
+  if (!/^[\p{L}][\p{L} '’-]*$/u.test(v)) return label + " can only contain letters, spaces, apostrophes (') and hyphens (-). No numbers.";
+  return null;
+};
+VAL.textError = function (v, label, required) {
+  v = (v || '').trim();
+  if (!v) return required ? label + ' is required.' : null;
+  if (!/^[\p{L}\p{N}\s.,;:!?'’"()\-–—\/&%+#@°_\[\]*]+$/u.test(v)) return label + ' contains characters that are not allowed. Use letters, numbers and normal punctuation only.';
+  if ((v.match(/\p{L}/gu) || []).length < 2) return label + ' must contain at least 2 letters.';
+  return null;
+};
+VAL.locationError = function (v, label) {
+  v = (v || '').trim();
+  if (!v) return label + ' is required.';
+  if (!/^[\p{L}\p{N} ,.\-'’\/#()]+$/u.test(v)) return label + ' can only contain letters, numbers, spaces and , . - \' / # ( ).';
+  if ((v.match(/\p{L}/gu) || []).length < 2) return label + ' must contain at least 2 letters.';
+  return null;
+};
+// Shows a popup for the first problem and returns true when everything is fine.
+VAL.check = function (errors) {
+  const first = errors.find(Boolean);
+  if (!first) return true;
+  VAL.alert(first);
+  return false;
 };

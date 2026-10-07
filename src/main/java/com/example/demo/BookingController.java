@@ -117,6 +117,10 @@ public class BookingController {
         if (request.visitReason.trim().length() > MAX_REASON_LENGTH) {
             return Map.of("error", "Reason for visit must be " + MAX_REASON_LENGTH + " characters or fewer.");
         }
+        String reasonError = InputRules.freeText(request.visitReason, "Reason for visit");
+        if (reasonError != null) {
+            return Map.of("error", reasonError);
+        }
         if (request.slotId == null) {
             return Map.of("error", "Please select an available slot.");
         }

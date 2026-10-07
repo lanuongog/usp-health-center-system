@@ -889,6 +889,7 @@ function submitBooking() {
   const reason = document.getElementById('reason-input').value.trim();
   if (!reason) { setReasonError(true); updateSummary(); VAL.alert('Please enter a reason for your visit.'); return; }
   if (reason.length > 300) { VAL.alert('The reason for your visit must be 300 characters or fewer.'); return; }
+  { const te = VAL.textError(reason, 'The reason for your visit', true); if (te) { setReasonError(true); VAL.alert(te); return; } }
   if (!selectedSlot) { VAL.alert('Please select an available time slot first.'); return; }
   if (HC.isSlotPast(selectedDate, selectedSlotTime || '')) {
     toast.className = 'toast err';
@@ -1472,6 +1473,7 @@ function reviewEmergency() {
     VAL.alert('Please describe what is happening and where you are now.');
     return;
   }
+  { const e1 = VAL.textError(what, 'The description', true) || VAL.locationError(where, 'Your location'); if (e1) { result.className = 'form-msg err'; result.textContent = e1; VAL.alert(e1); return; } }
   result.textContent = '';
   document.getElementById('em-confirm').hidden = false;
   if (window.innerWidth <= 1080) document.getElementById('em-confirm').scrollIntoView({ behavior: 'smooth' });

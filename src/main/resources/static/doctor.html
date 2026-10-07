@@ -153,7 +153,7 @@
   <div class="modal-box danger">
     <div class="modal-head"><h2>Emergency check-in</h2><button class="modal-close" aria-label="Close" onclick="closeEmergencyModal()">✕</button></div>
     <p class="small muted" style="margin-bottom:16px;">For a patient who needs to see a doctor immediately. This checks them in at the top of the queue, alerts every doctor, and warns students with a visit today of a possible delay.</p>
-    <div class="field"><label for="emergencyStudentId">Student ID *</label><input type="text" id="emergencyStudentId" placeholder="e.g. S12345678" /></div>
+    <div class="field"><label for="emergencyStudentId">Student ID *</label><input type="text" id="emergencyStudentId" placeholder="e.g. S11234567" /></div>
     <div class="field"><label for="emergencyReason">What is happening?</label><textarea id="emergencyReason" rows="3" maxlength="300" placeholder="e.g. Severe allergic reaction"></textarea></div>
     <div class="toast" id="emergencyResult"></div>
     <div class="btn-row" style="margin-top:16px;">
@@ -510,6 +510,7 @@ function renderHistoryTab() {
 function recordConsultation(appointmentId) {
   const diagnosis = document.getElementById('diagnosis-input').value.trim();
   const notes = document.getElementById('notes-input').value.trim();
+  { const te = VAL.textError(diagnosis, 'Diagnosis', false) || VAL.textError(notes, 'Consultation notes', false); if (te) { VAL.alert(te); return; } }
   const toast = document.getElementById('record-toast');
   const btn = document.getElementById('record-btn');
   const bad = !diagnosis || !notes ? 'Diagnosis and consultation notes are both required.'
@@ -872,8 +873,9 @@ async function submitEmergencyCheckIn() {
   const studentId = document.getElementById('emergencyStudentId').value.trim();
   const reason = document.getElementById('emergencyReason').value.trim();
   const resultEl = document.getElementById('emergencyResult');
+  { const te = VAL.textError(reason, 'The reason', false); if (te) { VAL.alert(te); return; } }
   if (!studentId) { resultEl.className = 'toast err'; resultEl.textContent = 'Student ID is required.'; VAL.alert('Student ID is required.'); return; }
-  if (!/^[Ss]\d{8}$/.test(studentId)) { resultEl.className = 'toast err'; resultEl.textContent = 'Student ID must be S followed by 8 digits.'; VAL.alert('Student ID must be S followed by 8 digits (e.g. S12345678).'); return; }
+  if (!/^[Ss]11\d{6}$/.test(studentId)) { resultEl.className = 'toast err'; resultEl.textContent = 'Student ID must be S11 followed by 6 digits (e.g. S11234567).'; VAL.alert('Student ID must be S11 followed by 6 digits (e.g. S11234567).'); return; }
 
   if (!(await VAL.ask({ title: 'Emergency check-in', rows: [['Student', studentId.toUpperCase()]], note: 'Check this student in as an emergency and notify the clinic?', okText: 'Yes, check in', danger: true }))) return;
   fetch('/emergency/checkin', {
