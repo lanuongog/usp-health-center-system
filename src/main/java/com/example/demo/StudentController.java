@@ -43,6 +43,7 @@ public class StudentController {
     private static final int MAX_EMERGENCY_REASON_LENGTH = 300;
     // After an emergency alert the button stays locked for this long, unless the student signs in again.
     private static final int EMERGENCY_LOCK_MINUTES = 20;
+    private static final int EMERGENCY_REMINDER_SECONDS = 120;
     private static final java.util.concurrent.ConcurrentHashMap<String, LocalDateTime> LAST_LOGIN = new java.util.concurrent.ConcurrentHashMap<>();
 
     // called by the login check each time a student signs in
@@ -274,7 +275,54 @@ public class StudentController {
         if (sent == null) {
             return Map.of("sentToday", false, "lockMinutes", EMERGENCY_LOCK_MINUTES);
         }
-        return Map.of("sentToday", true, "sentAt", sent.getCreatedAt().toString(), "lockMinutes", EMERGENCY_LOCK_MINUTES);
+        boolean checkedIn = hasCheckedInSince(auth.getName(), sent.getCreatedAt());
+        long secondsSince = java.time.Duration.between(sent.getCreatedAt(), LocalDateTime.now()).getSeconds();
+        long wait = Math.max(0, EMERGENCY_REMINDER_SECONDS - secondsSince);
+        return Map.of(
+                "sentToday", true,
+                "sentAt", sent.getCreatedAt().toString(),
+                "lockMinutes", EMERGENCY_LOCK_MINUTES,
+                "checkedIn", checkedIn,
+                "canRemind", !checkedIn && wait == 0,
+                "remindInSeconds", checkedIn ? 0 : wait);
+    }
+
+    // Staff checked the student in (Emergency check-in) after the latest alert.
+    private boolean hasCheckedInSince(String username, LocalDateTime since) {
+        return notificationRepository.existsByTypeAndStudentUsernameAndCreatedAtGreaterThanEqual(
+                "EMERGENCY_BOOKING", username, since);
+    }
+
+    // "Still waiting" nudge: sends staff another alert while the student has not
+    // been checked in. Limited to one every 2 minutes so it cannot flood the nurse.
+    @PostMapping("/emergency-alert/remind")
+    public Object remindEmergencyAlert(Authentication auth) {
+        User student = userRepository.findByUsername(auth.getName()).orElse(null);
+        String displayName = (student != null && student.getFullName() != null && !student.getFullName().isBlank())
+                ? student.getFullName() : auth.getName();
+        synchronized (emergencyAlertLock) {
+            Notification last = activeEmergencyAlert(auth.getName());
+            if (last == null) {
+                return Map.of("error", "You have no active emergency request. Please send a new request.");
+            }
+            if (hasCheckedInSince(auth.getName(), last.getCreatedAt())) {
+                return Map.of("error", "Staff have already checked you in.");
+            }
+            long secondsSince = java.time.Duration.between(last.getCreatedAt(), LocalDateTime.now()).getSeconds();
+            if (secondsSince < EMERGENCY_REMINDER_SECONDS) {
+                return Map.of("error", "Staff were alerted moments ago. You can send a reminder in "
+                        + (EMERGENCY_REMINDER_SECONDS - secondsSince) + " seconds.");
+            }
+            Notification alert = new Notification();
+            alert.setType("EMERGENCY_ALERT");
+            alert.setStudentUsername(auth.getName());
+            alert.setStudentName(displayName);
+            alert.setMessage("EMERGENCY REMINDER from " + displayName + " (" + auth.getName()
+                    + "): still waiting and NOT yet checked in. Please attend urgently.");
+            alert.setCreatedAt(LocalDateTime.now());
+            notificationRepository.save(alert);
+        }
+        return Map.of("message", "Reminder sent. Staff have been alerted again.");
     }
 
     // A quick, low-friction heads-up a student sends before they've arrived -

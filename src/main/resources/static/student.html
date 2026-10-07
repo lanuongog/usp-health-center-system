@@ -384,6 +384,11 @@
           <strong id="em-locked-title">Emergency request sent today</strong>
           Health Center staff have been notified and will prioritise you when you arrive. Go to the Health Center now if you can — you don’t need to send another request right now.
         </div>
+        <div class="card" id="em-progress" style="margin-top:14px;">
+          <p class="small"><strong>Status:</strong> <span id="em-progress-text">Checking…</span></p>
+          <button class="btn btn-danger" id="em-remind-btn" onclick="remindEmergency()" disabled>Alert staff again</button>
+          <div class="form-msg" id="em-remind-msg"></div>
+        </div>
         <p class="small muted" style="margin-top:14px;">The emergency button unlocks again 20 minutes after your request, or the next time you sign in, in case of another emergency. If things get worse, contact emergency services or campus security directly.</p>
         <div class="btn-row" style="margin-top:16px;"><a class="btn" href="#overview">Return to overview</a></div>
       </div>
@@ -1411,6 +1416,7 @@ function loadEmergencyAlertStatus() {
       clearTimeout(emergencyUnlockTimer);
       if (data.sentToday) {
         markEmergencyAlertSent(data.sentAt);
+        showEmergencyProgress(data);
         const mins = data.lockMinutes || 20;
         const sent = data.sentAt ? new Date(data.sentAt).getTime() : Date.now();
         const wait = Math.max(5000, sent + mins * 60000 - Date.now() + 2000);
@@ -1420,6 +1426,48 @@ function loadEmergencyAlertStatus() {
       }
     })
     .catch(() => {});
+}
+
+// Shows whether staff have checked the student in, and the "alert again" button.
+let emergencyPollTimer = null;
+function showEmergencyProgress(data) {
+  const txt = document.getElementById('em-progress-text');
+  const btn = document.getElementById('em-remind-btn');
+  if (!txt || !btn) return;
+  clearTimeout(emergencyPollTimer);
+  if (data.checkedIn) {
+    txt.textContent = 'Checked in by Health Center staff. Help is on the way / you are being seen.';
+    btn.hidden = true;
+    return;
+  }
+  btn.hidden = false;
+  if (data.canRemind) {
+    txt.textContent = 'Staff have been alerted but have not checked you in yet.';
+    btn.disabled = false;
+    btn.textContent = 'Alert staff again';
+  } else {
+    txt.textContent = 'Staff have been alerted but have not checked you in yet.';
+    btn.disabled = true;
+    btn.textContent = 'Alert again available in ' + (data.remindInSeconds || 0) + 's';
+  }
+  emergencyPollTimer = setTimeout(loadEmergencyAlertStatus, 10000);
+}
+
+async function remindEmergency() {
+  const msg = document.getElementById('em-remind-msg');
+  const btn = document.getElementById('em-remind-btn');
+  if (!(await VAL.ask({ title: 'Alert staff again', note: 'Send another alert to the Health Center? Only do this if no one has come yet.', okText: 'Yes, alert again', danger: true }))) return;
+  btn.disabled = true;
+  try {
+    const res = await fetch('/student/emergency-alert/remind', { method: 'POST', headers: { 'Authorization': authHeader } });
+    const data = await res.json();
+    msg.className = 'form-msg ' + (data.error ? 'err' : 'ok');
+    msg.textContent = data.error || data.message;
+  } catch (e) {
+    msg.className = 'form-msg err';
+    msg.textContent = 'Unable to reach the server. Contact campus security or emergency services directly.';
+  }
+  loadEmergencyAlertStatus();
 }
 
 // Puts the emergency form back once the 20-minute lock has ended.

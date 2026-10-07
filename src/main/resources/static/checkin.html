@@ -207,10 +207,10 @@
     <p class="small" style="margin-top:10px;" id="incoming-emergency-message"></p>
     <p class="tiny muted" style="margin-top:8px;" id="incoming-emergency-time"></p>
     <div class="btn-row" style="margin-top:20px;">
-      <button class="btn btn-danger" onclick="checkInFromEmergencyPopup()">They’ve arrived — check in now</button>
+      <button class="btn btn-danger" onclick="openEmergencyListFromPopup()">Open emergency list</button>
       <button class="btn" onclick="acknowledgeEmergencyPopup()">Acknowledge</button>
     </div>
-    <p class="tiny muted" style="margin-top:12px;">Acknowledging only confirms you’ve seen this request. It stays unread until the student is checked in.</p>
+    <p class="tiny muted" style="margin-top:12px;">Acknowledging only confirms you’ve seen these requests. Each stays in the list until its student is checked in.</p>
   </div>
 </div>
 
@@ -638,10 +638,12 @@ let emergencyPopupQueue = [];
 let emergencyPopupShowing = false;
 
 function pollNotifCount() {
-  fetch('/notifications', { headers: { 'Authorization': authHeader } })
-    .then(res => res.ok ? res.json() : [])
+  fetch('/notifications', { headers: { 'Authorization': authHeader }, cache: 'no-store' })
+    .then(res => res.ok ? res.json() : null)
     .then(items => {
+      if (!Array.isArray(items)) return;   // keep the current list if the request failed
       staffNotifications = items;
+      emergencyListLoaded = true;
       Shell.setAlertCount(items.filter(n => !n.read).length);
       renderEmergencyBanner();
       if (Shell.currentView() === 'emergencies') renderEmergencyRequests();
@@ -655,30 +657,56 @@ function pollNotifCount() {
 
 function isEmergency(n) { return n.type === 'EMERGENCY_ALERT' || n.type === 'EMERGENCY_BOOKING'; }
 
+function waitingEmergencyStudents() {
+  const m = new Map();
+  staffNotifications.filter(n => n.type === 'EMERGENCY_ALERT' && !n.read).forEach(n => {
+    const k = n.studentUsername || n.studentName;
+    if (!m.has(k)) m.set(k, n);
+  });
+  return [...m.values()];
+}
+
 function renderEmergencyBanner() {
-  const today = HC.todayIso();
-  const active = staffNotifications.filter(n => isEmergency(n) && !n.read && n.createdAt && n.createdAt.slice(0, 10) === today);
+  const waiting = waitingEmergencyStudents();
   const banner = document.getElementById('emergency-banner');
-  if (!active.length) { banner.hidden = true; return; }
-  const n = active[0];
-  banner.innerHTML = `<strong>Clinic emergency · ${esc(n.studentName || n.studentUsername || '')}</strong>
-    <span class="notice-body">${esc(n.message)} <a href="#emergencies">Open emergency requests →</a></span>`;
+  if (!waiting.length) { banner.hidden = true; return; }
+  const names = waiting.slice(0, 4).map(n => esc(n.studentName || n.studentUsername || '')).join(', ') + (waiting.length > 4 ? ' +' + (waiting.length - 4) + ' more' : '');
+  banner.innerHTML = `<strong>${waiting.length} emergency request${waiting.length === 1 ? '' : 's'} waiting</strong>
+    <span class="notice-body">${names}. <a href="#emergencies">Open the emergency list →</a></span>`;
   banner.hidden = false;
 }
 
+let emergencyListLoaded = false;
 function loadEmergencyRequests() {
-  fetch('/notifications', { headers: { 'Authorization': authHeader } })
-    .then(res => res.ok ? res.json() : [])
-    .then(items => { staffNotifications = items; renderEmergencyRequests(); renderEmergencyBanner(); })
-    .catch(() => {});
+  const el = document.getElementById('emergency-list');
+  if (!emergencyListLoaded && el) el.innerHTML = '<div class="card"><div class="empty">Loading emergency requests…</div></div>';
+  fetch('/notifications', { headers: { 'Authorization': authHeader }, cache: 'no-store' })
+    .then(res => { if (!res.ok) throw new Error('HTTP ' + res.status); return res.json(); })
+    .then(items => {
+      staffNotifications = items;
+      emergencyListLoaded = true;
+      renderEmergencyRequests();
+      renderEmergencyBanner();
+    })
+    .catch(err => {
+      if (emergencyListLoaded) return;
+      el.innerHTML = '<div class="card"><div class="empty">Could not load emergency requests (' + esc(String(err.message || err)) + '). <button class="btn btn-sm" onclick="loadEmergencyRequests()">Try again</button></div></div>';
+    });
 }
 
 function renderEmergencyRequests() {
-  const list = staffNotifications.filter(isEmergency);
+  if (!emergencyListLoaded) return;
+  // Waiting student requests first (newest on top), then all other records newest first.
+  const rank = n => (n.type === 'EMERGENCY_ALERT' && !n.read) ? 0 : (!n.read ? 1 : 2);
+  const list = staffNotifications.filter(isEmergency).slice().sort((a, b) =>
+    rank(a) - rank(b) || String(b.createdAt).localeCompare(String(a.createdAt)));
   const el = document.getElementById('emergency-list');
   if (!list.length) { el.innerHTML = '<div class="card"><div class="empty">No emergency requests.</div></div>'; return; }
   const acked = loadAcknowledgedEmergencyIds();
-  el.innerHTML = list.map(n => {
+  const waitingCount = waitingEmergencyStudents().length;
+  const alertTotal = list.filter(n => n.type === 'EMERGENCY_ALERT').length;
+  const head = `<div class="notice ${waitingCount ? 'danger' : 'ok'}" style="margin-bottom:14px;"><strong>${waitingCount} student${waitingCount === 1 ? '' : 's'} waiting</strong> <span class="notice-body">${alertTotal} request${alertTotal === 1 ? '' : 's'} received in total. The newest waiting requests are at the top. Read the reason on each card, then press Check in now.</span></div>`;
+  el.innerHTML = head + list.map(n => {
     const isAlert = n.type === 'EMERGENCY_ALERT';
     const title = (isAlert ? 'Emergency request · ' : 'Emergency check-in · ') + (n.studentName || n.studentUsername || '');
     return `
@@ -713,34 +741,38 @@ function checkInFromRequest(id) {
 
 function showNextEmergencyPopup() {
   if (emergencyPopupShowing || emergencyPopupQueue.length === 0) return;
-  const n = emergencyPopupQueue.shift();
+  const batch = emergencyPopupQueue.splice(0);
   emergencyPopupShowing = true;
   const overlay = document.getElementById('incoming-emergency-overlay');
-  overlay.dataset.notifId = n.id;
-  overlay.dataset.studentId = n.studentUsername;
-  document.getElementById('incoming-emergency-name').textContent = n.studentName + ' (' + n.studentUsername + ')';
-  document.getElementById('incoming-emergency-message').textContent = n.message;
-  document.getElementById('incoming-emergency-time').textContent = HC.fmtDateTime(n.createdAt);
+  overlay.dataset.ids = batch.map(n => n.id).join(',');
+  document.getElementById('incoming-emergency-name').textContent =
+    batch.length + ' new emergency request' + (batch.length === 1 ? '' : 's') + ' received';
+  const msg = document.getElementById('incoming-emergency-message');
+  msg.style.whiteSpace = 'pre-line';
+  msg.textContent = batch.slice(0, 6).map(n => '• ' + (n.studentName || '') + ' (' + (n.studentUsername || '') + ')').join('\n')
+    + (batch.length > 6 ? '\n+ ' + (batch.length - 6) + ' more' : '');
+  document.getElementById('incoming-emergency-time').textContent = HC.fmtDateTime(batch[batch.length - 1].createdAt);
   overlay.hidden = false;
 }
 
-function acknowledgeEmergencyPopup() {
+function closeEmergencyPopup() {
   const overlay = document.getElementById('incoming-emergency-overlay');
-  // Intentionally NOT marked read - it stays unread until someone acts on it.
-  rememberAcknowledgedEmergencyId(overlay.dataset.notifId);
+  // Intentionally NOT marked read - requests stay unread until the student is checked in.
+  (overlay.dataset.ids || '').split(',').filter(Boolean).forEach(id => rememberAcknowledgedEmergencyId(id));
   overlay.hidden = true;
   emergencyPopupShowing = false;
+}
+
+function acknowledgeEmergencyPopup() {
+  closeEmergencyPopup();
   if (Shell.currentView() === 'emergencies') renderEmergencyRequests();
   showNextEmergencyPopup();
 }
 
-function checkInFromEmergencyPopup() {
-  const overlay = document.getElementById('incoming-emergency-overlay');
-  fetch('/notifications/' + overlay.dataset.notifId + '/read', { method: 'POST', headers: { 'Authorization': authHeader } })
-    .then(() => pollNotifCount()).catch(() => {});
-  overlay.hidden = true;
-  emergencyPopupShowing = false;
-  openEmergencyModal(overlay.dataset.studentId);
+function openEmergencyListFromPopup() {
+  closeEmergencyPopup();
+  location.hash = '#emergencies';
+  loadEmergencyRequests();
 }
 
 let lastNotifItems = [];

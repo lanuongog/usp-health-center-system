@@ -123,6 +123,12 @@ public class EmergencyController {
         staffAlert.setCreatedAt(LocalDateTime.now());
         notificationRepository.save(staffAlert);
 
+        // The student is now being seen: clear their waiting emergency alerts.
+        for (Notification waiting : notificationRepository.findByTypeAndStudentUsernameAndReadFalse("EMERGENCY_ALERT", studentId)) {
+            waiting.setRead(true);
+            notificationRepository.save(waiting);
+        }
+
         // Everyone with a visit today - booked, or already checked in ahead of
         // a doctor - gets bumped behind this emergency and is notified.
         int notifiedCount = delayNoticeService.notifyStudentsWithVisitToday(studentId, displayName, appointment.getId());
