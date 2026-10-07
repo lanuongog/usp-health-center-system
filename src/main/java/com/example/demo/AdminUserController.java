@@ -1,5 +1,8 @@
 package com.example.demo;
 
+import java.time.LocalDateTime;
+import java.util.Comparator;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -53,7 +56,6 @@ public class AdminUserController {
         public boolean active;
         public String fullName;
         public String country;
-        public String maritalStatus;
         public Boolean feePaid;
         public Double feeAmount;
         public boolean hasReceipt;
@@ -69,7 +71,6 @@ public class AdminUserController {
             if ("STUDENT".equals(u.getRole())) {
                 this.fullName = u.getFullName();
                 this.country = u.getCountry();
-                this.maritalStatus = u.getMaritalStatus();
                 this.feePaid = u.isFeePaid();
                 this.feeAmount = u.getFeeAmount();
                 this.hasReceipt = u.getReceiptFile() != null;
@@ -83,6 +84,25 @@ public class AdminUserController {
     @GetMapping
     public List<UserView> getAllUsers() {
         return userRepository.findAll().stream().map(UserView::new).collect(Collectors.toList());
+    }
+
+    // students waiting for their payment receipt to be approved, longest wait
+    // first, so the admin dashboard can alert the admin to review them
+    @GetMapping("/pending-receipts")
+    public List<Map<String, Object>> getPendingReceipts() {
+        return userRepository.findPendingReceipts().stream()
+                .sorted(Comparator.comparing((Object[] r) -> (LocalDateTime) r[4], Comparator.nullsFirst(Comparator.naturalOrder())))
+                .map(r -> {
+                    Map<String, Object> map = new LinkedHashMap<>();
+                    map.put("id", r[0]);
+                    map.put("username", r[1]);
+                    map.put("fullName", r[2]);
+                    map.put("feeAmount", r[3]);
+                    map.put("uploadedAt", r[4] != null ? r[4].toString() : null);
+                    map.put("autoCheckNote", r[5]);
+                    return map;
+                })
+                .collect(Collectors.toList());
     }
 
     // lets the admin user-detail page load a single account

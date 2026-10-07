@@ -1,8 +1,12 @@
 package com.example.demo;
 
 import java.time.LocalDate;
+import java.time.LocalTime;
+import java.time.format.DateTimeParseException;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 import org.springframework.format.annotation.DateTimeFormat;
@@ -57,17 +61,114 @@ public class ScheduleController {
                 .collect(Collectors.toList());
     }
 
-    // doctor/admin creates a new consultation slot
+    // doctor/admin creates a new consultation slot. A range longer than one
+    // appointment (e.g. 09:30-18:00 from an older page) is working hours, so it is
+    // split into 30-minute slots rather than saved as one all-day appointment.
     @PostMapping("/manage")
-    public DoctorSchedule createSlot(@RequestBody DoctorSchedule slot, Authentication auth) {
+    public Object createSlot(@RequestBody DoctorSchedule slot, Authentication auth) {
         validateOwnership(slot.getDoctorName(), auth);
         validateRequiredFields(slot);
-        validateNoConflict(slot, null);
 
+        LocalTime[] range = SlotPlanner.parseRange(slot.getTimeSlot());
+        if (range != null && SlotPlanner.minutesOf(range) > SlotPlanner.MAX_APPOINTMENT_MINUTES) {
+            return createSplitSlots(slot.getDoctorName().trim(), slot.getScheduleDate(),
+                    range[0], range[1], SlotPlanner.DEFAULT_MINUTES);
+        }
+
+        validateNoConflict(slot, null);
         // Each doctor's slot is booked independently, so a newly created slot
         // always starts open regardless of other doctors' bookings.
         slot.setBooked(false);
         return scheduleRepository.save(slot);
+    }
+
+    public static class SlotRangeRequest {
+        public String doctorName;
+        public LocalDate scheduleDate;
+        public String startTime;   // "10:00" (24h)
+        public String endTime;     // "14:00" (24h)
+        public Integer slotMinutes; // appointment length, defaults to 30
+    }
+
+    private static final Set<Integer> ALLOWED_SLOT_MINUTES = Set.of(15, 20, 30, 45, 60);
+    private static final int MAX_SLOTS_PER_REQUEST = 48;
+
+    // doctor/admin enters working hours for a day (e.g. 10:00-14:00) and they are
+    // split into individual appointment slots, one student each (see SlotPlanner).
+    @PostMapping("/manage/range")
+    public Map<String, Object> createSlotRange(@RequestBody SlotRangeRequest request, Authentication auth) {
+        if (isBlank(request.doctorName) || request.scheduleDate == null
+                || isBlank(request.startTime) || isBlank(request.endTime)) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Complete the doctor, date, start and end fields.");
+        }
+        String doctorName = request.doctorName.trim();
+        validateOwnership(doctorName, auth);
+        if (doctorName.length() > MAX_DOCTOR_NAME_LENGTH) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                    "Doctor name must be " + MAX_DOCTOR_NAME_LENGTH + " characters or fewer.");
+        }
+        if (request.scheduleDate.isBefore(LocalDate.now())) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Schedule date cannot be in the past.");
+        }
+
+        LocalTime start;
+        LocalTime end;
+        try {
+            start = LocalTime.parse(request.startTime.trim());
+            end = LocalTime.parse(request.endTime.trim());
+        } catch (DateTimeParseException e) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Start and end must be valid times.");
+        }
+        if (!end.isAfter(start)) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "The end time must be after the start time.");
+        }
+        int minutes = request.slotMinutes == null ? SlotPlanner.DEFAULT_MINUTES : request.slotMinutes;
+        if (!ALLOWED_SLOT_MINUTES.contains(minutes)) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Appointment length must be 15, 20, 30, 45 or 60 minutes.");
+        }
+        return createSplitSlots(doctorName, request.scheduleDate, start, end, minutes);
+    }
+
+    // Times in the lunch break, already passed today, or overlapping one of the
+    // doctor's existing slots are skipped rather than failing the whole request.
+    private Map<String, Object> createSplitSlots(String doctorName, LocalDate date, LocalTime start, LocalTime end, int minutes) {
+        List<LocalTime[]> existing = scheduleRepository
+                .findByDoctorNameAndScheduleDateAndArchivedFalse(doctorName, date).stream()
+                .map(s -> SlotPlanner.parseRange(s.getTimeSlot()))
+                .filter(r -> r != null)
+                .toList();
+        LocalTime notAfter = date.equals(LocalDate.now()) ? LocalTime.now() : null;
+        SlotPlanner.Plan plan = SlotPlanner.plan(start, end, minutes, existing, notAfter);
+
+        if (plan.timeSlots().size() > MAX_SLOTS_PER_REQUEST) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                    "That would create more than " + MAX_SLOTS_PER_REQUEST + " slots. Choose a shorter range.");
+        }
+        if (plan.timeSlots().isEmpty()) {
+            String why = plan.skippedOverlap() > 0 ? "those times overlap slots you already have"
+                    : plan.skippedLunch() > 0 ? "those times fall in the 1–2 PM lunch break"
+                    : plan.skippedPast() > 0 ? "those times have already passed"
+                    : "the range is shorter than one appointment";
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "No slots were created because " + why + ".");
+        }
+
+        List<DoctorSchedule> toCreate = plan.timeSlots().stream().map(timeSlot -> {
+            DoctorSchedule slot = new DoctorSchedule();
+            slot.setDoctorName(doctorName);
+            slot.setScheduleDate(date);
+            slot.setTimeSlot(timeSlot);
+            slot.setBooked(false);
+            return slot;
+        }).toList();
+        List<DoctorSchedule> saved = scheduleRepository.saveAll(toCreate);
+
+        Map<String, Object> result = new LinkedHashMap<>();
+        result.put("created", saved.size());
+        result.put("skippedLunch", plan.skippedLunch());
+        result.put("skippedPast", plan.skippedPast());
+        result.put("skippedOverlap", plan.skippedOverlap());
+        result.put("slots", saved);
+        return result;
     }
 
     // doctor/admin updates an existing consultation slot (this endpoint did not exist before)

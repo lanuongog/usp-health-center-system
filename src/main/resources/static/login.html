@@ -156,21 +156,11 @@
         <div class="field"><label for="regGivenName">Given name *</label><input type="text" id="regGivenName" maxlength="50" autocomplete="given-name" /></div>
         <div class="field"><label for="regFamilyName">Family name *</label><input type="text" id="regFamilyName" maxlength="49" autocomplete="family-name" /></div>
       </div>
-      <div class="field-row">
-        <div class="field">
-          <label for="regMaritalStatus">Marital status *</label>
-          <select id="regMaritalStatus">
-            <option value="" disabled selected>Select marital status</option>
-            <option value="Single">Single</option>
-            <option value="Married">Married</option>
-          </select>
-        </div>
-        <div class="field">
-          <label for="regCountry">Country *</label>
-          <select id="regCountry" onchange="updateFeePreview()">
-            <option value="" disabled selected>Select your country</option>
-          </select>
-        </div>
+      <div class="field">
+        <label for="regCountry">Country *</label>
+        <select id="regCountry" onchange="updateFeePreview()">
+          <option value="" disabled selected>Select your country</option>
+        </select>
       </div>
       <div class="notice info" id="feePreview" style="margin-bottom:18px;" hidden></div>
       <div class="field">
@@ -353,7 +343,6 @@ async function handleRegister(e) {
   const studentId = document.getElementById('regStudentId').value.trim().toUpperCase();
   const password = document.getElementById('regPassword').value;
   const passwordConfirm = document.getElementById('regPasswordConfirm').value;
-  const maritalStatus = document.getElementById('regMaritalStatus').value;
   const country = document.getElementById('regCountry').value;
   const receiptFile = document.getElementById('regReceipt').files[0];
   const confirmed = document.getElementById('regConfirm').checked;
@@ -361,7 +350,6 @@ async function handleRegister(e) {
 
   if (!given || !family) return showRegAlert('Please enter your given name and family name.');
   if (fullName.length > 100) return showRegAlert('Your full name must be 100 characters or fewer.');
-  if (!maritalStatus) return showRegAlert('Please select your marital status.');
   if (!country) return showRegAlert('Please select your country.');
   if (!receiptFile) return showRegAlert('Please attach a PDF receipt showing you have paid your Laucala Health Services Fee.');
   if (receiptFile.type !== 'application/pdf') return showRegAlert('The payment receipt must be a PDF file.');
@@ -379,7 +367,6 @@ async function handleRegister(e) {
     formData.append('studentId', studentId);
     formData.append('password', password);
     formData.append('fullName', fullName);
-    formData.append('maritalStatus', maritalStatus);
     formData.append('country', country);
     formData.append('receipt', receiptFile);
 

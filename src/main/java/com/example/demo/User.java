@@ -1,5 +1,7 @@
 package com.example.demo;
 
+import java.time.LocalDateTime;
+
 import jakarta.persistence.*;
 
 @Entity
@@ -35,6 +37,7 @@ public class User {
     private String receiptFileName;
     private String receiptRejectionReason; // set by an admin when rejecting a receipt
     private String receiptAutoCheckNote; // system's automated amount/name check on the current receipt
+    private LocalDateTime receiptUploadedAt; // when the current receipt was uploaded, for the admin's pending queue
 
     public User() {}
 
@@ -86,4 +89,7 @@ public class User {
 
     public String getReceiptAutoCheckNote() { return receiptAutoCheckNote; }
     public void setReceiptAutoCheckNote(String receiptAutoCheckNote) { this.receiptAutoCheckNote = receiptAutoCheckNote; }
+
+    public LocalDateTime getReceiptUploadedAt() { return receiptUploadedAt; }
+    public void setReceiptUploadedAt(LocalDateTime receiptUploadedAt) { this.receiptUploadedAt = receiptUploadedAt; }
 }

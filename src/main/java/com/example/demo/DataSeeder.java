@@ -4,13 +4,21 @@ import java.time.LocalDate;
 import java.util.List;
 import java.util.Map;
 
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
 @Configuration
 public class DataSeeder {
+
+    // Demo slots for the seeded test doctors (dr.patel, dr.lee, dr.sharma). Off by
+    // default: in real use each doctor creates their own slots on the days they work,
+    // so students only see real availability. Set app.demo-slots=true for testing.
+    @Value("${app.demo-slots:false}")
+    private boolean demoSlotsEnabled;
 
     @Bean
     public CommandLineRunner seedData(UserRepository userRepository,
@@ -49,7 +57,6 @@ public class DataSeeder {
 
                 User student1 = new User("student1", passwordEncoder.encode("student123"), "STUDENT");
                 student1.setFullName("Elena Prasad");
-                student1.setMaritalStatus("Single");
                 student1.setCountry("Fiji");
                 student1.setFeeAmount(50.00);
                 student1.setFeePaid(true);
@@ -137,11 +144,12 @@ public class DataSeeder {
                 }
             }
 
-            // Tops up a rolling window of open slots (today -> +6 days) on every startup.
-            // A one-time "count == 0" seed would only ever populate slots for the date the
-            // app first ran, so restarting days later (or after testers book everything out)
-            // left the booking page with nothing available for the current date.
-            {
+            // Demo only (app.demo-slots=true): tops up a rolling window of open slots
+            // (today -> +6 days) on every startup. A one-time "count == 0" seed would only
+            // ever populate slots for the date the app first ran, so restarting days later
+            // (or after testers book everything out) left the booking page with nothing
+            // available for the current date.
+            if (demoSlotsEnabled) {
                 String[] timeSlots = {
                     "09:00 AM - 09:30 AM",
                     "09:30 AM - 10:00 AM",
@@ -182,6 +190,68 @@ public class DataSeeder {
                 }
             }
 
+        };
+    }
+
+    // Older schedule pages saved a doctor's whole working day (e.g. 09:30-18:00) as one
+    // slot, so a single student could book the entire day. Split any such open, future
+    // slot into 30-minute appointments (see SlotPlanner) and retire the long one.
+    // Booked slots are left alone - a student already holds them.
+    @Bean
+    public CommandLineRunner splitLongSlots(DoctorScheduleRepository scheduleRepository) {
+        return args -> {
+            LocalDate today = LocalDate.now();
+            java.time.LocalTime now = java.time.LocalTime.now();
+            List<DoctorSchedule> active = scheduleRepository.findAll().stream()
+                    .filter(s -> !s.isArchived() && s.getScheduleDate() != null && !s.getScheduleDate().isBefore(today))
+                    .toList();
+
+            int split = 0, created = 0;
+            for (DoctorSchedule longSlot : active) {
+                java.time.LocalTime[] range = SlotPlanner.parseRange(longSlot.getTimeSlot());
+                if (longSlot.isBooked() || range == null || SlotPlanner.minutesOf(range) <= SlotPlanner.MAX_APPOINTMENT_MINUTES) {
+                    continue;
+                }
+                List<java.time.LocalTime[]> others = scheduleRepository
+                        .findByDoctorNameAndScheduleDateAndArchivedFalse(longSlot.getDoctorName(), longSlot.getScheduleDate()).stream()
+                        .filter(s -> !s.getId().equals(longSlot.getId()))
+                        .map(s -> SlotPlanner.parseRange(s.getTimeSlot()))
+                        .filter(r -> r != null)
+                        .toList();
+                SlotPlanner.Plan plan = SlotPlanner.plan(range[0], range[1], SlotPlanner.DEFAULT_MINUTES, others,
+                        longSlot.getScheduleDate().equals(today) ? now : null);
+
+                for (String timeSlot : plan.timeSlots()) {
+                    DoctorSchedule slot = new DoctorSchedule();
+                    slot.setDoctorName(longSlot.getDoctorName());
+                    slot.setScheduleDate(longSlot.getScheduleDate());
+                    slot.setTimeSlot(timeSlot);
+                    slot.setBooked(false);
+                    scheduleRepository.save(slot);
+                    created++;
+                }
+                longSlot.setArchived(true);
+                scheduleRepository.save(longSlot);
+                split++;
+            }
+            if (split > 0) {
+                System.out.println("Split " + split + " long schedule slot(s) into " + created + " appointment slot(s).");
+            }
+        };
+    }
+
+    // One-time migration: visit_reason was created as VARCHAR(255), too short for a
+    // 300-word reason. ddl-auto=update never widens existing columns, so do it here.
+    @Bean
+    public CommandLineRunner widenVisitReasonColumn(JdbcTemplate jdbc) {
+        return args -> {
+            List<String> types = jdbc.queryForList(
+                    "SELECT data_type FROM information_schema.columns "
+                    + "WHERE table_name = 'appointments' AND column_name = 'visit_reason'", String.class);
+            if (!types.isEmpty() && !"text".equals(types.get(0))) {
+                jdbc.execute("ALTER TABLE appointments ALTER COLUMN visit_reason TYPE TEXT");
+                System.out.println("Widened appointments.visit_reason to TEXT.");
+            }
         };
     }
 }

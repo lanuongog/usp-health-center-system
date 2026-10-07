@@ -31,9 +31,6 @@ public class StudentController {
             "Fiji", "Samoa", "Vanuatu", "Solomon Islands", "Cook Islands",
             "Tonga", "Tuvalu", "Niue", "Kiribati", "Marshall Islands", "Nauru", "Tokelau"
     );
-    private static final double LOCAL_FEE = 50.00;
-    private static final double REGIONAL_FEE = 80.00;
-    private static final List<String> MARITAL_STATUSES = List.of("Single", "Married");
     private static final long MAX_RECEIPT_SIZE_BYTES = 5L * 1024 * 1024;
     // Official USU student ID format: "S" followed by exactly 8 digits.
     private static final Pattern STUDENT_ID_PATTERN = Pattern.compile("^S\\d{8}$");
@@ -47,16 +44,19 @@ public class StudentController {
     private final NotificationRepository notificationRepository;
     private final ReceiptVerificationService receiptVerificationService;
     private final DelayNoticeService delayNoticeService;
+    private final FeeSettingsService feeSettingsService;
 
     public StudentController(UserRepository userRepository, PasswordEncoder passwordEncoder,
                               NotificationRepository notificationRepository,
                               ReceiptVerificationService receiptVerificationService,
-                              DelayNoticeService delayNoticeService) {
+                              DelayNoticeService delayNoticeService,
+                              FeeSettingsService feeSettingsService) {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
         this.notificationRepository = notificationRepository;
         this.receiptVerificationService = receiptVerificationService;
         this.delayNoticeService = delayNoticeService;
+        this.feeSettingsService = feeSettingsService;
     }
 
     // student self-registration logic
@@ -64,7 +64,6 @@ public class StudentController {
     public Object register(@RequestParam String studentId,
                             @RequestParam String password,
                             @RequestParam String fullName,
-                            @RequestParam String maritalStatus,
                             @RequestParam String country,
                             @RequestParam MultipartFile receipt) {
         if (studentId == null || studentId.isBlank() || password == null || password.isBlank()) {
@@ -84,9 +83,6 @@ public class StudentController {
         if (fullName.trim().length() > MAX_FULL_NAME_LENGTH) {
             return Map.of("error", "Full name must be " + MAX_FULL_NAME_LENGTH + " characters or fewer.");
         }
-        if (maritalStatus == null || !MARITAL_STATUSES.contains(maritalStatus)) {
-            return Map.of("error", "Please select a valid marital status.");
-        }
         if (country == null || !MEMBER_COUNTRIES.contains(country)) {
             return Map.of("error", "Please select a valid country.");
         }
@@ -102,12 +98,14 @@ public class StudentController {
             return Map.of("error", "This student ID is already registered. Please log in.");
         }
 
-        double feeAmount = LOCAL_COUNTRY.equals(country) ? LOCAL_FEE : REGIONAL_FEE;
+        // The admin-set fee is copied onto the student now, so later fee changes
+        // don't alter what an already-registered student owes.
+        FeeSettings fees = feeSettingsService.current();
+        double feeAmount = LOCAL_COUNTRY.equals(country) ? fees.getLocalFee() : fees.getRegionalFee();
 
         // encrypts student password
         User student = new User(studentId, passwordEncoder.encode(password), "STUDENT");
         student.setFullName(fullName.trim());
-        student.setMaritalStatus(maritalStatus);
         student.setCountry(country);
         student.setFeeAmount(feeAmount);
         student.setFeePaid(false);
@@ -116,6 +114,7 @@ public class StudentController {
             receiptBytes = receipt.getBytes();
             student.setReceiptFile(receiptBytes);
             student.setReceiptFileName(receipt.getOriginalFilename());
+            student.setReceiptUploadedAt(java.time.LocalDateTime.now());
         } catch (IOException e) {
             return Map.of("error", "Unable to read the uploaded receipt. Please try again.");
         }
@@ -146,11 +145,12 @@ public class StudentController {
     // Lets the registration form show the fee for a country before submitting.
     @GetMapping("/fee-schedule")
     public Map<String, Object> getFeeSchedule() {
+        FeeSettings fees = feeSettingsService.current();
         return Map.of(
                 "countries", MEMBER_COUNTRIES,
                 "localCountry", LOCAL_COUNTRY,
-                "localFee", LOCAL_FEE,
-                "regionalFee", REGIONAL_FEE
+                "localFee", fees.getLocalFee(),
+                "regionalFee", fees.getRegionalFee()
         );
     }
 
@@ -161,7 +161,6 @@ public class StudentController {
                 .<Object>map(u -> Map.of(
                         "fullName", u.getFullName() != null ? u.getFullName() : "",
                         "country", u.getCountry() != null ? u.getCountry() : "",
-                        "maritalStatus", u.getMaritalStatus() != null ? u.getMaritalStatus() : "",
                         "feePaid", u.isFeePaid(),
                         "feeAmount", u.getFeeAmount() != null ? u.getFeeAmount() : 0.0,
                         "hasReceipt", u.getReceiptFile() != null,
@@ -189,6 +188,7 @@ public class StudentController {
             receiptBytes = receipt.getBytes();
             student.setReceiptFile(receiptBytes);
             student.setReceiptFileName(receipt.getOriginalFilename());
+            student.setReceiptUploadedAt(java.time.LocalDateTime.now());
         } catch (IOException e) {
             return Map.of("error", "Unable to read the uploaded receipt. Please try again.");
         }

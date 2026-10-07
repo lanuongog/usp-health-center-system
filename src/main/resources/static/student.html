@@ -32,7 +32,7 @@
 .appt-card .ac-note { font-size: 11.5px; margin-top: 6px; }
 .appt-card .ac-note.warn { color: var(--urgent); }
 .appt-card .ac-note.teal { color: var(--brand); }
-.mini-slot-grid { grid-template-columns: repeat(auto-fill, minmax(76px, 1fr)); }
+.mini-slot-grid { grid-template-columns: repeat(auto-fill, minmax(104px, 1fr)); }
 .state-badges { display: flex; gap: 8px; flex-wrap: wrap; margin: 14px 0 18px; }
 .urgent-card .uc-icon { width: 22px; height: 22px; border-radius: 50%; border: 2px solid var(--emergency); color: var(--emergency); display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 12px; margin-bottom: 12px; }
 .urgent-note { font-size: 12px; color: var(--emergency); margin-top: 12px; }
@@ -112,12 +112,12 @@
 
     <div class="stack">
       <div class="card">
-        <h2>In-app alerts</h2>
+        <h2>Notifications</h2>
         <div class="pill-row" style="margin:12px 0 16px;">
           <span class="pill teal" id="ov-unread-pill">0 unread</span>
           <a class="btn-link" href="#alerts">View all →</a>
         </div>
-        <div id="ov-alerts"><p class="small muted">No alerts yet.</p></div>
+        <div id="ov-alerts"><p class="small muted">No notifications yet.</p></div>
       </div>
 
       <div class="card danger-edge urgent-card">
@@ -175,9 +175,9 @@
         <h2>Tell us about your visit</h2>
         <div class="field" id="reason-field" style="margin-top:20px;">
           <label for="reason-input">Reason for visit *</label>
-          <textarea id="reason-input" rows="3" maxlength="300" placeholder="Describe in your own words…"></textarea>
+          <textarea id="reason-input" rows="3" maxlength="3000" placeholder="Describe in your own words…" aria-describedby="reason-error reason-count"></textarea>
           <div class="error-text" id="reason-error"></div>
-          <p class="help">Tell us about your symptoms and when they started. This field is required.</p>
+          <p class="help">Tell us about your symptoms and when they started. This field is required, up to 300 words. <span id="reason-count" aria-live="polite">0 / 300 words</span></p>
         </div>
         <p class="tiny muted" style="margin-top:16px;">If you need urgent assistance, use <a href="#emergency">Emergency request</a> instead of waiting for a routine appointment.</p>
       </div>
@@ -305,10 +305,10 @@
 <section data-view="alerts" hidden>
   <div class="page-head">
     <div>
-      <h1>Alerts</h1>
-      <p>In-app updates for your account. Alerts stay unread until you mark them as read.</p>
+      <h1>Notifications</h1>
+      <p>Updates about your bookings, such as appointment delays. Notifications stay unread until you mark them as read.</p>
     </div>
-    <button class="btn" onclick="loadNotifications()"><span data-icon="refresh"></span>Refresh alerts</button>
+    <button class="btn" onclick="loadNotifications()"><span data-icon="refresh"></span>Refresh notifications</button>
   </div>
   <div class="banner-slot"></div>
 
@@ -321,7 +321,7 @@
   <div class="grid-main-side">
     <div id="alert-list"></div>
     <div class="card soft">
-      <h2 id="side-unread">0 unread alerts</h2>
+      <h2 id="side-unread">0 unread notifications</h2>
     </div>
   </div>
   <p class="app-legal">All times are Fiji local time.</p>
@@ -457,20 +457,23 @@ window.addEventListener('DOMContentLoaded', () => {
     user: currentStudentId,
     alerts: 'link',
     alertsHref: '#alerts',
+    alertsLabel: 'Notifications',
+    alertsFirst: true,
+    alertsIcon: true,
     defaultView: 'overview',
     nav: [
       { key: 'overview', label: 'Overview', href: '#overview' },
       { key: 'book', label: 'Book appointment', href: '#book' },
       { key: 'appointments', label: 'My appointments', href: '#appointments' },
       { key: 'history', label: 'Medical history', href: '#history' },
-      { key: 'alerts', label: 'Alerts', href: '#alerts', count: true },
+      { key: 'alerts', label: 'Notifications', href: '#alerts', count: true },
       { key: 'emergency', label: 'Emergency request', href: '#emergency' }
     ],
     bottomNav: [
       { key: 'overview', label: 'Home', href: '#overview', icon: 'home' },
       { key: 'book', label: 'Book', href: '#book', icon: 'book' },
       { key: 'history', label: 'Visits', href: '#history', icon: 'visits' },
-      { key: 'alerts', label: 'Alerts', href: '#alerts', icon: 'bell' }
+      { key: 'alerts', label: 'Notifications', href: '#alerts', icon: 'bell' }
     ],
     onView
   });
@@ -702,7 +705,7 @@ function loadAvailabilityToday() {
         return `<tr>
           <td>${esc(doctorLabel(doc))}</td>
           <td>${ranges.map(r => r.start + '–' + r.end).join(', ')}</td>
-          <td>${next ? `<a href="#book">Today · ${HC.parseSlot(next.timeSlot).start}</a>` : '<span class="muted">No more times today</span>'}</td>
+          <td>${next ? `<a href="#book">Today · ${HC.slotRange(next.timeSlot)}</a>` : '<span class="muted">No more times today</span>'}</td>
         </tr>`;
       }).join('');
     })
@@ -803,9 +806,10 @@ function slotTile(s, date, pickFn) {
   const past = HC.isSlotPast(date, s.timeSlot);
   const off = s.booked || past;
   const label = past ? 'Passed' : (s.booked ? 'Booked' : 'Available');
-  const start = HC.parseSlot(s.timeSlot).start || s.timeSlot;
+  // Show the whole appointment (e.g. 09:30–10:00), not just its start time.
+  const range = HC.slotRange(s.timeSlot);
   return `<button type="button" class="slot${off ? ' off' : ''}" data-id="${s.id}" data-time="${esc(s.timeSlot)}"
-    ${off ? 'disabled' : `onclick="${pickFn}(${s.id}, this)"`}><strong>${esc(start)}</strong><span>${label}</span></button>`;
+    ${off ? 'disabled' : `onclick="${pickFn}(${s.id}, this)"`}><strong>${esc(range)}</strong><span>${label}</span></button>`;
 }
 
 function markSelectedTile(container, el) {
@@ -825,14 +829,28 @@ function pickSlot(slotId, el) {
   updateSummary();
 }
 
-function setReasonError(on) {
+// Matches the server-side limit in BookingController.
+const MAX_REASON_WORDS = 300;
+function reasonWordCount(text) {
+  const t = text.trim();
+  return t ? t.split(/\s+/).length : 0;
+}
+
+function setReasonError(on, msg) {
   document.getElementById('reason-field').classList.toggle('invalid', on);
-  document.getElementById('reason-error').textContent = on ? 'Please enter a reason for your visit.' : '';
+  document.getElementById('reason-error').textContent = on ? (msg || 'Please enter a reason for your visit.') : '';
 }
 
 function updateSummary() {
   const reason = document.getElementById('reason-input').value.trim();
   const hint = document.getElementById('sum-hint');
+  const words = reasonWordCount(reason);
+  const tooLong = words > MAX_REASON_WORDS;
+  document.getElementById('reason-count').textContent = `${words} / ${MAX_REASON_WORDS} words`;
+  if (tooLong) {
+    const extra = words - MAX_REASON_WORDS;
+    setReasonError(true, `Reason for visit must be ${MAX_REASON_WORDS} words or fewer. Please remove ${extra} word${extra === 1 ? '' : 's'}.`);
+  }
   if (selectedSlot) {
     document.getElementById('sum-date').textContent =
       HC.parseDate(selectedDate).toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'long' }).replace(',', '');
@@ -841,10 +859,11 @@ function updateSummary() {
     document.getElementById('sum-date').textContent = 'Choose a date';
     document.getElementById('sum-time').textContent = 'and an available time';
   }
-  document.getElementById('book-btn').disabled = bookingLocked || !selectedSlot || !reason;
+  document.getElementById('book-btn').disabled = bookingLocked || !selectedSlot || !reason || tooLong;
   if (bookingLocked) hint.textContent = 'Booking is locked until your Health Services Fee receipt is verified.';
   else if (!selectedSlot) hint.textContent = 'Select an available time to continue. Availability is verified again at confirmation.';
   else if (!reason) hint.textContent = 'Enter the required reason to continue. Availability is verified again at confirmation.';
+  else if (tooLong) hint.textContent = `Shorten your reason to ${MAX_REASON_WORDS} words or fewer to continue.`;
   else hint.textContent = 'Review the details above, then confirm. Availability is verified again at confirmation.';
 }
 
@@ -852,6 +871,7 @@ function submitBooking() {
   const toast = document.getElementById('book-toast');
   const reason = document.getElementById('reason-input').value.trim();
   if (!reason) { setReasonError(true); updateSummary(); return; }
+  if (reasonWordCount(reason) > MAX_REASON_WORDS) { updateSummary(); return; }
   if (!selectedSlot) return;
   if (HC.isSlotPast(selectedDate, selectedSlotTime || '')) {
     toast.className = 'toast err';
@@ -1229,7 +1249,7 @@ function loadNotifications() {
       showDelayPopupIfNew();
     })
     .catch(() => {
-      document.getElementById('alert-list').innerHTML = '<div class="card"><div class="empty">Unable to load alerts.</div></div>';
+      document.getElementById('alert-list').innerHTML = '<div class="card"><div class="empty">Unable to load notifications.</div></div>';
     });
 }
 
@@ -1252,11 +1272,11 @@ function renderAlerts() {
   document.getElementById('cnt-all').textContent = notifications.length;
   document.getElementById('cnt-unread').textContent = unread.length;
   document.getElementById('cnt-read').textContent = read.length;
-  document.getElementById('side-unread').textContent = `${unread.length} unread alert${unread.length === 1 ? '' : 's'}`;
+  document.getElementById('side-unread').textContent = `${unread.length} unread notification${unread.length === 1 ? '' : 's'}`;
   const list = alertFilter === 'unread' ? unread : alertFilter === 'read' ? read : notifications;
   const el = document.getElementById('alert-list');
   if (!list.length) {
-    el.innerHTML = `<div class="card"><div class="empty">${alertFilter === 'unread' ? 'You have no unread alerts.' : 'No alerts yet.'}</div></div>`;
+    el.innerHTML = `<div class="card"><div class="empty">${alertFilter === 'unread' ? 'You have no unread notifications.' : 'No notifications yet.'}</div></div>`;
     return;
   }
   el.innerHTML = list.map(n => `
@@ -1280,7 +1300,7 @@ function renderOverviewAlerts() {
   document.getElementById('ov-unread-pill').textContent = notifications.filter(n => !n.read).length + ' unread';
   const box = document.getElementById('ov-alerts');
   const items = notifications.slice(0, 2);
-  if (!items.length) { box.innerHTML = '<p class="small muted">No alerts yet.</p>'; return; }
+  if (!items.length) { box.innerHTML = '<p class="small muted">No notifications yet.</p>'; return; }
   box.innerHTML = items.map(n => `
     <div class="alert-mini${n.read ? '' : ' unread'}">
       <div class="am-title">${n.read ? '' : '<span class="dot"></span>'}${esc(alertTitle(n))}</div>
@@ -1320,7 +1340,7 @@ function checkTodayDelay() {
 
 // Pops up once per same-day delay notice, on whatever page the student is on.
 // Closing it does not mark the alert as read - that stays an explicit action
-// on the Alerts page.
+// on the Notifications page.
 const SHOWN_DELAY_KEY = 'shownDelayNoticeIds';
 function loadShownDelayIds() {
   try { return new Set(JSON.parse(localStorage.getItem(SHOWN_DELAY_KEY) || '[]')); } catch (e) { return new Set(); }

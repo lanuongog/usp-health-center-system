@@ -56,16 +56,13 @@ public class NurseController {
                 .collect(Collectors.toList());
     }
 
-    // every appointment record, most recent date first, enriched with the
-    // student's full name, so a nurse can search for a specific student and see
-    // when their appointment was and check them in even after a no-show mark
+    // every appointment record, latest check-in first (see RecordsOrder), enriched
+    // with the student's full name, so a nurse can search for a specific student and
+    // see when their appointment was and check them in even after a no-show mark
     @GetMapping("/all")
     public List<Map<String, Object>> getAllAppointments() {
-        List<Appointment> appointments = appointmentRepository.findAll().stream()
-                .sorted(Comparator
-                        .comparing((Appointment a) -> a.getAppointmentDate(), Comparator.nullsLast(Comparator.reverseOrder()))
-                        .thenComparing(a -> a.getId(), Comparator.reverseOrder()))
-                .collect(Collectors.toList());
+        Map<Long, CheckIn> checkIns = RecordsOrder.checkInsByAppointment(checkInRepository);
+        List<Appointment> appointments = RecordsOrder.latestCheckInFirst(appointmentRepository.findAll(), checkIns);
 
         Map<String, String> fullNamesByUsername = userRepository.findAll().stream()
                 .filter(u -> u.getFullName() != null && !u.getFullName().isBlank())
@@ -86,9 +83,9 @@ public class NurseController {
             // skipping the nurse queue entirely - no CheckIn row exists for that
             // visit, so fall back to attributing it to the treating doctor and
             // flag it as a direct visit rather than presenting it as a real check-in.
-            String nurseCheckedInBy = checkInRepository.findByAppointmentId(a.getId())
-                    .map(CheckIn::getCheckedInBy)
-                    .orElse(null);
+            CheckIn checkIn = checkIns.get(a.getId());
+            String nurseCheckedInBy = checkIn != null ? checkIn.getCheckedInBy() : null;
+            map.put("checkedInAt", checkIn != null && checkIn.getCheckInTime() != null ? checkIn.getCheckInTime().toString() : null);
             if (nurseCheckedInBy != null) {
                 map.put("checkedInBy", fullNamesByUsername.getOrDefault(nurseCheckedInBy, nurseCheckedInBy));
                 map.put("checkedInDirect", false);

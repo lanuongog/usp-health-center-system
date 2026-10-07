@@ -112,16 +112,13 @@ public class DoctorController {
         return appointmentRepository.findByStatus("BOOKED");
     }
 
-    // View all appointments for the doctor dashboard overview, most recently
-    // booked/scheduled dates first, enriched with the student's full name
+    // View all appointments for the doctor dashboard overview, latest check-in
+    // first (see RecordsOrder), enriched with the student's full name
     // (Appointment.studentName holds the student ID used to log in).
     @GetMapping("/all")
     public List<Map<String, Object>> getAllAppointments() {
-        List<Appointment> appointments = appointmentRepository.findAll().stream()
-                .sorted(Comparator
-                        .comparing((Appointment a) -> a.getAppointmentDate(), Comparator.nullsLast(Comparator.reverseOrder()))
-                        .thenComparing(a -> a.getId(), Comparator.reverseOrder()))
-                .collect(Collectors.toList());
+        Map<Long, CheckIn> checkIns = RecordsOrder.checkInsByAppointment(checkInRepository);
+        List<Appointment> appointments = RecordsOrder.latestCheckInFirst(appointmentRepository.findAll(), checkIns);
 
         Map<String, String> fullNamesByUsername = userRepository.findAll().stream()
                 .filter(u -> u.getFullName() != null && !u.getFullName().isBlank())
@@ -140,6 +137,8 @@ public class DoctorController {
             map.put("diagnosis", a.getDiagnosis());
             map.put("consultationNotes", a.getConsultationNotes());
             map.put("consultedByDoctor", a.getConsultedByDoctor());
+            CheckIn checkIn = checkIns.get(a.getId());
+            map.put("checkedInAt", checkIn != null && checkIn.getCheckInTime() != null ? checkIn.getCheckInTime().toString() : null);
             return map;
         }).collect(Collectors.toList());
     }

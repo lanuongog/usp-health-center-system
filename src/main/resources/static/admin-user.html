@@ -13,6 +13,9 @@
 .confirm-panel .cp-head { display: flex; justify-content: space-between; align-items: center; gap: 10px; margin-bottom: 8px; }
 .confirm-panel h3 { font-size: 14px; font-weight: 600; }
 .user-grid { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+.receipt-card { grid-column: 1 / -1; }
+.receipt-head { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; }
+.receipt-frame { width: 100%; height: 70vh; min-height: 420px; border: 1px solid var(--line); border-radius: var(--radius); margin-top: 16px; background: var(--panel-muted); }
 @media (max-width: 900px) { .user-grid { grid-template-columns: minmax(0, 1fr); } }
 </style>
 </head>
@@ -131,6 +134,8 @@ async function loadUser() {
     currentUser = await res.json();
     showError(null);
     render();
+    // Coming from "Review receipt": show a pending receipt straight away.
+    if (!receiptShown && currentUser.role === 'STUDENT' && currentUser.hasReceipt && !currentUser.feePaid) viewReceipt();
   } catch (e) {
     showError('Service temporarily unavailable');
   }
@@ -197,7 +202,7 @@ function render() {
   let paymentCard = '';
   if (isStudent) {
     const actions = [];
-    if (u.hasReceipt) actions.push('<button class="btn" onclick="viewReceipt()">View receipt</button>');
+    if (u.hasReceipt) actions.push(`<button class="btn" onclick="viewReceipt()">${receiptShown ? 'Hide receipt' : 'View receipt'}</button>`);
     if (pending) {
       actions.push('<button class="btn btn-primary" onclick="approveReceipt()">Approve payment</button>');
       actions.push(`<button class="btn btn-ghost" style="color:var(--emergency);" onclick="openPanel('reject')">Reject receipt</button>`);
@@ -216,7 +221,6 @@ function render() {
         <p class="card-sub">Laucala Health Services Fee</p>
         <div style="margin-top:12px;">
           ${kv('Country', esc(u.country) || '—')}
-          ${kv('Marital status', esc(u.maritalStatus) || '—')}
           ${kv('Fee amount', u.feeAmount != null ? 'FJ$' + Number(u.feeAmount).toFixed(2) : '—')}
           ${kv('Status', HC.feePill(u))}
           ${kv('Receipt uploaded', u.hasReceipt ? 'Yes' : 'No')}
@@ -228,7 +232,25 @@ function render() {
       </div>`;
   }
 
-  document.getElementById('content').innerHTML = accountCard + paymentCard;
+  let receiptCard = '';
+  if (isStudent && u.hasReceipt && receiptShown && receiptUrl) {
+    receiptCard = `
+      <div class="card receipt-card" id="receipt-card">
+        <div class="receipt-head">
+          <div>
+            <h2>Payment receipt</h2>
+            <p class="card-sub">${esc(receiptName)}</p>
+          </div>
+          <div class="btn-row">
+            <a class="btn btn-sm" href="${receiptUrl}" target="_blank" rel="noopener">Open in new tab</a>
+            <a class="btn btn-sm" href="${receiptUrl}" download="${esc(receiptName)}">Download</a>
+          </div>
+        </div>
+        <iframe class="receipt-frame" src="${receiptUrl}" title="Payment receipt for ${esc(u.username)}"></iframe>
+      </div>`;
+  }
+
+  document.getElementById('content').innerHTML = accountCard + paymentCard + receiptCard;
 }
 
 async function toggleActive(confirmed) {
@@ -261,15 +283,31 @@ async function toggleActive(confirmed) {
   }
 }
 
+// The receipt needs the Authorization header, so it's fetched once and shown
+// from a local blob URL in an embedded viewer. (Opening a new tab after the
+// fetch was blocked as a pop-up by most browsers.)
+let receiptUrl = null;
+let receiptName = 'receipt.pdf';
+let receiptShown = false;
+
 async function viewReceipt() {
-  try {
-    const res = await fetch(`/admin/users/${userId}/receipt`, { headers: { 'Authorization': authHeader } });
-    if (!res.ok) { showError('Unable to load this receipt.'); return; }
-    const blob = await res.blob();
-    window.open(URL.createObjectURL(blob), '_blank');
-  } catch (e) {
-    showError('Service temporarily unavailable');
+  if (receiptShown) { receiptShown = false; render(); return; }
+  if (!receiptUrl) {
+    try {
+      const res = await fetch(`/admin/users/${userId}/receipt`, { headers: { 'Authorization': authHeader } });
+      if (!res.ok) { showError('Unable to load this receipt.'); return; }
+      const blob = await res.blob();
+      receiptUrl = URL.createObjectURL(new Blob([blob], { type: 'application/pdf' }));
+      const m = (res.headers.get('Content-Disposition') || '').match(/filename="?([^";]+)"?/i);
+      if (m) receiptName = m[1];
+    } catch (e) {
+      showError('Service temporarily unavailable');
+      return;
+    }
   }
+  receiptShown = true;
+  render();
+  document.getElementById('receipt-card').scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
 
 async function approveReceipt() {

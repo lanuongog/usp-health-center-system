@@ -132,7 +132,7 @@
   <div class="page-head">
     <div>
       <h1>All records</h1>
-      <p>Every appointment, most recent first. Check in a student who arrives after a no-show mark.</p>
+      <p>Every appointment, latest check-in first. Check in a student who arrives after a no-show mark.</p>
     </div>
   </div>
   <div class="card">
@@ -142,7 +142,7 @@
     </div>
     <div class="table-wrap" style="margin-top:16px;">
       <table class="table">
-        <thead><tr><th>Name</th><th>Student ID</th><th>Date</th><th>Time</th><th>Status</th><th>Checked in by</th><th></th></tr></thead>
+        <thead><tr><th>Name</th><th>Student ID</th><th>Date</th><th>Time</th><th>Status</th><th>Checked in</th><th></th></tr></thead>
         <tbody id="recordsTableBody"></tbody>
       </table>
     </div>
@@ -164,7 +164,7 @@
     </div>
     <div class="table-wrap" style="margin-top:16px;">
       <table class="table">
-        <thead><tr><th>Full name</th><th>Student ID</th><th>Country</th><th>Marital status</th><th>Fee</th><th>Account</th></tr></thead>
+        <thead><tr><th>Full name</th><th>Student ID</th><th>Country</th><th>Fee</th><th>Account</th></tr></thead>
         <tbody id="directoryTableBody"></tbody>
       </table>
     </div>
@@ -252,6 +252,8 @@ window.addEventListener('DOMContentLoaded', () => {
     nav: staff.nav,
     user: storedUser,
     alerts: 'panel',
+    alertsFirst: true,
+    alertsIcon: true,
     mobileAlertsHref: '#emergencies',
     defaultView: 'checkin',
     onView(view) {
@@ -550,6 +552,7 @@ function renderRecordsTable() {
       checkedInCell = r.checkedInDirect
         ? `${esc(r.checkedInBy)} <span class="tiny" style="color:var(--urgent);">(seen directly)</span>`
         : esc(r.checkedInBy);
+      if (r.checkedInAt) checkedInCell += `<div class="tiny muted">${esc(HC.fmtDateTime(r.checkedInAt))}</div>`;
     }
     return `
       <tr>
@@ -588,7 +591,7 @@ function renderDirectoryTable() {
     : allStudents;
   const body = document.getElementById('directoryTableBody');
   if (!students.length) {
-    body.innerHTML = `<tr><td colspan="6" class="muted">${term ? 'No students match your search.' : 'No registered students found.'}</td></tr>`;
+    body.innerHTML = `<tr><td colspan="5" class="muted">${term ? 'No students match your search.' : 'No registered students found.'}</td></tr>`;
     return;
   }
   body.innerHTML = students.map(s => `
@@ -596,7 +599,6 @@ function renderDirectoryTable() {
       <td>${esc(s.fullName) || '—'}</td>
       <td>${esc(s.studentId)}</td>
       <td>${esc(s.country) || '—'}</td>
-      <td>${esc(s.maritalStatus) || '—'}</td>
       <td>${HC.feePill(s)}</td>
       <td>${s.active ? '<span class="pill teal">Active</span>' : '<span class="pill">Deactivated</span>'}</td>
     </tr>`).join('');

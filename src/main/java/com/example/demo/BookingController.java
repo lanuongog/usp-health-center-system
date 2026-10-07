@@ -23,7 +23,10 @@ public class BookingController {
     // Students no longer choose an urgency - every online booking is Routine;
     // emergencies go through the portal's Emergency button instead.
     private static final String STUDENT_BOOKING_URGENCY = "Routine";
-    private static final int MAX_REASON_LENGTH = 300;
+    // Reason for visit: at most 300 words, with a character cap so one huge
+    // "word" can't get through.
+    private static final int MAX_REASON_WORDS = 300;
+    private static final int MAX_REASON_CHARS = 3000;
     private static final DateTimeFormatter SLOT_TIME_FORMAT = new DateTimeFormatterBuilder()
             .parseCaseInsensitive().appendPattern("h:mm a").toFormatter(Locale.US);
 
@@ -111,8 +114,12 @@ public class BookingController {
         if (request.visitReason == null || request.visitReason.isBlank()) {
             return Map.of("error", "Reason for visit is required.");
         }
-        if (request.visitReason.trim().length() > MAX_REASON_LENGTH) {
-            return Map.of("error", "Reason for visit must be " + MAX_REASON_LENGTH + " characters or fewer.");
+        String reasonText = request.visitReason.trim();
+        if (reasonText.split("\\s+").length > MAX_REASON_WORDS) {
+            return Map.of("error", "Reason for visit must be " + MAX_REASON_WORDS + " words or fewer.");
+        }
+        if (reasonText.length() > MAX_REASON_CHARS) {
+            return Map.of("error", "Reason for visit is too long.");
         }
         if (request.slotId == null) {
             return Map.of("error", "Please select an available slot.");

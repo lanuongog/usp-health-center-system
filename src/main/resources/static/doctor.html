@@ -79,7 +79,7 @@
   <div class="page-head">
     <div>
       <h1>All records</h1>
-      <p>Every appointment, most recently scheduled first. Select a row to open the patient.</p>
+      <p>Every appointment, latest check-in first. Select a row to open the patient.</p>
     </div>
   </div>
   <div class="card">
@@ -98,7 +98,7 @@
     </div>
     <div class="table-wrap" style="margin-top:18px;">
       <table class="table">
-        <thead><tr><th>Name</th><th>Student ID</th><th>Date</th><th>Time</th><th>Status</th></tr></thead>
+        <thead><tr><th>Name</th><th>Student ID</th><th>Date</th><th>Time</th><th>Status</th><th>Checked in</th></tr></thead>
         <tbody id="records-body"></tbody>
       </table>
     </div>
@@ -117,7 +117,7 @@
     <div class="field" style="max-width:360px;"><label for="directory-search">Find student</label><input type="text" id="directory-search" placeholder="Search by name or student ID" oninput="renderDirectory()" /></div>
     <div class="table-wrap" style="margin-top:18px;">
       <table class="table">
-        <thead><tr><th>Full name</th><th>Student ID</th><th>Country</th><th>Marital status</th><th>Fee</th><th>Account</th></tr></thead>
+        <thead><tr><th>Full name</th><th>Student ID</th><th>Country</th><th>Fee</th><th>Account</th></tr></thead>
         <tbody id="directory-body"></tbody>
       </table>
     </div>
@@ -239,6 +239,8 @@ window.addEventListener('DOMContentLoaded', () => {
     nav: staff.nav,
     user: doctorLabel(currentUsername),
     alerts: 'panel',
+    alertsFirst: true,
+    alertsIcon: true,
     defaultView: 'queue',
     onView(view) {
       if (view === 'records') loadRecords();
@@ -620,7 +622,7 @@ function loadRecords() {
   fetch('/doctor/all', { headers: { 'Authorization': authHeader } })
     .then(res => res.json())
     .then(data => { allRecords = data.map(norm); renderRecords(); })
-    .catch(() => { document.getElementById('records-body').innerHTML = '<tr><td colspan="5" class="muted">Unable to load records.</td></tr>'; });
+    .catch(() => { document.getElementById('records-body').innerHTML = '<tr><td colspan="6" class="muted">Unable to load records.</td></tr>'; });
 }
 
 function renderRecords() {
@@ -631,7 +633,7 @@ function renderRecords() {
   if (status) list = list.filter(a => a.status === status);
   const body = document.getElementById('records-body');
   if (!list.length) {
-    body.innerHTML = `<tr><td colspan="5" class="muted">${term || status ? 'No records match your filters.' : 'No appointment records found.'}</td></tr>`;
+    body.innerHTML = `<tr><td colspan="6" class="muted">${term || status ? 'No records match your filters.' : 'No appointment records found.'}</td></tr>`;
     return;
   }
   body.innerHTML = list.map(a => `
@@ -641,6 +643,7 @@ function renderRecords() {
       <td>${esc(a.appointmentDate ? HC.fmtDate(a.appointmentDate, 'day') : '—')}</td>
       <td>${esc(a.timeSlot ? HC.slotRange(a.timeSlot) : '—')}</td>
       <td>${HC.statusPill(a.status)}</td>
+      <td>${a.checkedInAt ? esc(HC.fmtDateTime(a.checkedInAt)) : '<span class="muted">—</span>'}</td>
     </tr>`).join('');
 }
 
@@ -663,7 +666,7 @@ function renderDirectory() {
     : students;
   const body = document.getElementById('directory-body');
   if (!list.length) {
-    body.innerHTML = `<tr><td colspan="6" class="muted">${term ? 'No students match your search.' : 'No registered students found.'}</td></tr>`;
+    body.innerHTML = `<tr><td colspan="5" class="muted">${term ? 'No students match your search.' : 'No registered students found.'}</td></tr>`;
     return;
   }
   body.innerHTML = list.map(s => `
@@ -671,7 +674,6 @@ function renderDirectory() {
       <td>${esc(s.fullName) || '—'}</td>
       <td>${esc(s.studentId)}</td>
       <td>${esc(s.country) || '—'}</td>
-      <td>${esc(s.maritalStatus) || '—'}</td>
       <td>${HC.feePill(s)}</td>
       <td>${s.active ? '<span class="pill teal">Active</span>' : '<span class="pill">Deactivated</span>'}</td>
     </tr>`).join('');

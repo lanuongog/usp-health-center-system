@@ -30,7 +30,6 @@ public class StudentDirectoryController {
         public String studentId;
         public String fullName;
         public String country;
-        public String maritalStatus;
         public boolean feePaid;
         public Double feeAmount;
         public boolean hasReceipt;
@@ -41,7 +40,6 @@ public class StudentDirectoryController {
             this.studentId = u.getUsername();
             this.fullName = u.getFullName();
             this.country = u.getCountry();
-            this.maritalStatus = u.getMaritalStatus();
             this.feePaid = u.isFeePaid();
             this.feeAmount = u.getFeeAmount();
             this.hasReceipt = u.getReceiptFile() != null;

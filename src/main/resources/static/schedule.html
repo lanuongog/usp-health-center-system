@@ -81,22 +81,33 @@
 
     <div class="stack sched-side">
       <div class="card">
-        <h2>Create consultation slot</h2>
-        <p class="card-sub">Added slots become bookable immediately.</p>
+        <h2>Add working hours</h2>
+        <p class="card-sub">Enter the hours you’re working. They’re split into appointments students can book straight away. The 1–2 PM lunch break is skipped.</p>
         <div class="field" style="margin-top:18px;">
           <label for="newDoctorName">Doctor</label>
           <input type="text" id="newDoctorName" list="doctor-options" maxlength="100" placeholder="e.g. dr.patel" />
           <datalist id="doctor-options"></datalist>
         </div>
-        <div class="field"><label for="newDate">Date *</label><input type="date" id="newDate" /></div>
+        <div class="field"><label for="newDate">Date *</label><input type="date" id="newDate" oninput="updatePreview()" /></div>
         <div class="field-row">
-          <div class="field"><label for="newStart">Start *</label><input type="time" id="newStart" step="300" /></div>
-          <div class="field"><label for="newEnd">End *</label><input type="time" id="newEnd" step="300" /></div>
+          <div class="field"><label for="newStart">Start *</label><select id="newStart" onchange="updatePreview()"></select></div>
+          <div class="field"><label for="newEnd">End *</label><select id="newEnd" onchange="updatePreview()"></select></div>
+        </div>
+        <div class="field" style="margin-top:14px;">
+          <label for="newLength">Appointment length</label>
+          <select id="newLength" onchange="updatePreview()">
+            <option value="15">15 minutes</option>
+            <option value="20">20 minutes</option>
+            <option value="30" selected>30 minutes</option>
+            <option value="45">45 minutes</option>
+            <option value="60">60 minutes</option>
+          </select>
+          <p class="help" id="slot-preview"></p>
         </div>
         <div class="notice danger" id="formError" style="margin-top:16px;" hidden></div>
         <div class="toast" id="formOk"></div>
-        <button class="btn btn-primary btn-block" style="margin-top:18px;" id="create-btn" onclick="createSlot()">Create slot</button>
-        <button class="btn btn-block" style="margin-top:10px;" onclick="resetForm()">Clear</button>
+        <button class="btn btn-primary btn-block" style="margin-top:18px;" id="create-btn" onclick="createSlot()">Create slots</button>
+        <button class="btn btn-block" style="margin-top:10px;" onclick="resetForm()">Reset</button>
       </div>
     </div>
   </div>
@@ -162,7 +173,9 @@ window.addEventListener('DOMContentLoaded', () => {
     doctorInput.readOnly = true;
   }
   document.getElementById('newDate').min = HC.todayIso();
+  fillTimeOptions();
   goToday();
+  resetForm();
   loadSchedule();
 });
 
@@ -228,7 +241,8 @@ function shiftWeek(delta) {
 
 function selectDay(iso) {
   selectedDay = iso;
-  document.getElementById('newDate').value = iso >= HC.todayIso() ? iso : '';
+  document.getElementById('newDate').value = formDateFor(iso);
+  updatePreview();
   render();
 }
 
@@ -331,13 +345,66 @@ function renderDay() {
 }
 
 // ---------- Create / remove ----------
+// Start/End are dropdowns of times every 15 minutes, defaulting to clinic hours
+// (7:30 AM - 6:30 PM), so the doctor picks real times instead of typing into an
+// empty "--:-- --" box.
+const DEFAULT_START = '07:30', DEFAULT_END = '18:30';
+function fillTimeOptions() {
+  let html = '';
+  for (let m = 6 * 60; m <= 20 * 60; m += 15) {
+    const value = fmtMin(m);
+    html += `<option value="${value}">${HC.to12h(value).replace(/^0/, '')}</option>`;
+  }
+  document.getElementById('newStart').innerHTML = html;
+  document.getElementById('newEnd').innerHTML = html;
+}
+
+// The form's date follows the day picked in the calendar, or today for past days.
+function formDateFor(iso) {
+  const today = HC.todayIso();
+  return iso && iso >= today ? iso : today;
+}
+
 function resetForm() {
   if (role === 'ADMIN') document.getElementById('newDoctorName').value = '';
-  document.getElementById('newDate').value = '';
-  document.getElementById('newStart').value = '';
-  document.getElementById('newEnd').value = '';
+  document.getElementById('newDate').value = formDateFor(selectedDay);
+  document.getElementById('newStart').value = DEFAULT_START;
+  document.getElementById('newEnd').value = DEFAULT_END;
+  document.getElementById('newLength').value = '30';
   showFormError(null);
   document.getElementById('formOk').textContent = '';
+  updatePreview();
+}
+
+// Mirrors ScheduleController.createSlotRange: split start-end into appointments,
+// skipping the 1-2 PM lunch break and (for today) times already past. Overlaps with
+// existing slots are only known server-side, so the preview is a best estimate.
+const LUNCH_START = 13 * 60, LUNCH_END = 14 * 60;
+function plannedSlots(date, start, end, minutes) {
+  const toMin = t => { const [h, m] = t.split(':').map(Number); return h * 60 + m; };
+  const out = [];
+  const isToday = date === HC.todayIso();
+  for (let t = toMin(start); t + minutes <= toMin(end); t += minutes) {
+    if (t < LUNCH_END && t + minutes > LUNCH_START) continue;
+    if (isToday && t <= HC.nowMinutes()) continue;
+    out.push([t, t + minutes]);
+  }
+  return out;
+}
+
+function fmtMin(m) { return String(Math.floor(m / 60)).padStart(2, '0') + ':' + String(m % 60).padStart(2, '0'); }
+
+function updatePreview() {
+  const date = document.getElementById('newDate').value;
+  const start = document.getElementById('newStart').value;
+  const end = document.getElementById('newEnd').value;
+  const minutes = Number(document.getElementById('newLength').value);
+  const el = document.getElementById('slot-preview');
+  if (!start || !end || end <= start) { el.textContent = ''; return; }
+  const planned = plannedSlots(date, start, end, minutes);
+  if (!planned.length) { el.textContent = 'No appointments fit in this time.'; return; }
+  const n = planned.length;
+  el.textContent = `Creates ${n} × ${minutes}-minute appointment${n === 1 ? '' : 's'}, ${fmtMin(planned[0][0])}–${fmtMin(planned[n - 1][1])}.`;
 }
 
 async function createSlot() {
@@ -345,6 +412,7 @@ async function createSlot() {
   const date = document.getElementById('newDate').value;
   const start = document.getElementById('newStart').value;
   const end = document.getElementById('newEnd').value;
+  const slotMinutes = Number(document.getElementById('newLength').value);
   const ok = document.getElementById('formOk');
   ok.textContent = '';
 
@@ -352,15 +420,13 @@ async function createSlot() {
   if (end <= start) { showFormError('The end time must be after the start time.'); return; }
   if (date < HC.todayIso()) { showFormError('Schedule date cannot be in the past.'); return; }
 
-  // The API stores slots as "09:00 AM - 09:30 AM".
-  const timeSlot = HC.to12h(start) + ' - ' + HC.to12h(end);
   const btn = document.getElementById('create-btn');
   btn.disabled = true;
   try {
-    const res = await fetch('/schedule/manage', {
+    const res = await fetch('/schedule/manage/range', {
       method: 'POST',
       headers: { 'Authorization': authHeader, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ doctorName, scheduleDate: date, timeSlot })
+      body: JSON.stringify({ doctorName, scheduleDate: date, startTime: start, endTime: end, slotMinutes })
     });
     btn.disabled = false;
     if (!res.ok) {
@@ -368,13 +434,17 @@ async function createSlot() {
       showFormError(err.message || 'Unable to create slot');
       return;
     }
+    const result = await res.json();
     showFormError(null);
     ok.className = 'toast ok';
-    ok.textContent = `Slot created for ${HC.fmtDate(date)} · ${start}–${end}.`;
+    const n = result.created;
+    let msg = `Created ${n} appointment slot${n === 1 ? '' : 's'} for ${HC.fmtDate(date)}.`;
+    if (result.skippedOverlap) msg += ` Skipped ${result.skippedOverlap} that overlapped existing slots.`;
+    ok.textContent = msg;
     selectedDay = date;
     weekStart = mondayOf(HC.parseDate(date));
-    document.getElementById('newStart').value = '';
-    document.getElementById('newEnd').value = '';
+    // Times are kept so the same hours can be added to another day quickly.
+    updatePreview();
     loadSchedule();
   } catch (e) {
     btn.disabled = false;

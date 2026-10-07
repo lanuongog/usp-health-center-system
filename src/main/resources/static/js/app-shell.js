@@ -172,6 +172,7 @@
       nav: [
         { key: 'dashboard', label: 'Dashboard', href: '/admin.html#dashboard' },
         { key: 'accounts', label: 'Accounts', href: '/admin.html#accounts' },
+        { key: 'fees', label: 'Fees', href: '/admin.html#fees' },
         { key: 'schedules', label: 'Schedules', href: '/schedule.html' },
         { key: 'reports', label: 'Aggregate reports', href: '/admin.html#reports' },
         { key: 'audit', label: 'Audit log', href: '/admin.html#audit' },
@@ -213,30 +214,39 @@
       scrim.addEventListener('click', () => document.body.classList.remove('drawer-open'));
       app.appendChild(scrim);
 
-      // Desktop top bar
-      const topbar = document.createElement('header');
-      topbar.className = 'app-topbar';
-      topbar.innerHTML = `
-        <div class="tb-left">USU · Laucala Campus</div>
-        <div class="tb-center" data-clock></div>
-        <div class="tb-right">
+      // Desktop top bar. alertsLabel renames the alerts button; alertsFirst puts
+      // it before the account name so the name sits at the far right; alertsIcon
+      // shows a bell with a count bubble instead of the text label.
+      const alertsLabel = opts.alertsLabel || 'Alerts';
+      const bell = opts.alertsIcon
+        ? `<button type="button" id="notif-bell" class="notif-icon" aria-label="${HC.esc(alertsLabel)}" title="${HC.esc(alertsLabel)}">${ICONS.bell}<span id="notif-badge"></span></button>`
+        : `<button type="button" id="notif-bell">${HC.esc(alertsLabel)}<span id="notif-badge"></span></button>`;
+      const account = `
           <div id="account-menu-wrap">
             <button type="button" id="account-menu-btn"><span id="who-label">${HC.esc(opts.user || '')}</span></button>
             <div id="account-menu" hidden>
               <button type="button" data-act="password">Change password</button>
               <button type="button" data-act="logout">Sign out</button>
             </div>
-          </div>
-          <span aria-hidden="true">·</span>
+          </div>`;
+      const notif = `
           <div id="notif-wrap">
-            <button type="button" id="notif-bell">Alerts<span id="notif-badge"></span></button>
+            ${bell}
             <div id="notif-panel" hidden></div>
-          </div>
+          </div>`;
+      const sep = opts.alertsIcon ? '' : '<span aria-hidden="true">·</span>';
+      const topbar = document.createElement('header');
+      topbar.className = 'app-topbar';
+      topbar.innerHTML = `
+        <div class="tb-left">USU · Laucala Campus</div>
+        <div class="tb-center" data-clock></div>
+        <div class="tb-right">${opts.alertsFirst ? notif + sep + account : account + sep + notif}
         </div>`;
       main.insertBefore(topbar, main.firstChild);
       if (opts.alerts === 'none') {
         topbar.querySelector('#notif-wrap').hidden = true;
-        topbar.querySelector('.tb-right > span[aria-hidden]').hidden = true;
+        const sepEl = topbar.querySelector('.tb-right > span[aria-hidden]');
+        if (sepEl) sepEl.hidden = true;
       }
 
       // Mobile top bar
@@ -245,7 +255,7 @@
       mobile.innerHTML = `
         <a class="mb-brand" href="/"><strong>USU</strong>Health Center</a>
         <div class="mb-actions">
-          ${opts.alerts === 'none' ? '' : `<button type="button" data-act="alerts" aria-label="Alerts">${ICONS.bell}<span data-mobile-count></span></button>`}
+          ${opts.alerts === 'none' ? '' : `<button type="button" data-act="alerts" aria-label="${HC.esc(alertsLabel)}">${ICONS.bell}<span data-mobile-count></span></button>`}
           <button type="button" data-act="menu" aria-label="Menu">${ICONS.menu}</button>
         </div>`;
       main.insertBefore(mobile, main.firstChild);

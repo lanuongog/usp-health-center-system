@@ -141,6 +141,17 @@ a { color: var(--brand); }
 #account-menu-wrap, #notif-wrap { position: relative; }
 #notif-badge:not(:empty)::before { content: " ("; }
 #notif-badge:not(:empty)::after { content: ")"; }
+.tb-right:has(.notif-icon) { gap: 14px; }
+.tb-right button.notif-icon { position: relative; display: inline-flex; padding: 4px; color: var(--ink-soft); }
+.tb-right button.notif-icon:hover { color: var(--brand); }
+.notif-icon svg { width: 20px; height: 20px; }
+.notif-icon #notif-badge:not(:empty) {
+  position: absolute; top: -2px; right: -6px;
+  min-width: 17px; height: 17px; padding: 0 4px; border-radius: var(--radius-pill);
+  background: var(--brand); color: #fff; font-size: 10.5px; font-weight: 700; line-height: 17px; text-align: center;
+  box-shadow: 0 0 0 2px var(--panel);
+}
+.notif-icon #notif-badge::before, .notif-icon #notif-badge::after { content: none; }
 
 .app-content { padding: 30px 28px 40px; width: 100%; }
 .app-legal { margin-top: 22px; font-size: 11.5px; color: var(--ink-faint); }
@@ -347,7 +358,10 @@ input:disabled, select:disabled, textarea:disabled { background: var(--panel-mut
 .check-row input { width: 16px; height: 16px; margin-top: 1px; accent-color: var(--brand); flex-shrink: 0; }
 
 /* ---------- Tabs ---------- */
-.tabs { display: flex; gap: 24px; border-bottom: 1px solid var(--line); margin-bottom: 20px; overflow-x: auto; }
+/* Tabs can still scroll sideways on narrow screens, but never show a scrollbar
+   (the active tab's -1px underline otherwise triggers one in narrow columns). */
+.tabs { display: flex; gap: 24px; border-bottom: 1px solid var(--line); margin-bottom: 20px; overflow-x: auto; overflow-y: hidden; scrollbar-width: none; }
+.tabs::-webkit-scrollbar { display: none; }
 .tab {
   background: none; border: none; border-bottom: 2px solid transparent;
   padding: 0 0 10px; margin-bottom: -1px;
@@ -403,7 +417,7 @@ input:disabled, select:disabled, textarea:disabled { background: var(--panel-mut
 .cal-day.selected { background: var(--brand); color: #fff; box-shadow: none; }
 .cal-legend { font-size: 11.5px; color: var(--ink-soft); margin-top: 10px; }
 
-.slot-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(86px, 1fr)); gap: 8px; }
+.slot-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(112px, 1fr)); gap: 8px; }
 .slot {
   border: 1px solid var(--line-strong); border-radius: var(--radius-sm); background: #fff;
   padding: 9px 4px; text-align: center; cursor: pointer; color: var(--brand);
