@@ -96,7 +96,6 @@
           <a class="btn-link" href="#book">Browse all available slots →</a>
           <button class="btn-link" onclick="loadAvailabilityToday()">↻ Refresh availability</button>
         </div>
-        <p class="tiny muted" style="margin-top:12px;">Displayed availability is checked again when you confirm a booking.</p>
       </div>
 
       <div class="card">
@@ -159,12 +158,10 @@
               </div>
             </div>
             <div class="cal-grid" id="cal-grid"></div>
-            <p class="cal-legend">Today is outlined · Past dates disabled</p>
           </div>
           <div>
             <p class="slots-title" id="slots-title"></p>
             <div id="slot-container"></div>
-            <p class="tiny muted" style="margin-top:12px;">Times at or before now are Passed and cannot be selected. Booked slots are unavailable.</p>
             <div class="link-row" style="margin-top:10px;"><button class="btn-link" onclick="loadSlots()">↻ Refresh availability</button></div>
           </div>
         </div>
@@ -176,7 +173,6 @@
 
       <div class="card">
         <h2>Tell us about your visit</h2>
-        <p class="card-sub">Your reason is kept separate from the nurse’s assessment and doctor’s notes.</p>
         <div class="field" id="reason-field" style="margin-top:20px;">
           <label for="reason-input">Reason for visit *</label>
           <textarea id="reason-input" rows="3" maxlength="300" placeholder="Describe in your own words…"></textarea>
@@ -293,10 +289,6 @@
     </div>
   </div>
   <div class="banner-slot"></div>
-  <div class="notice info" style="margin-bottom:20px;">
-    <strong>Your records, in one place</strong>
-    Each visit keeps your reason, the nurse’s findings and the doctor’s notes separately. Only your own visits are shown.
-  </div>
 
   <div class="grid-side-main">
     <div class="card">
@@ -330,9 +322,6 @@
     <div id="alert-list"></div>
     <div class="card soft">
       <h2 id="side-unread">0 unread alerts</h2>
-      <p class="small" style="margin-top:14px;">Unread titles and messages are bold and have an unread marker.</p>
-      <hr class="divider" style="border-color:#CFE5E5;">
-      <p class="small">Opening this page does not mark anything as read. Only <strong>Mark as read</strong> changes an alert’s read status.</p>
     </div>
   </div>
   <p class="app-legal">All times are Fiji local time.</p>
