@@ -487,6 +487,7 @@ function studentDetailsHtml(s) {
     : '';
   return `
     <p class="meta-label">Contact</p>
+    ${row('Registered', s.registeredAt ? HC.fmtDateTime(s.registeredAt) : '')}
     ${row('Phone', s.phoneNumber)}
     ${row('Country', s.country)}
     <p class="meta-label" style="margin-top:14px;">Residence</p>

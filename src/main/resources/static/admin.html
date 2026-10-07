@@ -208,7 +208,7 @@
   <div class="page-head">
     <div>
       <h1>Audit log</h1>
-      <p>Every time staff view or record a student’s medical record, it is logged here for accountability.</p>
+      <p>Student registrations, fee changes, and every time staff view or record a student’s medical record are logged here for accountability.</p>
     </div>
   </div>
   <div class="card">
@@ -656,7 +656,7 @@ async function loadAuditLogs() {
     const res = await fetch('/admin/audit-logs', { headers: { 'Authorization': authHeader } });
     if (!res.ok) { body.innerHTML = '<tr><td colspan="6" class="muted">Unable to load audit log.</td></tr>'; return; }
     const logs = await res.json();
-    if (!logs.length) { body.innerHTML = '<tr><td colspan="6" class="muted">No medical record access has been logged yet.</td></tr>'; return; }
+    if (!logs.length) { body.innerHTML = '<tr><td colspan="6" class="muted">No activity has been logged yet.</td></tr>'; return; }
     body.innerHTML = logs.map(l => `
       <tr>
         <td>${esc(HC.fmtDateTime(l.timestamp))}</td>

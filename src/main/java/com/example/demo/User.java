@@ -26,7 +26,6 @@ public class User {
 
     // Student registration details (null/unset for non-student accounts)
     private String fullName;
-    private String maritalStatus; // "Single" or "Married"
     private String country; // one of the 12 USP member countries
     private String phoneNumber;
     private String semesterAddress; // where the student lives during the semester
@@ -44,6 +43,7 @@ public class User {
     private String receiptRejectionReason; // set by an admin when rejecting a receipt
     private String receiptAutoCheckNote; // system's automated amount/name check on the current receipt
     private LocalDateTime receiptUploadedAt; // when the current receipt was uploaded, for the admin's pending queue
+    private LocalDateTime registeredAt; // when the student self-registered (null for staff and older accounts)
 
     public User() {}
 
@@ -71,9 +71,6 @@ public class User {
 
     public String getFullName() { return fullName; }
     public void setFullName(String fullName) { this.fullName = fullName; }
-
-    public String getMaritalStatus() { return maritalStatus; }
-    public void setMaritalStatus(String maritalStatus) { this.maritalStatus = maritalStatus; }
 
     public String getCountry() { return country; }
     public void setCountry(String country) { this.country = country; }
@@ -116,4 +113,7 @@ public class User {
 
     public LocalDateTime getReceiptUploadedAt() { return receiptUploadedAt; }
     public void setReceiptUploadedAt(LocalDateTime receiptUploadedAt) { this.receiptUploadedAt = receiptUploadedAt; }
+
+    public LocalDateTime getRegisteredAt() { return registeredAt; }
+    public void setRegisteredAt(LocalDateTime registeredAt) { this.registeredAt = registeredAt; }
 }

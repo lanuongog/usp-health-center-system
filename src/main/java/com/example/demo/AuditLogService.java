@@ -19,6 +19,11 @@ public class AuditLogService {
         String actorRole = userRepository.findByUsername(actorUsername)
                 .map(User::getRole)
                 .orElse("unknown");
+        record(actorUsername, actorRole, action, targetStudent, details);
+    }
+
+    // For events with no logged-in actor yet, e.g. a student self-registering.
+    public void record(String actorUsername, String actorRole, String action, String targetStudent, String details) {
         auditLogRepository.save(new AuditLog(actorUsername, actorRole, action, targetStudent, details));
     }
 }

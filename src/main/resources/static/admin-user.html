@@ -29,7 +29,7 @@
       <div>
         <a class="back" href="/admin.html#accounts">← Back to accounts</a>
         <h1 id="user-title">Manage account</h1>
-        <p>Account metadata and payment verification only. No clinical data is shown or granted here.</p>
+        <p>Account, registration and payment details only. No clinical data is shown or granted here.</p>
       </div>
     </div>
     <div id="pageError" class="notice danger" style="margin-bottom:20px;" hidden></div>
@@ -183,12 +183,13 @@ function render() {
   const accountCard = `
     <div class="card">
       <h2>Account details</h2>
-      <p class="card-sub">Account metadata only</p>
+      <p class="card-sub">Login and access</p>
       <div style="margin-top:12px;">
         ${kv('Account ID', esc(u.username))}
         ${kv('Full name', esc(u.fullName) || '—')}
         ${kv('Role', esc(roleLabel(u.role)))}
         ${kv('Status', statusPill)}
+        ${isStudent ? kv('Registered', u.registeredAt ? esc(HC.fmtDateTime(u.registeredAt)) : '—') : ''}
       </div>
       <div class="btn-row" style="margin-top:18px;">
         ${u.role === 'ADMIN'
@@ -198,6 +199,30 @@ function render() {
       </div>
       ${togglePanel}${resetPanel}
     </div>`;
+
+  // Contact, residence and emergency contact the student gave at registration.
+  // Accounts created before these were collected show "Not provided".
+  let registrationCard = '';
+  if (isStudent) {
+    const opt = v => v ? esc(v) : '<span class="muted">Not provided</span>';
+    const emergency = u.emergencyContactName
+      ? u.emergencyContactName + (u.emergencyContactRelationship ? ' (' + u.emergencyContactRelationship + ')' : '')
+      : '';
+    registrationCard = `
+      <div class="card">
+        <h2>Registration details</h2>
+        <p class="card-sub">As entered by the student when registering</p>
+        <p class="meta-label" style="margin-top:12px;">Contact</p>
+        ${kv('Phone', opt(u.phoneNumber))}
+        ${kv('Country', opt(u.country))}
+        <p class="meta-label" style="margin-top:14px;">Residence</p>
+        ${kv('During semester', opt(u.semesterAddress))}
+        ${kv('Outside semester', opt(u.homeAddress))}
+        <p class="meta-label" style="margin-top:14px;">Emergency contact</p>
+        ${kv('Name', opt(emergency))}
+        ${kv('Phone', opt(u.emergencyContactPhone))}
+      </div>`;
+  }
 
   let paymentCard = '';
   if (isStudent) {
@@ -250,7 +275,7 @@ function render() {
       </div>`;
   }
 
-  document.getElementById('content').innerHTML = accountCard + paymentCard + receiptCard;
+  document.getElementById('content').innerHTML = accountCard + registrationCard + paymentCard + receiptCard;
 }
 
 async function toggleActive(confirmed) {

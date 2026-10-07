@@ -40,6 +40,7 @@ public class StudentDirectoryController {
         public Double feeAmount;
         public boolean hasReceipt;
         public boolean active;
+        public String registeredAt;
 
         public StudentDirectoryEntry(User u) {
             this.id = u.getId();
@@ -56,6 +57,7 @@ public class StudentDirectoryController {
             this.feeAmount = u.getFeeAmount();
             this.hasReceipt = u.getReceiptFile() != null;
             this.active = u.isActive();
+            this.registeredAt = u.getRegisteredAt() != null ? u.getRegisteredAt().toString() : null;
         }
     }
 

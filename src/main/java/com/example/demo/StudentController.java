@@ -53,18 +53,21 @@ public class StudentController {
     private final ReceiptVerificationService receiptVerificationService;
     private final DelayNoticeService delayNoticeService;
     private final FeeSettingsService feeSettingsService;
+    private final AuditLogService auditLogService;
 
     public StudentController(UserRepository userRepository, PasswordEncoder passwordEncoder,
                               NotificationRepository notificationRepository,
                               ReceiptVerificationService receiptVerificationService,
                               DelayNoticeService delayNoticeService,
-                              FeeSettingsService feeSettingsService) {
+                              FeeSettingsService feeSettingsService,
+                              AuditLogService auditLogService) {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
         this.notificationRepository = notificationRepository;
         this.receiptVerificationService = receiptVerificationService;
         this.delayNoticeService = delayNoticeService;
         this.feeSettingsService = feeSettingsService;
+        this.auditLogService = auditLogService;
     }
 
     // student self-registration logic
@@ -134,6 +137,7 @@ public class StudentController {
         student.setEmergencyContactPhone(emergencyContactPhone.trim());
         student.setFeeAmount(feeAmount);
         student.setFeePaid(false);
+        student.setRegisteredAt(LocalDateTime.now());
         byte[] receiptBytes;
         try {
             receiptBytes = receipt.getBytes();
@@ -154,6 +158,13 @@ public class StudentController {
         student.setFeePaid(check.isAutoApproved());
 
         userRepository.save(student);
+
+        // Contact and address details stay on the account itself; the audit
+        // entry only records that the registration happened.
+        auditLogService.record(studentId, "STUDENT", "STUDENT_REGISTERED", studentId,
+                "Self-registered as " + student.getFullName() + " (" + country + "). Fee FJ$"
+                        + String.format("%.2f", feeAmount) + ", receipt "
+                        + (student.isFeePaid() ? "auto-verified." : "pending admin review."));
 
         String message = student.isFeePaid()
                 ? "Registration successful! Your payment receipt was automatically verified - you can log in and book appointments right away."
