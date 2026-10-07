@@ -186,10 +186,9 @@ function render() {
       <p class="card-sub">Login and access</p>
       <div style="margin-top:12px;">
         ${kv('Account ID', esc(u.username))}
-        ${kv('Full name', esc(u.fullName) || '—')}
         ${kv('Role', esc(roleLabel(u.role)))}
         ${kv('Status', statusPill)}
-        ${isStudent ? kv('Registered', u.registeredAt ? esc(HC.fmtDateTime(u.registeredAt)) : '—') : ''}
+        ${isStudent ? kv('Registered', u.registeredAt ? esc(HC.fmtDateTime(u.registeredAt)) : '<span class="muted">Not recorded</span>') : ''}
       </div>
       <div class="btn-row" style="margin-top:18px;">
         ${u.role === 'ADMIN'
@@ -200,19 +199,20 @@ function render() {
       ${togglePanel}${resetPanel}
     </div>`;
 
-  // Contact, residence and emergency contact the student gave at registration.
-  // Accounts created before these were collected show "Not provided".
-  let registrationCard = '';
+  // Name, contact, residence and emergency contact the student gave at
+  // registration. Accounts created before these were collected show "Not provided".
+  let studentCard = '';
   if (isStudent) {
     const opt = v => v ? esc(v) : '<span class="muted">Not provided</span>';
     const emergency = u.emergencyContactName
       ? u.emergencyContactName + (u.emergencyContactRelationship ? ' (' + u.emergencyContactRelationship + ')' : '')
       : '';
-    registrationCard = `
+    studentCard = `
       <div class="card">
-        <h2>Registration details</h2>
+        <h2>Student details</h2>
         <p class="card-sub">As entered by the student when registering</p>
-        <p class="meta-label" style="margin-top:12px;">Contact</p>
+        <div style="margin-top:12px;">${kv('Full name', opt(u.fullName))}</div>
+        <p class="meta-label" style="margin-top:14px;">Contact</p>
         ${kv('Phone', opt(u.phoneNumber))}
         ${kv('Country', opt(u.country))}
         <p class="meta-label" style="margin-top:14px;">Residence</p>
@@ -245,7 +245,7 @@ function render() {
         <h2>Payment status</h2>
         <p class="card-sub">Laucala Health Services Fee</p>
         <div style="margin-top:12px;">
-          ${kv('Country', esc(u.country) || '—')}
+          ${kv('Fee rate', !u.country ? '—' : u.country === 'Fiji' ? 'Local rate (Fiji)' : 'Regional rate')}
           ${kv('Fee amount', u.feeAmount != null ? 'FJ$' + Number(u.feeAmount).toFixed(2) : '—')}
           ${kv('Status', HC.feePill(u))}
           ${kv('Receipt uploaded', u.hasReceipt ? 'Yes' : 'No')}
@@ -275,7 +275,7 @@ function render() {
       </div>`;
   }
 
-  document.getElementById('content').innerHTML = accountCard + registrationCard + paymentCard + receiptCard;
+  document.getElementById('content').innerHTML = accountCard + studentCard + paymentCard + receiptCard;
 }
 
 async function toggleActive(confirmed) {
