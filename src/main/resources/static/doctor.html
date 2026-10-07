@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Doctor Workspace — USU Health Center</title>
+<title>Doctor Workspace — USP Health Center</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -110,7 +110,7 @@
   <div class="page-head">
     <div>
       <h1>Student directory</h1>
-      <p>Registered students and their account status.</p>
+      <p>Registered students and their account status. Select a row to see contact and emergency details.</p>
     </div>
   </div>
   <div class="card">
@@ -189,6 +189,18 @@
       <button class="btn" onclick="closeConsultationReport()">Close</button>
     </div>
     <div class="toast" id="report-download-toast"></div>
+  </div>
+</div>
+
+<!-- Student details (directory) -->
+<div class="modal-overlay" id="student-details-overlay" hidden onclick="if (event.target === this) closeStudentDetails()">
+  <div class="modal-box" style="max-width:540px;">
+    <div class="modal-head"><h2 id="student-details-name"></h2><button class="modal-close" aria-label="Close" onclick="closeStudentDetails()">✕</button></div>
+    <p class="small muted" style="margin-bottom:12px;" id="student-details-id"></p>
+    <div id="student-details-body"></div>
+    <div class="btn-row" style="margin-top:20px;">
+      <button class="btn" onclick="closeStudentDetails()">Close</button>
+    </div>
   </div>
 </div>
 
@@ -356,6 +368,7 @@ function selectPatient(appt) {
   renderQueue();
   renderConsultation();
   loadVitals(appt);
+  loadPatientDetails(appt);
   loadPriorVisits(appt);
   if (window.innerWidth <= 1080) document.getElementById('consult-card').scrollIntoView({ behavior: 'smooth' });
 }
@@ -383,6 +396,7 @@ function renderConsultation() {
         <p class="rs-meta">Student entry · Preserved original</p>
       </div>
       <div class="readonly-box" id="vitals-box"><p class="small muted">Loading nurse findings…</p></div>
+      <div class="readonly-box" id="patient-details-box"><p class="small muted">Loading patient details…</p></div>
       <hr class="divider">
       ${a.status === 'COMPLETED' ? completedSection(a) : consultForm(a)}
     </div>
@@ -460,6 +474,48 @@ function loadVitals(appt) {
     .catch(() => {
       const box = document.getElementById('vitals-box');
       if (box) box.innerHTML = '<p class="muted">Unable to load nurse findings.</p>';
+    });
+}
+
+// ---------- Patient contact details ----------
+// Contact, residence and emergency contact the student gave at registration.
+// Accounts created before these were collected show "Not provided".
+function studentDetailsHtml(s) {
+  const row = (k, v) => `<div class="kv"><span>${k}</span><strong>${v ? esc(v) : '<span class="muted">Not provided</span>'}</strong></div>`;
+  const emergency = s.emergencyContactName
+    ? s.emergencyContactName + (s.emergencyContactRelationship ? ' (' + s.emergencyContactRelationship + ')' : '')
+    : '';
+  return `
+    <p class="meta-label">Contact</p>
+    ${row('Phone', s.phoneNumber)}
+    ${row('Country', s.country)}
+    <p class="meta-label" style="margin-top:14px;">Residence</p>
+    ${row('During semester', s.semesterAddress)}
+    ${row('Outside semester', s.homeAddress)}
+    <p class="meta-label" style="margin-top:14px;">Emergency contact</p>
+    ${row('Name', emergency)}
+    ${row('Phone', s.emergencyContactPhone)}`;
+}
+
+function fetchStudentDetails(studentId) {
+  const cached = students.find(s => s.studentId === studentId);
+  if (cached) return Promise.resolve(cached);
+  return fetch('/directory/students/' + encodeURIComponent(studentId), { headers: { 'Authorization': authHeader } })
+    .then(res => res.ok ? res.json() : null)
+    .then(s => (s && !s.error) ? s : null);
+}
+
+function loadPatientDetails(appt) {
+  fetchStudentDetails(appt.studentId)
+    .then(s => {
+      if (!selected || selected.id !== appt.id) return;
+      const box = document.getElementById('patient-details-box');
+      box.innerHTML = '<div class="rs-head"><h3>Patient details</h3><span class="pill" style="background:#fff;">Read only</span></div>'
+        + (s ? studentDetailsHtml(s) : '<p class="muted">No registered student account found for this ID.</p>');
+    })
+    .catch(() => {
+      const box = document.getElementById('patient-details-box');
+      if (box) box.innerHTML = '<p class="muted">Unable to load patient details.</p>';
     });
 }
 
@@ -557,7 +613,7 @@ function showConsultationReport(r) {
   reportAppointmentId = r.appointmentId;
   document.getElementById('report-download-toast').textContent = '';
   document.getElementById('consultation-report-body').innerHTML = `
-    <p class="eyebrow brand">USU Health Center · Laucala Campus</p>
+    <p class="eyebrow brand">USP Health Center · Laucala Campus</p>
     <h3 style="font-size:18px;margin-top:6px;">${esc(r.studentName)}</h3>
     <p class="small muted" style="margin-bottom:12px;">Student ID ${esc(r.studentId)} · A-${esc(r.appointmentId)}</p>
     <p class="meta-label" style="margin-top:14px;">Visit</p>
@@ -614,7 +670,7 @@ function closeConsultationReport() {
 }
 
 document.addEventListener('keydown', e => {
-  if (e.key === 'Escape') closeConsultationReport();
+  if (e.key === 'Escape') { closeConsultationReport(); closeStudentDetails(); }
 });
 
 // ---------- All records ----------
@@ -670,13 +726,26 @@ function renderDirectory() {
     return;
   }
   body.innerHTML = list.map(s => `
-    <tr>
+    <tr class="clickable" onclick="openStudentDetails('${esc(s.studentId)}')">
       <td>${esc(s.fullName) || '—'}</td>
       <td>${esc(s.studentId)}</td>
       <td>${esc(s.country) || '—'}</td>
       <td>${HC.feePill(s)}</td>
       <td>${s.active ? '<span class="pill teal">Active</span>' : '<span class="pill">Deactivated</span>'}</td>
     </tr>`).join('');
+}
+
+function openStudentDetails(studentId) {
+  const s = students.find(x => x.studentId === studentId);
+  if (!s) return;
+  document.getElementById('student-details-name').textContent = s.fullName || s.studentId;
+  document.getElementById('student-details-id').textContent = 'Student ID ' + s.studentId;
+  document.getElementById('student-details-body').innerHTML = studentDetailsHtml(s);
+  document.getElementById('student-details-overlay').hidden = false;
+}
+
+function closeStudentDetails() {
+  document.getElementById('student-details-overlay').hidden = true;
 }
 
 // ---------- Reports ----------

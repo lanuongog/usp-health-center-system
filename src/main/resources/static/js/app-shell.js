@@ -198,7 +198,7 @@
       const sidebar = document.createElement('aside');
       sidebar.className = 'sidebar';
       sidebar.innerHTML = `
-        <a class="side-brand" href="/"><strong>USU</strong><span>Health Center</span><small>Laucala Campus</small></a>
+        <a class="side-brand" href="/"><strong>USP</strong><span>Health Center</span><small>Laucala Campus</small></a>
         <div class="side-label">${HC.esc(opts.workspace)}</div>
         <nav class="side-nav">
           ${opts.nav.map(n => `<a href="${n.href}" data-key="${n.key}">${HC.esc(n.label)}${n.count ? ' <span data-count></span>' : ''}</a>`).join('')}
@@ -238,7 +238,7 @@
       const topbar = document.createElement('header');
       topbar.className = 'app-topbar';
       topbar.innerHTML = `
-        <div class="tb-left">USU · Laucala Campus</div>
+        <div class="tb-left">USP · Laucala Campus</div>
         <div class="tb-center" data-clock></div>
         <div class="tb-right">${opts.alertsFirst ? notif + sep + account : account + sep + notif}
         </div>`;
@@ -253,7 +253,7 @@
       const mobile = document.createElement('div');
       mobile.className = 'mobile-bar';
       mobile.innerHTML = `
-        <a class="mb-brand" href="/"><strong>USU</strong>Health Center</a>
+        <a class="mb-brand" href="/"><strong>USP</strong>Health Center</a>
         <div class="mb-actions">
           ${opts.alerts === 'none' ? '' : `<button type="button" data-act="alerts" aria-label="${HC.esc(alertsLabel)}">${ICONS.bell}<span data-mobile-count></span></button>`}
           <button type="button" data-act="menu" aria-label="Menu">${ICONS.menu}</button>

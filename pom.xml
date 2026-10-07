@@ -11,7 +11,7 @@
 	<artifactId>demo</artifactId>
 	<version>0.0.1-SNAPSHOT</version>
 	<name>demo</name>
-	<description>USU Health Center - Admin Reporting and Analytics Prototype</description>
+	<description>USP Health Center - Admin Reporting and Analytics Prototype</description>
 	<properties>
 		<java.version>17</java.version>
 	</properties>

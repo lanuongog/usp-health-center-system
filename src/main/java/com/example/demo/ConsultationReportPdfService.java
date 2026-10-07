@@ -45,7 +45,7 @@ public class ConsultationReportPdfService {
         try (PDDocument doc = new PDDocument(); ByteArrayOutputStream out = new ByteArrayOutputStream()) {
             Writer w = new Writer(doc);
 
-            w.text("USU HEALTH CENTER · LAUCALA CAMPUS", bold, 9, BRAND);
+            w.text("USP HEALTH CENTER · LAUCALA CAMPUS", bold, 9, BRAND);
             w.gap(14);
             w.text("Consultation report", bold, 20, INK);
             w.gap(26);

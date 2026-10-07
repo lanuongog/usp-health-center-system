@@ -1,4 +1,4 @@
-# USU Health Center - Admin Reporting & Analytics Prototype
+# USP Health Center - Admin Reporting & Analytics Prototype
 
 Working Spring Boot + PostgreSQL prototype for the Admin Reporting & Analytics feature.
 

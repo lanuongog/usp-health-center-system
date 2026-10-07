@@ -32,12 +32,20 @@ public class StudentController {
             "Tonga", "Tuvalu", "Niue", "Kiribati", "Marshall Islands", "Nauru", "Tokelau"
     );
     private static final long MAX_RECEIPT_SIZE_BYTES = 5L * 1024 * 1024;
-    // Official USU student ID format: "S" followed by exactly 8 digits.
+    // Official USP student ID format: "S" followed by exactly 8 digits.
     private static final Pattern STUDENT_ID_PATTERN = Pattern.compile("^S\\d{8}$");
     private static final int MIN_PASSWORD_LENGTH = 6;
     private static final int MAX_PASSWORD_LENGTH = 100;
     private static final int MAX_FULL_NAME_LENGTH = 100;
     private static final int MAX_EMERGENCY_REASON_LENGTH = 300;
+    private static final int MAX_ADDRESS_LENGTH = 200;
+    private static final int MAX_ADDRESS_WORDS = 30;
+    private static final int MAX_RELATIONSHIP_LENGTH = 50;
+    // Digits plus the usual separators (+, spaces, dashes, brackets); the digit
+    // count is checked separately so "+679 123 4567" and "1234567" both pass.
+    private static final Pattern PHONE_PATTERN = Pattern.compile("^\\+?[0-9 ()-]+$");
+    private static final int MIN_PHONE_DIGITS = 7;
+    private static final int MAX_PHONE_DIGITS = 15;
 
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
@@ -65,6 +73,12 @@ public class StudentController {
                             @RequestParam String password,
                             @RequestParam String fullName,
                             @RequestParam String country,
+                            @RequestParam String phoneNumber,
+                            @RequestParam String semesterAddress,
+                            @RequestParam String homeAddress,
+                            @RequestParam String emergencyContactName,
+                            @RequestParam String emergencyContactRelationship,
+                            @RequestParam String emergencyContactPhone,
                             @RequestParam MultipartFile receipt) {
         if (studentId == null || studentId.isBlank() || password == null || password.isBlank()) {
             return Map.of("error", "Student ID and password are required.");
@@ -85,6 +99,11 @@ public class StudentController {
         }
         if (country == null || !MEMBER_COUNTRIES.contains(country)) {
             return Map.of("error", "Please select a valid country.");
+        }
+        String contactError = validateContactDetails(phoneNumber, semesterAddress, homeAddress,
+                emergencyContactName, emergencyContactRelationship, emergencyContactPhone);
+        if (contactError != null) {
+            return Map.of("error", contactError);
         }
         if (receipt == null || receipt.isEmpty()) {
             return Map.of("error", "Please attach a PDF receipt to prove you have paid your Laucala Health Services Fee before registering.");
@@ -107,6 +126,12 @@ public class StudentController {
         User student = new User(studentId, passwordEncoder.encode(password), "STUDENT");
         student.setFullName(fullName.trim());
         student.setCountry(country);
+        student.setPhoneNumber(phoneNumber.trim());
+        student.setSemesterAddress(semesterAddress.trim());
+        student.setHomeAddress(homeAddress.trim());
+        student.setEmergencyContactName(emergencyContactName.trim());
+        student.setEmergencyContactRelationship(emergencyContactRelationship.trim());
+        student.setEmergencyContactPhone(emergencyContactPhone.trim());
         student.setFeeAmount(feeAmount);
         student.setFeePaid(false);
         byte[] receiptBytes;
@@ -327,6 +352,67 @@ public class StudentController {
                 "timeSlot", todaysVisit.getTimeSlot() != null ? todaysVisit.getTimeSlot() : "",
                 "message", DelayNoticeService.DELAY_MESSAGE
         );
+    }
+
+    // Contact, residence and emergency contact details collected at registration
+    // so clinical staff can reach the student (or someone on their behalf).
+    private String validateContactDetails(String phoneNumber, String semesterAddress, String homeAddress,
+                                          String emergencyContactName, String emergencyContactRelationship,
+                                          String emergencyContactPhone) {
+        if (!isValidPhone(phoneNumber)) {
+            return "Please enter a valid phone number (" + MIN_PHONE_DIGITS + "-" + MAX_PHONE_DIGITS + " digits).";
+        }
+        if (semesterAddress == null || semesterAddress.isBlank()) {
+            return "Please enter where you live during the semester.";
+        }
+        if (homeAddress == null || homeAddress.isBlank()) {
+            return "Please enter where you live outside the semester.";
+        }
+        if (semesterAddress.trim().length() > MAX_ADDRESS_LENGTH || homeAddress.trim().length() > MAX_ADDRESS_LENGTH) {
+            return "Addresses must be " + MAX_ADDRESS_LENGTH + " characters or fewer.";
+        }
+        if (wordCount(semesterAddress) > MAX_ADDRESS_WORDS) {
+            return "Where you live during the semester must be " + MAX_ADDRESS_WORDS + " words or fewer.";
+        }
+        if (wordCount(homeAddress) > MAX_ADDRESS_WORDS) {
+            return "Where you live outside the semester must be " + MAX_ADDRESS_WORDS + " words or fewer.";
+        }
+        if (emergencyContactName == null || emergencyContactName.isBlank()) {
+            return "Please enter an emergency contact name.";
+        }
+        if (emergencyContactName.trim().length() > MAX_FULL_NAME_LENGTH) {
+            return "Emergency contact name must be " + MAX_FULL_NAME_LENGTH + " characters or fewer.";
+        }
+        if (emergencyContactRelationship == null || emergencyContactRelationship.isBlank()) {
+            return "Please enter your relationship to your emergency contact.";
+        }
+        if (emergencyContactRelationship.trim().length() > MAX_RELATIONSHIP_LENGTH) {
+            return "Relationship must be " + MAX_RELATIONSHIP_LENGTH + " characters or fewer.";
+        }
+        if (!isValidPhone(emergencyContactPhone)) {
+            return "Please enter a valid phone number for your emergency contact (" + MIN_PHONE_DIGITS + "-" + MAX_PHONE_DIGITS + " digits).";
+        }
+        if (phoneDigits(emergencyContactPhone).equals(phoneDigits(phoneNumber))) {
+            return "Your emergency contact's phone number must be different from your own.";
+        }
+        return null;
+    }
+
+    private int wordCount(String text) {
+        String trimmed = text.trim();
+        return trimmed.isEmpty() ? 0 : trimmed.split("\\s+").length;
+    }
+
+    private boolean isValidPhone(String phone) {
+        if (phone == null || !PHONE_PATTERN.matcher(phone.trim()).matches()) {
+            return false;
+        }
+        int digits = phoneDigits(phone).length();
+        return digits >= MIN_PHONE_DIGITS && digits <= MAX_PHONE_DIGITS;
+    }
+
+    private String phoneDigits(String phone) {
+        return phone.replaceAll("\\D", "");
     }
 
     private static final byte[] PDF_SIGNATURE = "%PDF-".getBytes(java.nio.charset.StandardCharsets.US_ASCII);

@@ -30,6 +30,12 @@ public class StudentDirectoryController {
         public String studentId;
         public String fullName;
         public String country;
+        public String phoneNumber;
+        public String semesterAddress;
+        public String homeAddress;
+        public String emergencyContactName;
+        public String emergencyContactRelationship;
+        public String emergencyContactPhone;
         public boolean feePaid;
         public Double feeAmount;
         public boolean hasReceipt;
@@ -40,6 +46,12 @@ public class StudentDirectoryController {
             this.studentId = u.getUsername();
             this.fullName = u.getFullName();
             this.country = u.getCountry();
+            this.phoneNumber = u.getPhoneNumber();
+            this.semesterAddress = u.getSemesterAddress();
+            this.homeAddress = u.getHomeAddress();
+            this.emergencyContactName = u.getEmergencyContactName();
+            this.emergencyContactRelationship = u.getEmergencyContactRelationship();
+            this.emergencyContactPhone = u.getEmergencyContactPhone();
             this.feePaid = u.isFeePaid();
             this.feeAmount = u.getFeeAmount();
             this.hasReceipt = u.getReceiptFile() != null;

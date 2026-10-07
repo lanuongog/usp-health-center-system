@@ -18,7 +18,7 @@ public class FeeSettings {
     @Id
     private Long id = SINGLETON_ID;
     private double localFee;    // students from Fiji
-    private double regionalFee; // students from the other USU member countries
+    private double regionalFee; // students from the other USP member countries
     private LocalDateTime updatedAt;
     private String updatedBy;
 

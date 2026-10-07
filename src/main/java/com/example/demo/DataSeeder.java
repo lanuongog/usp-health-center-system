@@ -58,6 +58,12 @@ public class DataSeeder {
                 User student1 = new User("student1", passwordEncoder.encode("student123"), "STUDENT");
                 student1.setFullName("Elena Prasad");
                 student1.setCountry("Fiji");
+                student1.setPhoneNumber("+679 912 3456");
+                student1.setSemesterAddress("Ratu Sukuna Hall, Room 214, Laucala Campus, Suva");
+                student1.setHomeAddress("Lot 12, Namaka, Nadi");
+                student1.setEmergencyContactName("Anita Prasad");
+                student1.setEmergencyContactRelationship("Mother");
+                student1.setEmergencyContactPhone("+679 998 7654");
                 student1.setFeeAmount(50.00);
                 student1.setFeePaid(true);
                 userRepository.save(student1);

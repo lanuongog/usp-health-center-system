@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Sign In — USU Health Center</title>
+<title>Sign In — USP Health Center</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -55,6 +55,8 @@
 .reg-card h2 { font-size: 22px; }
 .reg-card h3 { font-size: 15px; font-weight: 600; margin: 24px 0 16px; }
 .reg-card .field-row { grid-template-columns: repeat(2, minmax(0, 1fr)); margin-bottom: 18px; }
+.word-count { display: block; margin-top: 4px; }
+.word-count.over { color: var(--emergency); font-weight: 600; }
 .reg-legal { max-width: 1080px; margin: 0 auto; padding: 0 32px 40px; font-size: 11.5px; color: var(--ink-faint); }
 
 @media (max-width: 860px) {
@@ -78,7 +80,7 @@
 <!-- ================= SIGN IN ================= -->
 <div id="signin-screen">
   <aside class="auth-brand">
-    <a class="brand-lockup" href="/"><strong>USU</strong><span>Health Center</span><small>Laucala Campus</small></a>
+    <a class="brand-lockup" href="/"><strong>USP</strong><span>Health Center</span><small>Laucala Campus</small></a>
     <div class="brand-body">
       <h1>Your health.<br>One place.</h1>
       <p class="lead">Appointments and medical records for students at Laucala Campus.</p>
@@ -90,7 +92,7 @@
         <path d="M0 66 C 60 46, 120 66, 170 81 S 260 96, 300 66 S 400 36, 440 76"/>
       </svg>
     </div>
-    <p class="brand-foot">USU Health Center · Laucala Campus</p>
+    <p class="brand-foot">USP Health Center · Laucala Campus</p>
   </aside>
 
   <main class="auth-main">
@@ -126,7 +128,7 @@
         New to the portal? <button type="button" class="btn-link" style="font-size:14px;" onclick="showRegister()">Create a student account →</button>
       </div>
 
-      <p class="legal">USU Health Center · Laucala Campus · <a href="/">Back to home</a></p>
+      <p class="legal">USP Health Center · Laucala Campus · <a href="/">Back to home</a></p>
     </div>
   </main>
 </div>
@@ -134,7 +136,7 @@
 <!-- ================= REGISTER ================= -->
 <div id="register-screen" hidden>
   <header class="reg-top">
-    <a class="brand-lockup" href="/"><strong>USU</strong><span>Health Center</span><small>Laucala Campus</small></a>
+    <a class="brand-lockup" href="/"><strong>USP</strong><span>Health Center</span><small>Laucala Campus</small></a>
     <div class="already">Already registered?<button type="button" class="btn-link" onclick="showSignIn()">Return to sign in →</button></div>
   </header>
 
@@ -170,6 +172,35 @@
       </div>
 
       <hr class="divider">
+      <h3 style="margin-top:0;">Contact &amp; residence</h3>
+      <div class="field">
+        <label for="regPhone">Phone number *</label>
+        <input type="tel" id="regPhone" placeholder="e.g. +679 912 3456" maxlength="20" autocomplete="tel" />
+      </div>
+      <div class="field">
+        <label for="regSemesterAddress">Where you live during the semester *</label>
+        <textarea id="regSemesterAddress" rows="2" maxlength="200" placeholder="e.g. Ratu Sukuna Hall, Room 214, Laucala Campus" oninput="updateWordCount(this)"></textarea>
+        <p class="help">Hall of residence and room, or your off-campus address. <span class="word-count" data-for="regSemesterAddress">0 / 30 words</span></p>
+      </div>
+      <div class="field">
+        <label for="regHomeAddress">Where you live outside the semester *</label>
+        <textarea id="regHomeAddress" rows="2" maxlength="200" placeholder="e.g. Lot 12, Namaka, Nadi" oninput="updateWordCount(this)"></textarea>
+        <p class="help">Your address during breaks and holidays, including the island or country if outside Fiji. <span class="word-count" data-for="regHomeAddress">0 / 30 words</span></p>
+      </div>
+
+      <hr class="divider">
+      <h3 style="margin-top:0;">Emergency contact</h3>
+      <div class="field-row">
+        <div class="field"><label for="regEmergencyName">Full name *</label><input type="text" id="regEmergencyName" maxlength="100" /></div>
+        <div class="field"><label for="regEmergencyRelationship">Relationship to you *</label><input type="text" id="regEmergencyRelationship" maxlength="50" placeholder="e.g. Mother, Guardian" /></div>
+      </div>
+      <div class="field">
+        <label for="regEmergencyPhone">Phone number *</label>
+        <input type="tel" id="regEmergencyPhone" placeholder="e.g. +679 998 7654" maxlength="20" />
+        <p class="help">The Health Center will contact this person if you need urgent care.</p>
+      </div>
+
+      <hr class="divider">
       <h3 style="margin-top:0;">Account details</h3>
       <div class="field">
         <label for="regStudentId">Student ID *</label>
@@ -192,7 +223,7 @@
       </div>
     </form>
   </div>
-  <p class="reg-legal">USU Health Center · Laucala Campus</p>
+  <p class="reg-legal">USP Health Center · Laucala Campus</p>
 </div>
 
 <script src="/js/app-shell.js"></script>
@@ -237,6 +268,20 @@ fetch('/student/fee-schedule')
     }
   })
   .catch(() => { feeSchedule = null; });
+
+// Addresses are capped by word count (server enforces the same limit).
+const MAX_ADDRESS_WORDS = 30;
+function countWords(text) {
+  const trimmed = text.trim();
+  return trimmed ? trimmed.split(/\s+/).length : 0;
+}
+
+function updateWordCount(textarea) {
+  const words = countWords(textarea.value);
+  const counter = document.querySelector(`.word-count[data-for="${textarea.id}"]`);
+  counter.textContent = `${words} / ${MAX_ADDRESS_WORDS} words`;
+  counter.classList.toggle('over', words > MAX_ADDRESS_WORDS);
+}
 
 function updateFeePreview() {
   const country = document.getElementById('regCountry').value;
@@ -345,12 +390,29 @@ async function handleRegister(e) {
   const passwordConfirm = document.getElementById('regPasswordConfirm').value;
   const country = document.getElementById('regCountry').value;
   const receiptFile = document.getElementById('regReceipt').files[0];
+  const phoneNumber = document.getElementById('regPhone').value.trim();
+  const semesterAddress = document.getElementById('regSemesterAddress').value.trim();
+  const homeAddress = document.getElementById('regHomeAddress').value.trim();
+  const emergencyName = document.getElementById('regEmergencyName').value.trim();
+  const emergencyRelationship = document.getElementById('regEmergencyRelationship').value.trim();
+  const emergencyPhone = document.getElementById('regEmergencyPhone').value.trim();
   const confirmed = document.getElementById('regConfirm').checked;
   const btn = document.getElementById('regBtn');
+  // Same rule as the server: digits with optional +, spaces, dashes or brackets, 7-15 digits.
+  const isPhone = p => /^\+?[0-9 ()-]+$/.test(p) && p.replace(/\D/g, '').length >= 7 && p.replace(/\D/g, '').length <= 15;
 
   if (!given || !family) return showRegAlert('Please enter your given name and family name.');
   if (fullName.length > 100) return showRegAlert('Your full name must be 100 characters or fewer.');
   if (!country) return showRegAlert('Please select your country.');
+  if (!isPhone(phoneNumber)) return showRegAlert('Please enter a valid phone number (7-15 digits).');
+  if (!semesterAddress) return showRegAlert('Please enter where you live during the semester.');
+  if (!homeAddress) return showRegAlert('Please enter where you live outside the semester.');
+  if (countWords(semesterAddress) > MAX_ADDRESS_WORDS) return showRegAlert(`Where you live during the semester must be ${MAX_ADDRESS_WORDS} words or fewer.`);
+  if (countWords(homeAddress) > MAX_ADDRESS_WORDS) return showRegAlert(`Where you live outside the semester must be ${MAX_ADDRESS_WORDS} words or fewer.`);
+  if (!emergencyName) return showRegAlert('Please enter an emergency contact name.');
+  if (!emergencyRelationship) return showRegAlert('Please enter your relationship to your emergency contact.');
+  if (!isPhone(emergencyPhone)) return showRegAlert('Please enter a valid phone number for your emergency contact (7-15 digits).');
+  if (emergencyPhone.replace(/\D/g, '') === phoneNumber.replace(/\D/g, '')) return showRegAlert('Your emergency contact’s phone number must be different from your own.');
   if (!receiptFile) return showRegAlert('Please attach a PDF receipt showing you have paid your Laucala Health Services Fee.');
   if (receiptFile.type !== 'application/pdf') return showRegAlert('The payment receipt must be a PDF file.');
   if (!/^S\d{8}$/.test(studentId)) return showRegAlert('Student ID must be S followed by 8 digits (e.g. S12345678).');
@@ -368,6 +430,12 @@ async function handleRegister(e) {
     formData.append('password', password);
     formData.append('fullName', fullName);
     formData.append('country', country);
+    formData.append('phoneNumber', phoneNumber);
+    formData.append('semesterAddress', semesterAddress);
+    formData.append('homeAddress', homeAddress);
+    formData.append('emergencyContactName', emergencyName);
+    formData.append('emergencyContactRelationship', emergencyRelationship);
+    formData.append('emergencyContactPhone', emergencyPhone);
     formData.append('receipt', receiptFile);
 
     const res = await fetch('/student/register', { method: 'POST', body: formData });

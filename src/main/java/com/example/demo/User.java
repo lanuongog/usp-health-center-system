@@ -27,7 +27,13 @@ public class User {
     // Student registration details (null/unset for non-student accounts)
     private String fullName;
     private String maritalStatus; // "Single" or "Married"
-    private String country; // one of the 12 USU member countries
+    private String country; // one of the 12 USP member countries
+    private String phoneNumber;
+    private String semesterAddress; // where the student lives during the semester
+    private String homeAddress; // where the student lives outside the semester (breaks/holidays)
+    private String emergencyContactName;
+    private String emergencyContactRelationship;
+    private String emergencyContactPhone;
     @Column(nullable = false)
     private boolean feePaid = false;
     private Double feeAmount; // Health Services Fee owed, in FJD, set at registration time
@@ -71,6 +77,24 @@ public class User {
 
     public String getCountry() { return country; }
     public void setCountry(String country) { this.country = country; }
+
+    public String getPhoneNumber() { return phoneNumber; }
+    public void setPhoneNumber(String phoneNumber) { this.phoneNumber = phoneNumber; }
+
+    public String getSemesterAddress() { return semesterAddress; }
+    public void setSemesterAddress(String semesterAddress) { this.semesterAddress = semesterAddress; }
+
+    public String getHomeAddress() { return homeAddress; }
+    public void setHomeAddress(String homeAddress) { this.homeAddress = homeAddress; }
+
+    public String getEmergencyContactName() { return emergencyContactName; }
+    public void setEmergencyContactName(String emergencyContactName) { this.emergencyContactName = emergencyContactName; }
+
+    public String getEmergencyContactRelationship() { return emergencyContactRelationship; }
+    public void setEmergencyContactRelationship(String emergencyContactRelationship) { this.emergencyContactRelationship = emergencyContactRelationship; }
+
+    public String getEmergencyContactPhone() { return emergencyContactPhone; }
+    public void setEmergencyContactPhone(String emergencyContactPhone) { this.emergencyContactPhone = emergencyContactPhone; }
 
     public boolean isFeePaid() { return feePaid; }
     public void setFeePaid(boolean feePaid) { this.feePaid = feePaid; }
