@@ -4,7 +4,9 @@ import java.time.LocalDate;
 import java.util.List;
 
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 
 public interface DoctorScheduleRepository extends JpaRepository<DoctorSchedule, Long> {
     List<DoctorSchedule> findByScheduleDate(LocalDate date);
@@ -21,6 +23,12 @@ public interface DoctorScheduleRepository extends JpaRepository<DoctorSchedule, 
 
     @Query("SELECT DISTINCT s.doctorName FROM DoctorSchedule s ORDER BY s.doctorName")
     List<String> findDistinctDoctorNames();
+
+    // Atomically takes an open slot: the database updates the row only if it is still
+    // unbooked, so two simultaneous requests can never both succeed (returns 1 or 0).
+    @Modifying(clearAutomatically = true, flushAutomatically = true)
+    @Query("UPDATE DoctorSchedule s SET s.booked = true WHERE s.id = :id AND s.booked = false")
+    int claimSlot(@Param("id") Long id);
 
     // Each doctor's schedule row tracks its own booked state independently -
     // one doctor's slot at 9am being taken has no bearing on another doctor's

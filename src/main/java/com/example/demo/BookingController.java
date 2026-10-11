@@ -1,4 +1,5 @@
 package com.example.demo;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
 import java.time.LocalTime;
@@ -23,6 +24,7 @@ public class BookingController {
     // Students no longer choose an urgency - every online booking is Routine;
     // emergencies go through the portal's Emergency button instead.
     private static final String STUDENT_BOOKING_URGENCY = "Routine";
+    private static final int MAX_UPCOMING_APPOINTMENTS = 3;
     // Reason for visit: at most 300 words, with a character cap so one huge
     // "word" can't get through.
     private static final int MAX_REASON_WORDS = 300;
@@ -105,6 +107,7 @@ public class BookingController {
     }
 
     // book an available slot, tied to the logged-in student
+    @Transactional
     @PostMapping("/book")
     public Object bookAppointment(@RequestBody BookingRequest request, Authentication auth) {
         User student = userRepository.findByUsername(auth.getName()).orElse(null);
@@ -121,6 +124,10 @@ public class BookingController {
         if (reasonText.length() > MAX_REASON_CHARS) {
             return Map.of("error", "Reason for visit is too long.");
         }
+        String reasonError = InputRules.freeText(request.visitReason, "Reason for visit");
+        if (reasonError != null) {
+            return Map.of("error", reasonError);
+        }
         if (request.slotId == null) {
             return Map.of("error", "Please select an available slot.");
         }
@@ -133,22 +140,27 @@ public class BookingController {
             return Map.of("error", "You can't book a date or time that has already passed.");
         }
 
+        // limit how many upcoming appointments one student can hold at a time
+        long upcoming = appointmentRepository.findByStudentNameAndStatus(auth.getName(), "BOOKED").stream()
+                .filter(x -> x.getAppointmentDate() != null && !x.getAppointmentDate().isBefore(LocalDate.now()))
+                .count();
+        if (upcoming >= MAX_UPCOMING_APPOINTMENTS) {
+            return Map.of("error", "You already have " + MAX_UPCOMING_APPOINTMENTS
+                    + " upcoming appointments. Please cancel one or attend it before booking another.");
+        }
+
         boolean alreadyBookedAtThisTime = !appointmentRepository.findByStudentNameAndStatusAndAppointmentDateAndTimeSlot(
                 auth.getName(), "BOOKED", slot.getScheduleDate(), slot.getTimeSlot()).isEmpty();
         if (alreadyBookedAtThisTime) {
             return Map.of("error", "You already have an appointment booked for this date and time slot.");
         }
 
-        // Prevents two students booking the same doctor's slot at once - each
-        // doctor's row is booked independently of every other doctor's.
-        synchronized (this) {
-            slot = scheduleRepository.findById(request.slotId).orElse(null);
-            if (slot == null || slot.isBooked()) {
-                return Map.of("error", "This slot is no longer available.");
-            }
-            slot.setBooked(true);
-            scheduleRepository.save(slot);
+        // Atomic claim: the database books the slot only if it is still open, so two
+        // simultaneous requests can never both get it (fixes the booking race).
+        if (scheduleRepository.claimSlot(request.slotId) == 0) {
+            return Map.of("error", "This slot is no longer available.");
         }
+        slot = scheduleRepository.findById(request.slotId).orElse(null);
 
         Appointment appointment = new Appointment();
         appointment.setStudentName(auth.getName());
@@ -187,8 +199,12 @@ public class BookingController {
     }
 
     // cancel an upcoming appointment, freeing the slot back up
+    @Transactional
     @PostMapping("/cancel")
     public Object cancelAppointment(@RequestBody CancelRequest request, Authentication auth) {
+        if (request == null || request.appointmentId == null) {
+            return Map.of("error", "Appointment ID is required.");
+        }
         Appointment appointment = appointmentRepository.findById(request.appointmentId).orElse(null);
 
         if (appointment == null) {
@@ -214,8 +230,12 @@ public class BookingController {
     }
 
     // reschedule to a new open slot, freeing the old one
+    @Transactional
     @PostMapping("/reschedule")
     public Object rescheduleAppointment(@RequestBody RescheduleRequest request, Authentication auth) {
+        if (request == null || request.appointmentId == null || request.newSlotId == null) {
+            return Map.of("error", "Appointment ID and new slot are required.");
+        }
         Appointment appointment = appointmentRepository.findById(request.appointmentId).orElse(null);
 
         if (appointment == null) {
@@ -243,15 +263,10 @@ public class BookingController {
             }
         }
 
-        DoctorSchedule newSlot;
-        synchronized (this) {
-            newSlot = scheduleRepository.findById(request.newSlotId).orElse(null);
-            if (newSlot == null || newSlot.isBooked()) {
-                return Map.of("error", "This slot is no longer available.");
-            }
-            newSlot.setBooked(true);
-            scheduleRepository.save(newSlot);
+        if (scheduleRepository.claimSlot(request.newSlotId) == 0) {
+            return Map.of("error", "This slot is no longer available.");
         }
+        DoctorSchedule newSlot = scheduleRepository.findById(request.newSlotId).orElse(null);
 
         scheduleRepository.freeSlot(appointment.getScheduleSlotId());
 

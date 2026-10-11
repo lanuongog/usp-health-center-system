@@ -103,7 +103,7 @@
       <form id="loginForm" onsubmit="handleLogin(event)" novalidate>
         <div class="field">
           <label for="loginUsername">Student ID or staff username *</label>
-          <input type="text" id="loginUsername" required autofocus autocomplete="username" maxlength="200" placeholder="e.g. S12345678 or dr.patel" />
+          <input type="text" id="loginUsername" required autofocus autocomplete="username" maxlength="200" placeholder="e.g. S11234567 or dr.patel" />
         </div>
         <div class="field">
           <div class="label-row">
@@ -204,9 +204,9 @@
       <h3 style="margin-top:0;">Account details</h3>
       <div class="field">
         <label for="regStudentId">Student ID *</label>
-        <input type="text" id="regStudentId" placeholder="e.g. S12345678" maxlength="9"
+        <input type="text" id="regStudentId" placeholder="e.g. S11234567" maxlength="9"
                oninput="this.value = this.value.toUpperCase();" />
-        <p class="help">Use your own student ID (S followed by 8 digits). Already registered? <button type="button" class="btn-link" style="font-size:12px;" onclick="showSignIn()">Sign in instead.</button></p>
+        <p class="help">Use your own student ID (S11 followed by 6 digits). Already registered? <button type="button" class="btn-link" style="font-size:12px;" onclick="showSignIn()">Sign in instead.</button></p>
       </div>
       <div class="field-row">
         <div class="field"><label for="regPassword">Password *</label><input type="password" id="regPassword" minlength="6" maxlength="100" autocomplete="new-password" /></div>
@@ -227,6 +227,7 @@
 </div>
 
 <script src="/js/app-shell.js"></script>
+<script src="/js/validation.js"></script>
 <script>
 let feeSchedule = null;
 const ARROW = HC.icon('arrow');
@@ -328,6 +329,7 @@ function hideLoginAlert() {
 }
 
 function showRegAlert(msg) {
+  if (msg) VAL.alert(msg, 'Please check this');
   const box = document.getElementById('regAlert');
   box.textContent = msg;
   box.hidden = !msg;
@@ -342,7 +344,11 @@ async function handleLogin(e) {
   const btn = document.getElementById('loginBtn');
 
   if (!username || !password) {
-    showLoginAlert('Enter your student ID or username and password', 'Both fields are required.');
+    VAL.alert('Enter your student ID or username and your password. Both fields are required.', 'Please check this');
+    return;
+  }
+  if (!/^[A-Za-z0-9._@-]{3,200}$/.test(username)) {
+    VAL.alert('Student ID or username can only contain letters, numbers and . _ - @', 'Please check this');
     return;
   }
 
@@ -402,6 +408,7 @@ async function handleRegister(e) {
   const isPhone = p => /^\+?[0-9 ()-]+$/.test(p) && p.replace(/\D/g, '').length >= 7 && p.replace(/\D/g, '').length <= 15;
 
   if (!given || !family) return showRegAlert('Please enter your given name and family name.');
+  { const ne = VAL.nameError(given, 'Given name') || VAL.nameError(family, 'Family name'); if (ne) return showRegAlert(ne); }
   if (fullName.length > 100) return showRegAlert('Your full name must be 100 characters or fewer.');
   if (!country) return showRegAlert('Please select your country.');
   if (!isPhone(phoneNumber)) return showRegAlert('Please enter a valid phone number (7-15 digits).');
@@ -415,8 +422,8 @@ async function handleRegister(e) {
   if (emergencyPhone.replace(/\D/g, '') === phoneNumber.replace(/\D/g, '')) return showRegAlert('Your emergency contact’s phone number must be different from your own.');
   if (!receiptFile) return showRegAlert('Please attach a PDF receipt showing you have paid your Laucala Health Services Fee.');
   if (receiptFile.type !== 'application/pdf') return showRegAlert('The payment receipt must be a PDF file.');
-  if (!/^S\d{8}$/.test(studentId)) return showRegAlert('Student ID must be S followed by 8 digits (e.g. S12345678).');
-  if (password.length < 6 || password.length > 100) return showRegAlert('Password must be between 6 and 100 characters.');
+  if (!/^S11\d{6}$/.test(studentId)) return showRegAlert('Student ID must be S11 followed by 6 digits (e.g. S11234567).');
+  { const pe = VAL.password(password, studentId); if (pe) return showRegAlert(pe); }
   if (password !== passwordConfirm) return showRegAlert('The passwords do not match.');
   if (password.toUpperCase() === studentId) return showRegAlert('Do not use your student ID as your password.');
   if (!confirmed) return showRegAlert('Please confirm your details are correct.');

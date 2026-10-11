@@ -24,6 +24,9 @@ public class User {
     @Column(nullable = false)
     private boolean active = true;
 
+    @Column(length = 150)
+    private String email; // used for password reset codes (students fall back to sXXXXXXXX@student.usp.ac.fj)
+
     // Student registration details (null/unset for non-student accounts)
     private String fullName;
     private String country; // one of the 12 USP member countries
@@ -68,6 +71,9 @@ public class User {
 
     public boolean isActive() { return active; }
     public void setActive(boolean active) { this.active = active; }
+
+    public String getEmail() { return email; }
+    public void setEmail(String email) { this.email = email; }
 
     public String getFullName() { return fullName; }
     public void setFullName(String fullName) { this.fullName = fullName; }

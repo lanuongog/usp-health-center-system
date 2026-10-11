@@ -1,4 +1,5 @@
 package com.example.demo;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.io.IOException;
 import java.time.LocalDateTime;
@@ -187,10 +188,20 @@ public class DoctorController {
     }
 
     // record diagnosis/notes, mark completed, exit the queue
+    @Transactional
     @PostMapping("/consultation")
     public Appointment recordConsultation(@RequestBody ConsultationRequest request, Authentication auth) {
+        if (request == null || request.appointmentId == null) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Appointment ID is required.");
+        }
         Appointment appointment = appointmentRepository.findById(request.appointmentId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Medical record not found"));
+
+        // a consultation can only be recorded for a patient the nurse has checked in
+        if (!"CHECKED_IN".equals(appointment.getStatus())) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT,
+                    "This patient is not checked in, or the consultation is already completed.");
+        }
 
         // required consultation information is missing
         if (isBlank(request.diagnosis) || isBlank(request.consultationNotes)) {
@@ -204,6 +215,11 @@ public class DoctorController {
         if (request.consultationNotes.trim().length() > MAX_NOTES_LENGTH) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
                     "Consultation notes must be " + MAX_NOTES_LENGTH + " characters or fewer.");
+        }
+        String dxError = InputRules.freeText(request.diagnosis, "Diagnosis");
+        if (dxError == null) dxError = InputRules.freeText(request.consultationNotes, "Consultation notes");
+        if (dxError != null) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, dxError);
         }
 
         // prevent a doctor from editing another doctor's submitted consultation
