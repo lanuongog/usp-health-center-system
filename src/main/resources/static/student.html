@@ -160,6 +160,10 @@
             <div class="cal-grid" id="cal-grid"></div>
           </div>
           <div>
+            <div class="field" style="margin-bottom:14px;">
+              <label for="doctor-select">Doctor</label>
+              <select id="doctor-select" onchange="loadSlots()"><option value="">Any available doctor</option></select>
+            </div>
             <p class="slots-title" id="slots-title"></p>
             <div id="slot-container"></div>
             <div class="link-row" style="margin-top:10px;"><button class="btn-link" onclick="loadSlots()">↻ Refresh availability</button></div>
@@ -367,9 +371,14 @@
       <div id="em-locked" hidden>
         <div class="notice ok">
           <strong id="em-locked-title">Emergency request sent today</strong>
-          Health Center staff have been notified and will prioritise you when you arrive. Go to the Health Center now if you can — you don’t need to send another request.
+          Health Center staff have been notified and will prioritise you when you arrive. Go to the Health Center now if you can — you don’t need to send another request right now.
         </div>
-        <p class="small muted" style="margin-top:14px;">You can send one emergency request per day. A new request can be sent from tomorrow. If things get worse, contact emergency services or campus security directly.</p>
+        <div class="card" id="em-progress" style="margin-top:14px;">
+          <p class="small"><strong>Status:</strong> <span id="em-progress-text">Checking…</span></p>
+          <button class="btn btn-danger" id="em-remind-btn" onclick="remindEmergency()" disabled>Alert staff again</button>
+          <div class="form-msg" id="em-remind-msg"></div>
+        </div>
+        <p class="small muted" style="margin-top:14px;">The emergency button unlocks again 20 minutes after your request, or the next time you sign in, in case of another emergency. If things get worse, contact emergency services or campus security directly.</p>
         <div class="btn-row" style="margin-top:16px;"><a class="btn" href="#overview">Return to overview</a></div>
       </div>
       <div class="form-msg" id="emergencyResult"></div>
@@ -424,6 +433,7 @@
 </div>
 
 <script src="/js/app-shell.js"></script>
+<script src="/js/validation.js"></script>
 <script>
 const esc = HC.esc;
 let authHeader = null;
@@ -451,6 +461,7 @@ window.addEventListener('DOMContentLoaded', () => {
     if (selectedSlot && !document.getElementById('reason-input').value.trim()) setReasonError(true);
   });
   initCalendar();
+  loadDoctorList();
 
   Shell.mount({
     workspace: 'Student workspace',
@@ -557,13 +568,15 @@ function loadProfile() {
     .catch(() => {});
 }
 
-function uploadReceipt() {
+async function uploadReceipt() {
   const input = document.getElementById('receipt-upload-input');
   const msg = document.getElementById('receipt-upload-msg');
   const file = input.files[0];
-  if (!file) { msg.className = 'toast err'; msg.textContent = 'Please choose a PDF file first.'; return; }
-  if (file.type !== 'application/pdf') { msg.className = 'toast err'; msg.textContent = 'The receipt must be a PDF file.'; return; }
+  if (!file) { msg.className = 'toast err'; msg.textContent = 'Please choose a PDF file first.'; VAL.alert('Please choose a PDF file first.'); return; }
+  if (file.type !== 'application/pdf') { msg.className = 'toast err'; msg.textContent = 'The receipt must be a PDF file.'; VAL.alert('The receipt must be a PDF file.'); return; }
 
+  if (file.size > 5 * 1024 * 1024) { msg.className = 'toast err'; msg.textContent = 'The receipt must be 5 MB or smaller.'; VAL.alert('The receipt must be 5 MB or smaller.'); return; }
+  if (!(await VAL.ask({ title: 'Upload receipt', rows: [['File', file.name]], note: 'Upload this receipt for verification?', okText: 'Yes, upload' }))) return;
   const formData = new FormData();
   formData.append('receipt', file);
   fetch('/student/receipt', { method: 'POST', headers: { 'Authorization': authHeader }, body: formData })
@@ -579,7 +592,8 @@ function uploadReceipt() {
 }
 
 // ---------- Session ----------
-function logout() {
+async function logout() {
+  if (!(await VAL.ask({ title: 'Log out', note: 'Are you sure you want to log out?', okText: 'Yes, log out' }))) return;
   localStorage.clear();
   window.location.href = '/login.html';
 }
@@ -628,8 +642,8 @@ function uniqueSlots(slots) {
   return [...byTime.values()].sort((a, b) => HC.parseSlot(a.timeSlot).startMin - HC.parseSlot(b.timeSlot).startMin);
 }
 
-function fetchSlots(date) {
-  return fetch('/schedule/available?date=' + date)
+function fetchSlots(date, doctor) {
+  return fetch('/schedule/available?date=' + date + (doctor ? '&doctorName=' + encodeURIComponent(doctor) : ''))
     .then(res => {
       if (res.status === 404) return [];
       if (!res.ok) throw new Error();
@@ -776,11 +790,27 @@ function pickDate(iso) {
   loadSlots();
 }
 
+let selectedSlotDoctor = '';
+
+// Fills the Doctor dropdown with every active doctor account (so new doctors appear as soon as they are added)
+async function loadDoctorList() {
+  try {
+    const r = await fetch('/schedule/bookable-doctors');
+    if (!r.ok) return;
+    const docs = await r.json();
+    const sel = document.getElementById('doctor-select');
+    const cur = sel.value;
+    sel.innerHTML = '<option value="">Any available doctor</option>' + docs.map(d => `<option value="${esc(d)}">${esc(doctorLabel(d))}</option>`).join('');
+    if (cur) sel.value = cur;
+  } catch (e) {}
+}
+
 function loadSlots() {
   const date = selectedDate;
   const container = document.getElementById('slot-container');
   selectedSlot = null;
   selectedSlotTime = null;
+  selectedSlotDoctor = '';
   updateSummary();
   document.getElementById('slots-title').textContent = HC.fmtDate(date) + ' · consultations';
   document.getElementById('book-delay').hidden = !(date === HC.todayIso() && delayInfo.delayed);
@@ -790,11 +820,12 @@ function loadSlots() {
     return;
   }
   container.innerHTML = '<div class="empty">Loading available times…</div>';
-  fetchSlots(date)
+  const doctor = (document.getElementById('doctor-select') || {}).value || '';
+  fetchSlots(date, doctor)
     .then(slots => {
       if (date !== selectedDate) return;
       if (!slots.length) {
-        container.innerHTML = '<div class="empty">No consultations are scheduled on this date.</div>';
+        container.innerHTML = '<div class="empty">' + (doctor ? esc(doctorLabel(doctor)) + ' has no consultations on this date. Try another date or choose another doctor.' : 'No consultations are scheduled on this date.') + '</div>';
         return;
       }
       container.innerHTML = '<div class="slot-grid">' + uniqueSlots(slots).map(s => slotTile(s, date, 'pickSlot')).join('') + '</div>';
@@ -808,7 +839,7 @@ function slotTile(s, date, pickFn) {
   const label = past ? 'Passed' : (s.booked ? 'Booked' : 'Available');
   // Show the whole appointment (e.g. 09:30–10:00), not just its start time.
   const range = HC.slotRange(s.timeSlot);
-  return `<button type="button" class="slot${off ? ' off' : ''}" data-id="${s.id}" data-time="${esc(s.timeSlot)}"
+  return `<button type="button" class="slot${off ? ' off' : ''}" data-id="${s.id}" data-time="${esc(s.timeSlot)}" data-doctor="${esc(s.doctorName || '')}" title="${esc(doctorLabel(s.doctorName))}"
     ${off ? 'disabled' : `onclick="${pickFn}(${s.id}, this)"`}><strong>${esc(range)}</strong><span>${label}</span></button>`;
 }
 
@@ -824,6 +855,7 @@ function markSelectedTile(container, el) {
 function pickSlot(slotId, el) {
   selectedSlot = slotId;
   selectedSlotTime = el.dataset.time;
+  selectedSlotDoctor = el.dataset.doctor || '';
   markSelectedTile(document.getElementById('slot-container'), el);
   document.getElementById('conflict-card').hidden = true;
   updateSummary();
@@ -854,7 +886,7 @@ function updateSummary() {
   if (selectedSlot) {
     document.getElementById('sum-date').textContent =
       HC.parseDate(selectedDate).toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'long' }).replace(',', '');
-    document.getElementById('sum-time').textContent = HC.slotRange(selectedSlotTime).replace('–', ' – ') + ' Fiji';
+    document.getElementById('sum-time').textContent = HC.slotRange(selectedSlotTime).replace('–', ' – ') + ' Fiji' + (selectedSlotDoctor ? ' · ' + doctorLabel(selectedSlotDoctor) : '');
   } else {
     document.getElementById('sum-date').textContent = 'Choose a date';
     document.getElementById('sum-time').textContent = 'and an available time';
@@ -872,13 +904,19 @@ function submitBooking() {
   const reason = document.getElementById('reason-input').value.trim();
   if (!reason) { setReasonError(true); updateSummary(); return; }
   if (reasonWordCount(reason) > MAX_REASON_WORDS) { updateSummary(); return; }
-  if (!selectedSlot) return;
+  { const te = VAL.textError(reason, 'The reason for your visit', true); if (te) { setReasonError(true); VAL.alert(te); return; } }
+  if (!selectedSlot) { VAL.alert('Please select an available time slot first.'); return; }
   if (HC.isSlotPast(selectedDate, selectedSlotTime || '')) {
     toast.className = 'toast err';
     toast.textContent = 'That time has already passed. Please pick a later slot.';
+    VAL.alert('That time has already passed. Please pick a later slot.');
     loadSlots();
     return;
   }
+  VAL.ask({ title: 'Confirm booking', rows: [['Doctor', selectedSlotDoctor ? doctorLabel(selectedSlotDoctor) : 'Assigned by the clinic'], ['Date', document.getElementById('sum-date').textContent], ['Time', document.getElementById('sum-time').textContent], ['Reason', reason.length > 60 ? reason.slice(0, 60) + '…' : reason]], note: 'Book this appointment?', okText: 'Yes, book it' }).then(okay => { if (okay && VAL.once('book', 2000)) doBooking(reason, toast); });
+}
+
+function doBooking(reason, toast) {
 
   const btn = document.getElementById('book-btn');
   btn.disabled = true;
@@ -900,6 +938,7 @@ function submitBooking() {
       } else {
         toast.className = 'toast err';
         toast.textContent = data.error;
+        VAL.alert(data.error);
       }
       updateSummary();
       return;
@@ -1378,11 +1417,85 @@ function closeDelayModal() {
 let emergencyAlertSending = false;
 let emergencyAlertSent = false;
 
+let emergencyUnlockTimer = null;
 function loadEmergencyAlertStatus() {
   fetch('/student/emergency-alert/status', { headers: { 'Authorization': authHeader } })
     .then(res => res.ok ? res.json() : null)
-    .then(data => { if (data && data.sentToday) markEmergencyAlertSent(data.sentAt); })
+    .then(data => {
+      if (!data) return;
+      clearTimeout(emergencyUnlockTimer);
+      if (data.sentToday) {
+        markEmergencyAlertSent(data.sentAt);
+        showEmergencyProgress(data);
+        const mins = data.lockMinutes || 20;
+        const sent = data.sentAt ? new Date(data.sentAt).getTime() : Date.now();
+        const wait = Math.max(5000, sent + mins * 60000 - Date.now() + 2000);
+        emergencyUnlockTimer = setTimeout(loadEmergencyAlertStatus, Math.min(wait, 2147483000));
+      } else if (emergencyAlertSent) {
+        unlockEmergencyAlert();
+      }
+    })
     .catch(() => {});
+}
+
+// Shows whether staff have checked the student in, and the "alert again" button.
+let emergencyPollTimer = null;
+function showEmergencyProgress(data) {
+  const txt = document.getElementById('em-progress-text');
+  const btn = document.getElementById('em-remind-btn');
+  if (!txt || !btn) return;
+  clearTimeout(emergencyPollTimer);
+  if (data.checkedIn) {
+    txt.textContent = 'Checked in by Health Center staff. Help is on the way / you are being seen.';
+    btn.hidden = true;
+    return;
+  }
+  btn.hidden = false;
+  if (data.canRemind) {
+    txt.textContent = 'Staff have been alerted but have not checked you in yet.';
+    btn.disabled = false;
+    btn.textContent = 'Alert staff again';
+  } else {
+    txt.textContent = 'Staff have been alerted but have not checked you in yet.';
+    btn.disabled = true;
+    btn.textContent = 'Alert again available in ' + (data.remindInSeconds || 0) + 's';
+  }
+  emergencyPollTimer = setTimeout(loadEmergencyAlertStatus, 10000);
+}
+
+async function remindEmergency() {
+  const msg = document.getElementById('em-remind-msg');
+  const btn = document.getElementById('em-remind-btn');
+  if (!(await VAL.ask({ title: 'Alert staff again', note: 'Send another alert to the Health Center? Only do this if no one has come yet.', okText: 'Yes, alert again', danger: true }))) return;
+  btn.disabled = true;
+  try {
+    const res = await fetch('/student/emergency-alert/remind', { method: 'POST', headers: { 'Authorization': authHeader } });
+    const data = await res.json();
+    msg.className = 'form-msg ' + (data.error ? 'err' : 'ok');
+    msg.textContent = data.error || data.message;
+  } catch (e) {
+    msg.className = 'form-msg err';
+    msg.textContent = 'Unable to reach the server. Contact campus security or emergency services directly.';
+  }
+  loadEmergencyAlertStatus();
+}
+
+// Puts the emergency form back once the 20-minute lock has ended.
+function unlockEmergencyAlert() {
+  emergencyAlertSent = false;
+  emergencyAlertSending = false;
+  const pill = document.getElementById('em-state-pill');
+  pill.textContent = 'Ready to request';
+  pill.className = 'pill teal';
+  document.getElementById('em-state-sub').textContent = 'You can send a new emergency request.';
+  document.getElementById('em-heading').textContent = 'Tell the clinic what is happening';
+  document.getElementById('em-form').hidden = false;
+  document.getElementById('em-locked').hidden = true;
+  document.getElementById('em-confirm').hidden = true;
+  document.getElementById('emergencyReason').value = '';
+  document.getElementById('emergencyLocation').value = '';
+  const overviewBtn = document.querySelector('.urgent-card a.btn, .urgent-card .btn-block');
+  if (overviewBtn) { overviewBtn.textContent = 'Open emergency request'; overviewBtn.className = 'btn btn-danger btn-block'; }
 }
 
 // Swaps the form for a clear "already sent" panel, so a locked form is never
@@ -1394,8 +1507,8 @@ function markEmergencyAlertSent(sentAt) {
   const pill = document.getElementById('em-state-pill');
   pill.textContent = 'Today’s request used';
   pill.className = 'pill';
-  document.getElementById('em-state-sub').textContent = `You sent an emergency request today at ${time} Fiji.`;
-  document.getElementById('em-locked-title').textContent = `Emergency request sent today at ${time}`;
+  document.getElementById('em-state-sub').textContent = `You sent an emergency request at ${time} Fiji. You can send another after 20 minutes or when you next sign in.`;
+  document.getElementById('em-locked-title').textContent = `Emergency request sent at ${time}`;
   document.getElementById('em-heading').textContent = 'Today’s emergency request';
   document.getElementById('em-form').hidden = true;
   document.getElementById('em-locked').hidden = false;
@@ -1415,8 +1528,10 @@ function reviewEmergency() {
   if (!what || !where) {
     result.className = 'form-msg err';
     result.textContent = 'Please describe what is happening and where you are now.';
+    VAL.alert('Please describe what is happening and where you are now.');
     return;
   }
+  { const e1 = VAL.textError(what, 'The description', true) || VAL.locationError(where, 'Your location'); if (e1) { result.className = 'form-msg err'; result.textContent = e1; VAL.alert(e1); return; } }
   result.textContent = '';
   document.getElementById('em-confirm').hidden = false;
   if (window.innerWidth <= 1080) document.getElementById('em-confirm').scrollIntoView({ behavior: 'smooth' });
@@ -1462,6 +1577,7 @@ function sendEmergencyAlert() {
     }
     btn.textContent = 'Send emergency request';
     markEmergencyAlertSent();
+    loadEmergencyAlertStatus();
   })
   .catch(() => {
     resetSending();
@@ -1481,14 +1597,17 @@ function closeChangePasswordModal() {
   document.getElementById('change-password-modal-overlay').hidden = true;
 }
 
-function submitChangePassword() {
+async function submitChangePassword() {
   const currentPassword = document.getElementById('cpCurrentPassword').value;
   const newPassword = document.getElementById('cpNewPassword').value;
   const confirmPassword = document.getElementById('cpConfirmPassword').value;
   const resultEl = document.getElementById('cpResult');
   if (!currentPassword || !newPassword) { resultEl.className = 'toast err'; resultEl.textContent = 'Both fields are required.'; return; }
   if (newPassword !== confirmPassword) { resultEl.className = 'toast err'; resultEl.textContent = 'New password and confirmation do not match.'; return; }
+  { const pe = VAL.password(newPassword, localStorage.getItem('currentUser')); if (pe) { resultEl.className = 'toast err'; resultEl.textContent = pe; VAL.alert(pe); return; } }
+  if (newPassword === currentPassword) { const m = 'The new password must be different from your current password.'; resultEl.className = 'toast err'; resultEl.textContent = m; VAL.alert(m); return; }
 
+  if (!(await VAL.ask({ title: 'Change password', note: 'Change your password now?', okText: 'Yes, change password' }))) return;
   fetch('/account/change-password', {
     method: 'POST',
     headers: { 'Authorization': authHeader, 'Content-Type': 'application/json' },

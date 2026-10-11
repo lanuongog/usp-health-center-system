@@ -65,6 +65,7 @@ public class SecurityConfig {
                 .requestMatchers("/nurse/**").hasAnyRole("NURSE", "ADMIN")
                 .requestMatchers("/doctor/**").hasRole("DOCTOR")
                 .requestMatchers("/student/register", "/student/fee-schedule").permitAll()
+                .requestMatchers("/auth/forgot-password", "/auth/verify-code", "/auth/reset-password").permitAll()
                 .requestMatchers("/student/**").hasRole("STUDENT")
                 .requestMatchers("/schedule/available").permitAll()
                 .requestMatchers("/schedule/manage/**").hasAnyRole("DOCTOR", "ADMIN")
@@ -74,7 +75,13 @@ public class SecurityConfig {
                 .requestMatchers("/account/**").authenticated()
                 .anyRequest().permitAll()
             )
-            .httpBasic(basic -> {})
+            .httpBasic(basic -> basic.authenticationEntryPoint(
+                // answer 401 WITHOUT the WWW-Authenticate header, so the browser never pops up its own sign-in box
+                (HttpServletRequest request, HttpServletResponse response, org.springframework.security.core.AuthenticationException ex) -> {
+                    response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+                    response.setContentType("application/json");
+                    response.getWriter().write("{\"message\": \"Your session has expired or you are not signed in. Please sign in again.\"}");
+                }))
             .exceptionHandling(ex -> ex.accessDeniedHandler(accessDeniedHandler()))
             .csrf(csrf -> csrf.disable());
         return http.build();

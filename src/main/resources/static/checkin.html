@@ -180,7 +180,7 @@
   <div class="modal-box danger">
     <div class="modal-head"><h2>Emergency check-in</h2><button class="modal-close" aria-label="Close" onclick="closeEmergencyModal()">✕</button></div>
     <p class="small muted" style="margin-bottom:16px;">For a patient who needs to see a doctor immediately. This checks them in at the top of the doctor’s queue, alerts every doctor, and warns students with a visit today of a possible delay.</p>
-    <div class="field"><label for="emergencyStudentId">Student ID *</label><input type="text" id="emergencyStudentId" placeholder="e.g. S12345678" /></div>
+    <div class="field"><label for="emergencyStudentId">Student ID *</label><input type="text" id="emergencyStudentId" placeholder="e.g. S11234567" /></div>
     <div class="field"><label for="emergencyReason">What is happening?</label><textarea id="emergencyReason" rows="3" maxlength="300" placeholder="e.g. Severe allergic reaction"></textarea></div>
     <div class="toast" id="emergencyResult"></div>
     <div class="btn-row" style="margin-top:16px;">
@@ -199,10 +199,10 @@
     <p class="small" style="margin-top:10px;" id="incoming-emergency-message"></p>
     <p class="tiny muted" style="margin-top:8px;" id="incoming-emergency-time"></p>
     <div class="btn-row" style="margin-top:20px;">
-      <button class="btn btn-danger" onclick="checkInFromEmergencyPopup()">They’ve arrived — check in now</button>
+      <button class="btn btn-danger" onclick="openEmergencyListFromPopup()">Open emergency list</button>
       <button class="btn" onclick="acknowledgeEmergencyPopup()">Acknowledge</button>
     </div>
-    <p class="tiny muted" style="margin-top:12px;">Acknowledging only confirms you’ve seen this request. It stays unread until the student is checked in.</p>
+    <p class="tiny muted" style="margin-top:12px;">Acknowledging only confirms you’ve seen these requests. Each stays in the list until its student is checked in.</p>
   </div>
 </div>
 
@@ -222,6 +222,7 @@
 </div>
 
 <script src="/js/app-shell.js"></script>
+<script src="/js/validation.js"></script>
 <script>
 const esc = HC.esc;
 let authHeader = null;
@@ -279,7 +280,8 @@ function displayName(id, fallback) {
 }
 
 // ---------- Session ----------
-function logout() {
+async function logout() {
+  if (!(await VAL.ask({ title: 'Log out', note: 'Are you sure you want to log out?', okText: 'Yes, log out' }))) return;
   localStorage.clear();
   window.location.href = '/login.html';
 }
@@ -407,7 +409,7 @@ function cancelCheckIn() {
 
 async function markNoShow(appointmentId) {
   const a = findAppointment(appointmentId);
-  if (!confirm(`Mark ${displayName(a ? a.studentName : '')} as a no-show for this appointment?`)) return;
+  if (!(await VAL.ask({ title: 'Mark as no-show', rows: [['Student', displayName(a ? a.studentName : '')]], note: 'Mark this student as a no-show for this appointment?', okText: 'Yes, mark no-show', danger: true }))) return;
   try {
     const res = await fetch('/nurse/no-show', {
       method: 'POST',
@@ -440,6 +442,7 @@ async function submitCheckIn() {
   const sys = document.getElementById('bpSystolic').value.trim();
   const dia = document.getElementById('bpDiastolic').value.trim();
   const presentingComplaint = document.getElementById('presentingComplaint').value.trim();
+  { const te = VAL.textError(presentingComplaint, 'The presenting complaint', false); if (te) { VAL.alert(te); return; } }
 
   const problems = [];
   const mark = (id, bad) => document.getElementById(id).classList.toggle('invalid', bad);
@@ -461,7 +464,10 @@ async function submitCheckIn() {
     if (!sysOk) problems.push(`Systolic BP ${sys} is invalid. Enter a whole number from 60 to 250.`);
     if (!diaOk) problems.push(`Diastolic BP ${dia} is invalid. Enter a whole number from 40 to 150, lower than systolic.`);
   }
-  if (problems.length) { showFormError(problems.join(' ')); return; }
+  if (presentingComplaint.length > 500) problems.push('Presenting complaint must be 500 characters or fewer.');
+  if (problems.length) { showFormError(problems.join(' ')); VAL.alert(problems.join('\n')); return; }
+  if (!(await VAL.ask({ title: 'Save check-in', rows: [['Temperature', temperature + ' °C'], ['Blood pressure', sys + '/' + dia], ['Complaint', presentingComplaint.length > 60 ? presentingComplaint.slice(0, 60) + '…' : presentingComplaint]], note: 'Save these vital signs and check the patient in?', okText: 'Yes, check in' }))) return;
+  if (!VAL.once('checkin', 2000)) return;
 
   const btn = document.getElementById('checkin-submit');
   btn.disabled = true;
@@ -478,6 +484,7 @@ async function submitCheckIn() {
     if (!res.ok) {
       const err = await res.json();
       showFormError(err.message || 'Unable to save check-in.');
+      VAL.alert(err.message || 'Unable to save check-in.');
       return;
     }
     cancelCheckIn();
@@ -625,10 +632,12 @@ let emergencyPopupQueue = [];
 let emergencyPopupShowing = false;
 
 function pollNotifCount() {
-  fetch('/notifications', { headers: { 'Authorization': authHeader } })
-    .then(res => res.ok ? res.json() : [])
+  fetch('/notifications', { headers: { 'Authorization': authHeader }, cache: 'no-store' })
+    .then(res => res.ok ? res.json() : null)
     .then(items => {
+      if (!Array.isArray(items)) return;   // keep the current list if the request failed
       staffNotifications = items;
+      emergencyListLoaded = true;
       Shell.setAlertCount(items.filter(n => !n.read).length);
       renderEmergencyBanner();
       if (Shell.currentView() === 'emergencies') renderEmergencyRequests();
@@ -642,30 +651,56 @@ function pollNotifCount() {
 
 function isEmergency(n) { return n.type === 'EMERGENCY_ALERT' || n.type === 'EMERGENCY_BOOKING'; }
 
+function waitingEmergencyStudents() {
+  const m = new Map();
+  staffNotifications.filter(n => n.type === 'EMERGENCY_ALERT' && !n.read).forEach(n => {
+    const k = n.studentUsername || n.studentName;
+    if (!m.has(k)) m.set(k, n);
+  });
+  return [...m.values()];
+}
+
 function renderEmergencyBanner() {
-  const today = HC.todayIso();
-  const active = staffNotifications.filter(n => isEmergency(n) && !n.read && n.createdAt && n.createdAt.slice(0, 10) === today);
+  const waiting = waitingEmergencyStudents();
   const banner = document.getElementById('emergency-banner');
-  if (!active.length) { banner.hidden = true; return; }
-  const n = active[0];
-  banner.innerHTML = `<strong>Clinic emergency · ${esc(n.studentName || n.studentUsername || '')}</strong>
-    <span class="notice-body">${esc(n.message)} <a href="#emergencies">Open emergency requests →</a></span>`;
+  if (!waiting.length) { banner.hidden = true; return; }
+  const names = waiting.slice(0, 4).map(n => esc(n.studentName || n.studentUsername || '')).join(', ') + (waiting.length > 4 ? ' +' + (waiting.length - 4) + ' more' : '');
+  banner.innerHTML = `<strong>${waiting.length} emergency request${waiting.length === 1 ? '' : 's'} waiting</strong>
+    <span class="notice-body">${names}. <a href="#emergencies">Open the emergency list →</a></span>`;
   banner.hidden = false;
 }
 
+let emergencyListLoaded = false;
 function loadEmergencyRequests() {
-  fetch('/notifications', { headers: { 'Authorization': authHeader } })
-    .then(res => res.ok ? res.json() : [])
-    .then(items => { staffNotifications = items; renderEmergencyRequests(); renderEmergencyBanner(); })
-    .catch(() => {});
+  const el = document.getElementById('emergency-list');
+  if (!emergencyListLoaded && el) el.innerHTML = '<div class="card"><div class="empty">Loading emergency requests…</div></div>';
+  fetch('/notifications', { headers: { 'Authorization': authHeader }, cache: 'no-store' })
+    .then(res => { if (!res.ok) throw new Error('HTTP ' + res.status); return res.json(); })
+    .then(items => {
+      staffNotifications = items;
+      emergencyListLoaded = true;
+      renderEmergencyRequests();
+      renderEmergencyBanner();
+    })
+    .catch(err => {
+      if (emergencyListLoaded) return;
+      el.innerHTML = '<div class="card"><div class="empty">Could not load emergency requests (' + esc(String(err.message || err)) + '). <button class="btn btn-sm" onclick="loadEmergencyRequests()">Try again</button></div></div>';
+    });
 }
 
 function renderEmergencyRequests() {
-  const list = staffNotifications.filter(isEmergency);
+  if (!emergencyListLoaded) return;
+  // Waiting student requests first (newest on top), then all other records newest first.
+  const rank = n => (n.type === 'EMERGENCY_ALERT' && !n.read) ? 0 : (!n.read ? 1 : 2);
+  const list = staffNotifications.filter(isEmergency).slice().sort((a, b) =>
+    rank(a) - rank(b) || String(b.createdAt).localeCompare(String(a.createdAt)));
   const el = document.getElementById('emergency-list');
   if (!list.length) { el.innerHTML = '<div class="card"><div class="empty">No emergency requests.</div></div>'; return; }
   const acked = loadAcknowledgedEmergencyIds();
-  el.innerHTML = list.map(n => {
+  const waitingCount = waitingEmergencyStudents().length;
+  const alertTotal = list.filter(n => n.type === 'EMERGENCY_ALERT').length;
+  const head = `<div class="notice ${waitingCount ? 'danger' : 'ok'}" style="margin-bottom:14px;"><strong>${waitingCount} student${waitingCount === 1 ? '' : 's'} waiting</strong> <span class="notice-body">${alertTotal} request${alertTotal === 1 ? '' : 's'} received in total. The newest waiting requests are at the top. Read the reason on each card, then press Check in now.</span></div>`;
+  el.innerHTML = head + list.map(n => {
     const isAlert = n.type === 'EMERGENCY_ALERT';
     const title = (isAlert ? 'Emergency request · ' : 'Emergency check-in · ') + (n.studentName || n.studentUsername || '');
     return `
@@ -700,34 +735,38 @@ function checkInFromRequest(id) {
 
 function showNextEmergencyPopup() {
   if (emergencyPopupShowing || emergencyPopupQueue.length === 0) return;
-  const n = emergencyPopupQueue.shift();
+  const batch = emergencyPopupQueue.splice(0);
   emergencyPopupShowing = true;
   const overlay = document.getElementById('incoming-emergency-overlay');
-  overlay.dataset.notifId = n.id;
-  overlay.dataset.studentId = n.studentUsername;
-  document.getElementById('incoming-emergency-name').textContent = n.studentName + ' (' + n.studentUsername + ')';
-  document.getElementById('incoming-emergency-message').textContent = n.message;
-  document.getElementById('incoming-emergency-time').textContent = HC.fmtDateTime(n.createdAt);
+  overlay.dataset.ids = batch.map(n => n.id).join(',');
+  document.getElementById('incoming-emergency-name').textContent =
+    batch.length + ' new emergency request' + (batch.length === 1 ? '' : 's') + ' received';
+  const msg = document.getElementById('incoming-emergency-message');
+  msg.style.whiteSpace = 'pre-line';
+  msg.textContent = batch.slice(0, 6).map(n => '• ' + (n.studentName || '') + ' (' + (n.studentUsername || '') + ')').join('\n')
+    + (batch.length > 6 ? '\n+ ' + (batch.length - 6) + ' more' : '');
+  document.getElementById('incoming-emergency-time').textContent = HC.fmtDateTime(batch[batch.length - 1].createdAt);
   overlay.hidden = false;
 }
 
-function acknowledgeEmergencyPopup() {
+function closeEmergencyPopup() {
   const overlay = document.getElementById('incoming-emergency-overlay');
-  // Intentionally NOT marked read - it stays unread until someone acts on it.
-  rememberAcknowledgedEmergencyId(overlay.dataset.notifId);
+  // Intentionally NOT marked read - requests stay unread until the student is checked in.
+  (overlay.dataset.ids || '').split(',').filter(Boolean).forEach(id => rememberAcknowledgedEmergencyId(id));
   overlay.hidden = true;
   emergencyPopupShowing = false;
+}
+
+function acknowledgeEmergencyPopup() {
+  closeEmergencyPopup();
   if (Shell.currentView() === 'emergencies') renderEmergencyRequests();
   showNextEmergencyPopup();
 }
 
-function checkInFromEmergencyPopup() {
-  const overlay = document.getElementById('incoming-emergency-overlay');
-  fetch('/notifications/' + overlay.dataset.notifId + '/read', { method: 'POST', headers: { 'Authorization': authHeader } })
-    .then(() => pollNotifCount()).catch(() => {});
-  overlay.hidden = true;
-  emergencyPopupShowing = false;
-  openEmergencyModal(overlay.dataset.studentId);
+function openEmergencyListFromPopup() {
+  closeEmergencyPopup();
+  location.hash = '#emergencies';
+  loadEmergencyRequests();
 }
 
 let lastNotifItems = [];
@@ -803,12 +842,15 @@ function closeEmergencyModal() {
   document.getElementById('emergency-modal-overlay').hidden = true;
 }
 
-function submitEmergencyCheckIn() {
+async function submitEmergencyCheckIn() {
   const studentId = document.getElementById('emergencyStudentId').value.trim();
   const reason = document.getElementById('emergencyReason').value.trim();
   const resultEl = document.getElementById('emergencyResult');
-  if (!studentId) { resultEl.className = 'toast err'; resultEl.textContent = 'Student ID is required.'; return; }
+  { const te = VAL.textError(reason, 'The reason', false); if (te) { VAL.alert(te); return; } }
+  if (!studentId) { resultEl.className = 'toast err'; resultEl.textContent = 'Student ID is required.'; VAL.alert('Student ID is required.'); return; }
+  if (!/^[Ss]11\d{6}$/.test(studentId)) { resultEl.className = 'toast err'; resultEl.textContent = 'Student ID must be S11 followed by 6 digits (e.g. S11234567).'; VAL.alert('Student ID must be S11 followed by 6 digits (e.g. S11234567).'); return; }
 
+  if (!(await VAL.ask({ title: 'Emergency check-in', rows: [['Student', studentId.toUpperCase()]], note: 'Check this student in as an emergency and notify the clinic?', okText: 'Yes, check in', danger: true }))) return;
   fetch('/emergency/checkin', {
     method: 'POST',
     headers: { 'Authorization': authHeader, 'Content-Type': 'application/json' },
@@ -839,14 +881,17 @@ function closeChangePasswordModal() {
   document.getElementById('change-password-modal-overlay').hidden = true;
 }
 
-function submitChangePassword() {
+async function submitChangePassword() {
   const currentPassword = document.getElementById('cpCurrentPassword').value;
   const newPassword = document.getElementById('cpNewPassword').value;
   const confirmPassword = document.getElementById('cpConfirmPassword').value;
   const resultEl = document.getElementById('cpResult');
   if (!currentPassword || !newPassword) { resultEl.className = 'toast err'; resultEl.textContent = 'Both fields are required.'; return; }
   if (newPassword !== confirmPassword) { resultEl.className = 'toast err'; resultEl.textContent = 'New password and confirmation do not match.'; return; }
+  { const pe = VAL.password(newPassword, localStorage.getItem('currentUser')); if (pe) { resultEl.className = 'toast err'; resultEl.textContent = pe; VAL.alert(pe); return; } }
+  if (newPassword === currentPassword) { const m = 'The new password must be different from your current password.'; resultEl.className = 'toast err'; resultEl.textContent = m; VAL.alert(m); return; }
 
+  if (!(await VAL.ask({ title: 'Change password', note: 'Change your password now?', okText: 'Yes, change password' }))) return;
   fetch('/account/change-password', {
     method: 'POST',
     headers: { 'Authorization': authHeader, 'Content-Type': 'application/json' },

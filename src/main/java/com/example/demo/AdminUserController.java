@@ -53,6 +53,7 @@ public class AdminUserController {
         public Long id;
         public String username;
         public String role;
+        public String email;
         public boolean active;
         public String fullName;
         public String country;
@@ -73,6 +74,7 @@ public class AdminUserController {
             this.id = u.getId();
             this.username = u.getUsername();
             this.role = u.getRole();
+            this.email = u.getEmail();
             this.active = u.isActive();
             // Registration/fee fields only apply to student accounts
             if ("STUDENT".equals(u.getRole())) {
@@ -131,6 +133,7 @@ public class AdminUserController {
         public String username;
         public String password;
         public String role; // ADMIN, DOCTOR, or NURSE
+        public String email; // optional; where password reset codes are sent
     }
 
     // "the admin is able to add ... staff ... accounts"
@@ -144,8 +147,16 @@ public class AdminUserController {
         if (username.length() < MIN_USERNAME_LENGTH || username.length() > MAX_USERNAME_LENGTH) {
             return Map.of("error", "Username must be between " + MIN_USERNAME_LENGTH + " and " + MAX_USERNAME_LENGTH + " characters.");
         }
-        if (request.password.length() < MIN_PASSWORD_LENGTH || request.password.length() > MAX_PASSWORD_LENGTH) {
-            return Map.of("error", "Password must be between " + MIN_PASSWORD_LENGTH + " and " + MAX_PASSWORD_LENGTH + " characters.");
+        if (username.matches(".*\\s.*")) {
+            return Map.of("error", "Username cannot contain spaces.");
+        }
+        String unameError = InputRules.username(username);
+        if (unameError != null) {
+            return Map.of("error", unameError);
+        }
+        String passwordError = PasswordRules.check(request.password, username);
+        if (passwordError != null) {
+            return Map.of("error", passwordError);
         }
         if (request.role == null || !STAFF_ROLES.contains(request.role)) {
             return Map.of("error", "Role must be one of: ADMIN, DOCTOR, NURSE.");
@@ -154,8 +165,19 @@ public class AdminUserController {
             return Map.of("error", "This username is already registered.");
         }
         request.username = username;
+        String email = request.email == null ? "" : request.email.trim();
+        if (!email.isEmpty() && (email.length() > 150 || !email.matches("^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$"))) {
+            return Map.of("error", "Please enter a valid email address (or leave it blank).");
+        }
+
+        // one email address can belong to only one account
+        if (!email.isEmpty() && userRepository.findAll().stream()
+                .anyMatch(u -> u.getEmail() != null && u.getEmail().equalsIgnoreCase(email))) {
+            return Map.of("error", "This email address is already used by another account.");
+        }
 
         User user = new User(request.username, passwordEncoder.encode(request.password), request.role);
+        if (!email.isEmpty()) user.setEmail(email);
         userRepository.save(user);
 
         return new UserView(user);
@@ -175,8 +197,9 @@ public class AdminUserController {
         if (request.newPassword == null || request.newPassword.isBlank()) {
             return Map.of("error", "A new password is required.");
         }
-        if (request.newPassword.length() < MIN_PASSWORD_LENGTH || request.newPassword.length() > MAX_PASSWORD_LENGTH) {
-            return Map.of("error", "Password must be between " + MIN_PASSWORD_LENGTH + " and " + MAX_PASSWORD_LENGTH + " characters.");
+        String passwordError = PasswordRules.check(request.newPassword, user.getUsername());
+        if (passwordError != null) {
+            return Map.of("error", passwordError);
         }
 
         user.setPassword(passwordEncoder.encode(request.newPassword));
@@ -255,6 +278,15 @@ public class AdminUserController {
             return Map.of("error", "This account has no uploaded receipt to reject.");
         }
 
+        if (request != null && request.reason != null && request.reason.trim().length() > 200) {
+            return Map.of("error", "The rejection reason must be 200 characters or fewer.");
+        }
+        if (request != null) {
+            String rejError = InputRules.freeText(request.reason, "The rejection reason");
+            if (rejError != null) {
+                return Map.of("error", rejError);
+            }
+        }
         String reason = (request != null && request.reason != null && !request.reason.isBlank())
                 ? request.reason.trim()
                 : "Your receipt was rejected. Please upload a valid payment receipt.";

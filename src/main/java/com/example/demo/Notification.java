@@ -2,6 +2,7 @@ package com.example.demo;
 
 import java.time.LocalDateTime;
 
+import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
@@ -27,6 +28,7 @@ public class Notification {
     private String studentUsername; // the student this alert is ABOUT
     private String studentName;
     private String recipientUsername; // null = staff broadcast; set = that student only
+    @Column(length = 600)
     private String message;
     private LocalDateTime createdAt;
     private boolean read = false;

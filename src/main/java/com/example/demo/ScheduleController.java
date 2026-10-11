@@ -1,9 +1,12 @@
 package com.example.demo;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
 import java.time.LocalTime;
+import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
 import java.util.LinkedHashMap;
+import java.util.Locale;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -28,9 +31,15 @@ import org.springframework.web.server.ResponseStatusException;
 public class ScheduleController {
 
     private final DoctorScheduleRepository scheduleRepository;
+    private final AppointmentRepository appointmentRepository;
 
-    public ScheduleController(DoctorScheduleRepository scheduleRepository) {
+    private final UserRepository userRepository;
+
+    public ScheduleController(DoctorScheduleRepository scheduleRepository, AppointmentRepository appointmentRepository,
+                              UserRepository userRepository) {
         this.scheduleRepository = scheduleRepository;
+        this.appointmentRepository = appointmentRepository;
+        this.userRepository = userRepository;
     }
 
     // students view slots for a date (booked and open), optionally filtered by doctor,
@@ -39,6 +48,11 @@ public class ScheduleController {
     public List<DoctorSchedule> getAvailable(
             @RequestParam(required = false) String doctorName,
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date) {
+
+        // DEF-05: never offer slots dated before today
+        if (date.isBefore(LocalDate.now())) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "No available appointments for the selected date");
+        }
 
         List<DoctorSchedule> slots = (doctorName != null)
                 ? scheduleRepository.findByDoctorNameAndScheduleDateAndArchivedFalse(doctorName, date)
@@ -51,6 +65,16 @@ public class ScheduleController {
         return slots;
     }
 
+    // Every active doctor account, so the student booking page can list new doctors straight away
+    @GetMapping("/bookable-doctors")
+    public List<String> getBookableDoctorsForStudents() {
+        return userRepository.findAll().stream()
+                .filter(u -> "DOCTOR".equals(u.getRole()) && u.isActive())
+                .map(User::getUsername)
+                .sorted(String.CASE_INSENSITIVE_ORDER)
+                .collect(Collectors.toList());
+    }
+
     // Returns the distinct list of doctor names for the homepage search bar
     @GetMapping("/doctors")
     public List<String> getDoctorNames() {
@@ -61,6 +85,20 @@ public class ScheduleController {
                 .collect(Collectors.toList());
     }
 
+    // Doctors who can be given slots: every active doctor account for an admin,
+    // or just the signed-in doctor's own account (a doctor can only manage their own schedule).
+    @GetMapping("/manage/doctors")
+    public List<String> getBookableDoctors(Authentication auth) {
+        boolean isAdmin = auth.getAuthorities().stream().anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN"));
+        return userRepository.findAll().stream()
+                .filter(u -> "DOCTOR".equals(u.getRole()) && u.isActive())
+                .map(User::getUsername)
+                .filter(n -> isAdmin || n.equals(auth.getName()))
+                .sorted(String.CASE_INSENSITIVE_ORDER)
+                .collect(Collectors.toList());
+    }
+
+
     // doctor/admin creates a new consultation slot. A range longer than one
     // appointment (e.g. 09:30-18:00 from an older page) is working hours, so it is
     // split into 30-minute slots rather than saved as one all-day appointment.
@@ -68,6 +106,11 @@ public class ScheduleController {
     public Object createSlot(@RequestBody DoctorSchedule slot, Authentication auth) {
         validateOwnership(slot.getDoctorName(), auth);
         validateRequiredFields(slot);
+        // the doctor must be a real, active doctor account
+        if (userRepository.findByUsername(slot.getDoctorName().trim())
+                .filter(u -> "DOCTOR".equals(u.getRole()) && u.isActive()).isEmpty()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Please choose an active doctor from the list.");
+        }
 
         LocalTime[] range = SlotPlanner.parseRange(slot.getTimeSlot());
         if (range != null && SlotPlanner.minutesOf(range) > SlotPlanner.MAX_APPOINTMENT_MINUTES) {
@@ -172,6 +215,7 @@ public class ScheduleController {
     }
 
     // doctor/admin updates an existing consultation slot (this endpoint did not exist before)
+    @Transactional
     @PutMapping("/manage/{id}")
     public DoctorSchedule updateSlot(@PathVariable Long id, @RequestBody DoctorSchedule updated, Authentication auth) {
         DoctorSchedule existing = scheduleRepository.findById(id)
@@ -186,6 +230,15 @@ public class ScheduleController {
         // booked status is left untouched - editing a slot's date/time doesn't
         // change whether this specific row already has a student booked into it
         // doctorName is intentionally not changed by an update - a slot belongs to the doctor that created it
+
+        // keep a student's active appointment in step with the new date/time (DEF-12)
+        if (existing.isBooked()) {
+            for (Appointment a : appointmentRepository.findByScheduleSlotIdAndStatus(existing.getId(), "BOOKED")) {
+                a.setAppointmentDate(existing.getScheduleDate());
+                a.setTimeSlot(existing.getTimeSlot());
+                appointmentRepository.save(a);
+            }
+        }
 
         try {
             return scheduleRepository.save(existing);
@@ -260,6 +313,29 @@ public class ScheduleController {
         if (slot.getScheduleDate().isBefore(LocalDate.now())) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
                     "Schedule date cannot be in the past.");
+        }
+        validateTimeSlot(slot);
+    }
+
+    private static final DateTimeFormatter SLOT_FMT = DateTimeFormatter.ofPattern("h:mm a", Locale.US);
+
+    // time slot must be "09:00 AM - 09:30 AM": valid times, end after start, and not already past today
+    private void validateTimeSlot(DoctorSchedule slot) {
+        String text = slot.getTimeSlot().trim().toUpperCase(Locale.US);
+        String[] parts = text.split("\\s*-\\s*");
+        try {
+            if (parts.length != 2) throw new DateTimeParseException("bad", text, 0);
+            LocalTime start = LocalTime.parse(parts[0].trim(), SLOT_FMT);
+            LocalTime end = LocalTime.parse(parts[1].trim(), SLOT_FMT);
+            if (!end.isAfter(start)) {
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "The slot's end time must be after its start time.");
+            }
+            if (slot.getScheduleDate().equals(LocalDate.now()) && !start.isAfter(LocalTime.now())) {
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "You can't create a slot for a time that has already passed.");
+            }
+        } catch (DateTimeParseException e) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                    "Time slot must look like \"09:00 AM - 09:30 AM\".");
         }
     }
 

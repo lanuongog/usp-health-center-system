@@ -1,4 +1,5 @@
 package com.example.demo;
+import org.springframework.transaction.annotation.Transactional;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.Authentication;
@@ -110,8 +111,12 @@ public class NurseController {
 
     // check in a booked student, record vitals + complaint,
     // prevent the same student being checked in twice for the same visit
+    @Transactional
     @PostMapping("/checkin")
     public CheckIn checkInStudent(@RequestBody CheckInRequest request, Authentication auth) {
+        if (request == null || request.appointmentId == null) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Appointment ID is required.");
+        }
         Appointment appointment = appointmentRepository.findById(request.appointmentId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Student record not found"));
 
@@ -125,6 +130,12 @@ public class NurseController {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "No valid appointment found");
         }
 
+        // a future-dated appointment cannot be checked in yet
+        if (appointment.getAppointmentDate() != null && appointment.getAppointmentDate().isAfter(LocalDate.now())) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT,
+                    "This appointment is scheduled for a future date and cannot be checked in yet.");
+        }
+
         // required fields must be present
         if (isBlank(request.temperature) || isBlank(request.bloodPressure) || isBlank(request.presentingComplaint)) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
@@ -133,6 +144,10 @@ public class NurseController {
         if (request.presentingComplaint.trim().length() > MAX_COMPLAINT_LENGTH) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
                     "Presenting complaint must be " + MAX_COMPLAINT_LENGTH + " characters or fewer.");
+        }
+        String complaintError = InputRules.freeText(request.presentingComplaint, "Presenting complaint");
+        if (complaintError != null) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, complaintError);
         }
 
         // reject out-of-range or malformed vital sign values
@@ -190,6 +205,7 @@ public class NurseController {
     // booking, and checks them in with vitals in the same step - the same
     // combined check-in+vitals pattern used for booked students above, just
     // without an existing Appointment/schedule slot to attach to.
+    @Transactional
     @PostMapping("/walk-in-checkin")
     public Object walkInCheckIn(@RequestBody WalkInCheckInRequest request, Authentication auth) {
         if (request.studentId == null || request.studentId.isBlank()) {
@@ -200,6 +216,10 @@ public class NurseController {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Student record not found");
         }
         String studentId = student.getUsername();
+
+        if (!student.isActive()) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "This student account is deactivated.");
+        }
 
         boolean hasActiveVisit = appointmentRepository.findByStudentName(studentId).stream()
                 .anyMatch(a -> "BOOKED".equals(a.getStatus()) || "CHECKED_IN".equals(a.getStatus()));
@@ -214,6 +234,10 @@ public class NurseController {
         if (request.presentingComplaint.trim().length() > MAX_COMPLAINT_LENGTH) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
                     "Presenting complaint must be " + MAX_COMPLAINT_LENGTH + " characters or fewer.");
+        }
+        String complaintError = InputRules.freeText(request.presentingComplaint, "Presenting complaint");
+        if (complaintError != null) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, complaintError);
         }
         if (request.urgencyLevel == null || !URGENCY_LEVELS.contains(request.urgencyLevel)) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
@@ -285,11 +309,19 @@ public class NurseController {
     // the check-in queue and freeing the schedule slot for other students
     @PostMapping("/no-show")
     public Appointment markNoShow(@RequestBody NoShowRequest request) {
+        if (request == null || request.appointmentId == null) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Appointment ID is required.");
+        }
         Appointment appointment = appointmentRepository.findById(request.appointmentId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Student record not found"));
 
         if (!"BOOKED".equals(appointment.getStatus())) {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "No valid appointment found");
+        }
+
+        if (appointment.getAppointmentDate() != null && appointment.getAppointmentDate().isAfter(LocalDate.now())) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT,
+                    "A future appointment cannot be marked as a no-show.");
         }
 
         appointment.setStatus("NO_SHOW");
