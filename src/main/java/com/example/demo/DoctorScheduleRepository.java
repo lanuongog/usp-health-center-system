@@ -18,6 +18,7 @@ public interface DoctorScheduleRepository extends JpaRepository<DoctorSchedule, 
     List<DoctorSchedule> findByScheduleDateAndArchivedFalse(LocalDate date);
     List<DoctorSchedule> findByDoctorNameAndScheduleDateAndArchivedFalse(String doctorName, LocalDate date);
     List<DoctorSchedule> findByScheduleDateAndTimeSlotAndArchivedFalse(LocalDate scheduleDate, String timeSlot);
+    List<DoctorSchedule> findByScheduleDateBetweenAndArchivedFalseAndBookedFalse(LocalDate from, LocalDate to);
 
     @Query("SELECT DISTINCT s.doctorName FROM DoctorSchedule s ORDER BY s.doctorName")
     List<String> findDistinctDoctorNames();

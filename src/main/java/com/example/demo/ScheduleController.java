@@ -51,6 +51,36 @@ public class ScheduleController {
         return slots;
     }
 
+    private static final int MAX_OPEN_DATES_RANGE_DAYS = 120;
+
+    // Days that have at least one bookable time (open, not removed, not already
+    // past), each with its earliest open time. Lets the booking calendar mark
+    // which days have a doctor and point students to the next available day,
+    // instead of leaving them clicking through empty dates. Uses the same rules
+    // as booking, so a suggested day always has a time that can actually be booked.
+    @GetMapping("/open-dates")
+    public List<Map<String, Object>> getOpenDates(
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to) {
+        LocalDate start = from.isBefore(LocalDate.now()) ? LocalDate.now() : from;
+        LocalDate end = to.isAfter(start.plusDays(MAX_OPEN_DATES_RANGE_DAYS)) ? start.plusDays(MAX_OPEN_DATES_RANGE_DAYS) : to;
+        if (end.isBefore(start)) return List.of();
+
+        Map<LocalDate, DoctorSchedule> earliestByDate = new java.util.TreeMap<>();
+        for (DoctorSchedule slot : scheduleRepository.findByScheduleDateBetweenAndArchivedFalseAndBookedFalse(start, end)) {
+            if (BookingController.isSlotInPast(slot)) continue;
+            earliestByDate.merge(slot.getScheduleDate(), slot, (a, b) -> {
+                LocalTime ta = BookingController.slotStartTime(a);
+                LocalTime tb = BookingController.slotStartTime(b);
+                if (ta == null) return b;
+                return (tb != null && tb.isBefore(ta)) ? b : a;
+            });
+        }
+        return earliestByDate.values().stream()
+                .map(slot -> Map.<String, Object>of("date", slot.getScheduleDate().toString(), "firstTime", slot.getTimeSlot()))
+                .collect(Collectors.toList());
+    }
+
     // Returns the distinct list of doctor names for the homepage search bar
     @GetMapping("/doctors")
     public List<String> getDoctorNames() {

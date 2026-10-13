@@ -154,6 +154,7 @@
               </div>
             </div>
             <div class="cal-grid" id="cal-grid"></div>
+            <p class="cal-legend"><span class="cal-dot"></span> Times available · greyed-out days have no free times</p>
           </div>
           <div>
             <p class="slots-title" id="slots-title"></p>
@@ -591,6 +592,56 @@ function fetchSlots(date) {
     });
 }
 
+// Days with at least one bookable time over the next ~4 months, each with its
+// earliest open time (iso date -> time slot). Drives the calendar dots and the
+// "next available" suggestions, so students aren't left clicking through days
+// with no doctor. Reloaded with every slot refresh so it never suggests a day
+// whose times have since been taken.
+const OPEN_DATES_DAYS = 120;
+let openDates = null;
+
+function loadOpenDates() {
+  const from = HC.todayIso();
+  const end = new Date();
+  end.setDate(end.getDate() + OPEN_DATES_DAYS);
+  return fetch(`/schedule/open-dates?from=${from}&to=${HC.isoDate(end)}`)
+    .then(res => res.ok ? res.json() : Promise.reject())
+    .then(list => { openDates = new Map(list.map(d => [d.date, d.firstTime])); })
+    .catch(() => { openDates = null; }); // unknown - calendar falls back to every day clickable
+}
+
+// First day after `afterIso` with an open time, or null.
+function nextOpenDate(afterIso) {
+  if (!openDates) return null;
+  const iso = [...openDates.keys()].sort().find(d => d > afterIso);
+  return iso ? { date: iso, firstTime: openDates.get(iso) } : null;
+}
+
+function nextAvailableHtml(afterIso) {
+  const next = nextOpenDate(afterIso);
+  if (!next) {
+    return openDates
+      ? '<p class="small muted" style="margin-top:8px;">No doctor has added appointment times yet. Please check again later.</p>'
+      : '';
+  }
+  const day = HC.fmtDate(next.date);
+  return `<p class="small" style="margin-top:8px;">Next available: <strong>${esc(day)}, ${esc(HC.slotRange(next.firstTime))}</strong></p>
+    <button class="btn btn-sm" style="margin-top:10px;" onclick="goToBookingDate('${next.date}')">Go to ${esc(day)}</button>`;
+}
+
+// Opens the booking calendar on a given day (from either the overview or the booking page).
+function goToBookingDate(iso) {
+  selectedDate = iso;
+  const d = new Date(iso + 'T00:00:00');
+  calMonth = new Date(d.getFullYear(), d.getMonth(), 1);
+  if (Shell.currentView() === 'book') {
+    renderCalendar();
+    loadSlots();
+  } else {
+    location.hash = '#book';
+  }
+}
+
 function statusLabel(s) {
   return { COMPLETED: 'Completed', CANCELLED: 'Cancelled', NO_SHOW: 'No-show', BOOKED: 'Booked', CHECKED_IN: 'Checked in' }[s] || esc(s);
 }
@@ -640,7 +691,9 @@ function loadAvailabilityToday() {
       document.getElementById('avail-refreshed').textContent =
         `Last refreshed today at ${HC.nowLabel().time} · Refresh to check for changes.`;
       if (!slots.length) {
-        body.innerHTML = '<tr><td colspan="3" class="muted">No consultation hours are scheduled for today.</td></tr>';
+        loadOpenDates().then(() => {
+          body.innerHTML = `<tr><td colspan="3"><span class="muted">No doctors are working today.</span>${nextAvailableHtml(today)}</td></tr>`;
+        });
         return;
       }
       const byDoctor = {};
@@ -717,8 +770,13 @@ function renderCalendar() {
     if (iso < today) cls.push('past');
     if (iso === today) cls.push('today');
     if (iso === selectedDate) cls.push('selected');
-    html += iso < today
-      ? `<button type="button" class="${cls.join(' ')}" disabled>${d}</button>`
+    // Grey out days with no free time (no doctor that day, or every time already
+    // taken) - only once availability is known; if it failed to load, every day stays clickable.
+    const noDoctor = iso >= today && openDates && !openDates.has(iso);
+    if (iso >= today && openDates && openDates.has(iso)) cls.push('has-slots');
+    if (noDoctor) cls.push('no-doctor');
+    html += iso < today || (noDoctor && iso !== selectedDate)
+      ? `<button type="button" class="${cls.join(' ')}" disabled${noDoctor ? ' title="No free times"' : ''}>${d}</button>`
       : `<button type="button" class="${cls.join(' ')}" onclick="pickDate('${iso}')">${d}</button>`;
   }
   document.getElementById('cal-grid').innerHTML = html;
@@ -744,11 +802,16 @@ function loadSlots() {
     return;
   }
   container.innerHTML = '<div class="empty">Loading available times…</div>';
-  fetchSlots(date)
-    .then(slots => {
+  Promise.all([fetchSlots(date), loadOpenDates()])
+    .then(([slots]) => {
       if (date !== selectedDate) return;
-      if (!slots.length) {
-        container.innerHTML = '<div class="empty">No consultations are scheduled on this date.</div>';
+      renderCalendar();
+      const bookable = slots.filter(s => !s.booked && !HC.isSlotPast(date, s.timeSlot));
+      if (!slots.length || !bookable.length) {
+        const why = !slots.length ? `No doctor is working on ${esc(HC.fmtDate(date))}.`
+          : `All times on ${esc(HC.fmtDate(date))} are taken or have passed.`;
+        container.innerHTML = `<div class="empty">${why}${nextAvailableHtml(date)}</div>`
+          + (slots.length ? '<div class="slot-grid" style="margin-top:12px;">' + uniqueSlots(slots).map(s => slotTile(s, date, 'pickSlot')).join('') + '</div>' : '');
         return;
       }
       container.innerHTML = '<div class="slot-grid">' + uniqueSlots(slots).map(s => slotTile(s, date, 'pickSlot')).join('') + '</div>';

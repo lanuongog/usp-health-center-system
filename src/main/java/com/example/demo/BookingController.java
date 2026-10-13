@@ -63,12 +63,18 @@ public class BookingController {
         if (date == null) return true;
         LocalDate today = LocalDate.now();
         if (date.isBefore(today)) return true;
-        if (date.isAfter(today) || slot.getTimeSlot() == null) return false;
+        if (date.isAfter(today)) return false;
+        LocalTime start = slotStartTime(slot);
+        return start != null && !start.isAfter(LocalTime.now());
+    }
+
+    // "09:00 AM" from "09:00 AM - 09:30 AM", or null if it can't be read.
+    static LocalTime slotStartTime(DoctorSchedule slot) {
+        if (slot.getTimeSlot() == null) return null;
         try {
-            LocalTime start = LocalTime.parse(slot.getTimeSlot().split("-")[0].trim(), SLOT_TIME_FORMAT);
-            return !start.isAfter(LocalTime.now());
+            return LocalTime.parse(slot.getTimeSlot().split("-")[0].trim(), SLOT_TIME_FORMAT);
         } catch (DateTimeParseException e) {
-            return false;
+            return null;
         }
     }
 
