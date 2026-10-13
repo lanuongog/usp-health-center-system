@@ -37,8 +37,6 @@
 .urgent-card .uc-icon { width: 22px; height: 22px; border-radius: 50%; border: 2px solid var(--emergency); color: var(--emergency); display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 12px; margin-bottom: 12px; }
 .urgent-note { font-size: 12px; color: var(--emergency); margin-top: 12px; }
 #banner-holder { display: none; }
-.em-grid { grid-template-columns: minmax(0, 1fr) 310px; }
-@media (max-width: 1080px) { .em-grid { grid-template-columns: minmax(0, 1fr); } }
 </style>
 </head>
 <body>
@@ -111,6 +109,11 @@
     </div>
 
     <div class="stack">
+      <div class="card danger-edge urgent-card">
+        <div class="uc-icon">!</div>
+        <div class="em-panel"></div>
+      </div>
+
       <div class="card">
         <h2>Notifications</h2>
         <div class="pill-row" style="margin:12px 0 16px;">
@@ -120,13 +123,6 @@
         <div id="ov-alerts"><p class="small muted">No notifications yet.</p></div>
       </div>
 
-      <div class="card danger-edge urgent-card">
-        <div class="uc-icon">!</div>
-        <h2>Need urgent assistance?</h2>
-        <p class="small muted" style="margin:8px 0 14px;">Send an emergency request to the clinic for review. This is not an ambulance service.</p>
-        <a class="btn btn-danger btn-block" href="#emergency">Open emergency request</a>
-        <p class="urgent-note">For immediate danger, contact emergency services or seek urgent in-person help.</p>
-      </div>
     </div>
   </div>
   <p class="app-legal">All times are Fiji local time.</p>
@@ -179,7 +175,7 @@
           <div class="error-text" id="reason-error"></div>
           <p class="help">Tell us about your symptoms and when they started. This field is required, up to 300 words. <span id="reason-count" aria-live="polite">0 / 300 words</span></p>
         </div>
-        <p class="tiny muted" style="margin-top:16px;">If you need urgent assistance, use <a href="#emergency">Emergency request</a> instead of waiting for a routine appointment.</p>
+        <p class="tiny muted" style="margin-top:16px;">If you need urgent assistance, use the <a href="#emergency">Emergency</a> button instead of waiting for a routine appointment.</p>
       </div>
     </div>
 
@@ -327,65 +323,22 @@
   <p class="app-legal">All times are Fiji local time.</p>
 </section>
 
-<!-- ================= EMERGENCY REQUEST ================= -->
+<!-- ================= EMERGENCY ================= -->
 <section data-view="emergency" hidden>
   <div class="page-head">
     <div>
-      <h1>Emergency request</h1>
-      <p>Ask the Laucala clinic to review your need for urgent assistance.</p>
+      <h1>Emergency</h1>
+      <p>One tap alerts every nurse and doctor on duty at the Laucala clinic.</p>
     </div>
   </div>
   <div class="banner-slot"></div>
   <div class="notice danger" style="margin-bottom:20px;">
     <strong>For immediate danger, don’t wait here</strong>
-    <span class="notice-body">Contact emergency services or seek urgent in-person help. This portal does not dispatch an ambulance or guarantee a response.</span>
+    <span class="notice-body">Contact emergency services or campus security as well. This portal does not dispatch an ambulance.</span>
   </div>
-
-  <div class="grid-main-side em-grid">
-    <div class="card">
-      <h2 id="em-heading">Tell the clinic what is happening</h2>
-      <p class="card-sub" id="em-state-sub">No request sent today.</p>
-      <div class="state-badges">
-        <span class="pill" id="em-who"></span>
-        <span class="pill teal" id="em-state-pill">Ready to request</span>
-      </div>
-      <div id="em-form">
-      <div class="field" id="em-what-field">
-        <label for="emergencyReason">What is happening? *</label>
-        <textarea id="emergencyReason" rows="3" maxlength="200" placeholder="Describe what is happening right now"></textarea>
-      </div>
-      <div class="field" id="em-where-field">
-        <label for="emergencyLocation">Where are you now? *</label>
-        <textarea id="emergencyLocation" rows="2" maxlength="80" placeholder="e.g. Health Center reception, Laucala Campus"></textarea>
-      </div>
-      <p class="tiny muted" style="margin-bottom:18px;">One emergency request per day. If you have already sent one today, the clinic is expecting you — do not send another.</p>
-      <div class="btn-row">
-        <button class="btn btn-danger" id="em-review-btn" onclick="reviewEmergency()"><span data-icon="alert"></span>Review emergency request</button>
-        <a class="btn-link" href="#overview">Return to overview</a>
-      </div>
-      </div>
-      <div id="em-locked" hidden>
-        <div class="notice ok">
-          <strong id="em-locked-title">Emergency request sent today</strong>
-          Health Center staff have been notified and will prioritise you when you arrive. Go to the Health Center now if you can — you don’t need to send another request.
-        </div>
-        <p class="small muted" style="margin-top:14px;">You can send one emergency request per day. A new request can be sent from tomorrow. If things get worse, contact emergency services or campus security directly.</p>
-        <div class="btn-row" style="margin-top:16px;"><a class="btn" href="#overview">Return to overview</a></div>
-      </div>
-      <div class="form-msg" id="emergencyResult"></div>
-    </div>
-
-    <div class="stack">
-      <div class="card" id="em-confirm" hidden>
-        <div class="modal-icon">!</div>
-        <h2>Send this request?</h2>
-        <p class="small" style="margin-top:12px;">The clinic will receive your description and location for review. This does not confirm that a responder is on the way.</p>
-        <hr class="divider">
-        <p class="small">This uses your emergency request for today.</p>
-        <button class="btn btn-danger btn-block" style="margin-top:16px;" id="emergency-send-btn" onclick="sendEmergencyAlert()">Send emergency request</button>
-        <button class="btn btn-block" style="margin-top:10px;" id="em-back-btn" onclick="document.getElementById('em-confirm').hidden = true;">Go back</button>
-      </div>
-    </div>
+  <div class="card danger-edge urgent-card" style="max-width:560px;">
+    <div class="uc-icon">!</div>
+    <div class="em-panel"></div>
   </div>
 </section>
 
@@ -445,7 +398,6 @@ window.addEventListener('DOMContentLoaded', () => {
   }
   authHeader = storedAuth;
   currentStudentId = storedUser;
-  document.getElementById('em-who').textContent = currentStudentId;
   document.getElementById('reason-input').addEventListener('input', () => { setReasonError(false); updateSummary(); });
   document.getElementById('reason-input').addEventListener('blur', () => {
     if (selectedSlot && !document.getElementById('reason-input').value.trim()) setReasonError(true);
@@ -467,7 +419,7 @@ window.addEventListener('DOMContentLoaded', () => {
       { key: 'appointments', label: 'My appointments', href: '#appointments' },
       { key: 'history', label: 'Medical history', href: '#history' },
       { key: 'alerts', label: 'Notifications', href: '#alerts', count: true },
-      { key: 'emergency', label: 'Emergency request', href: '#emergency' }
+      { key: 'emergency', label: 'Emergency', href: '#emergency' }
     ],
     bottomNav: [
       { key: 'overview', label: 'Home', href: '#overview', icon: 'home' },
@@ -483,8 +435,11 @@ window.addEventListener('DOMContentLoaded', () => {
   loadHistory();
   loadNotifications();
   loadAvailabilityToday();
+  renderEmergencyPanels();
   loadEmergencyAlertStatus();
   checkTodayDelay();
+  // While an alert is active, keep checking so the student sees when staff respond.
+  setInterval(() => { if (emergencyState.active) loadEmergencyAlertStatus(); }, 5000);
   setInterval(pollNotifCount, 4000);
   setInterval(checkTodayDelay, 15000);
 });
@@ -523,7 +478,6 @@ function loadProfile() {
       if (p.fullName) {
         document.getElementById('greet-name').textContent = ', ' + p.fullName.split(' ')[0];
         Shell.setUser(p.fullName);
-        document.getElementById('em-who').textContent = p.fullName + ' · ' + currentStudentId;
       }
       const banner = document.getElementById('fee-banner');
       const text = document.getElementById('fee-banner-text');
@@ -1372,102 +1326,100 @@ function closeDelayModal() {
   document.getElementById('delay-modal-overlay').hidden = true;
 }
 
-// ---------- Emergency request ----------
-// One emergency alert per day (enforced server-side too). While sending, and
-// once sent, the controls are locked so repeated clicks can't send twice.
+// ---------- Emergency (one tap) ----------
+// One click sends the alert straight away - no form, because in an emergency
+// the student shouldn't have to type anything. Staff get their name, ID and
+// phone number. A mistaken tap can be cancelled afterwards. One alert per day
+// - a cancelled alert still counts (enforced server-side too).
+let emergencyState = { active: false };
 let emergencyAlertSending = false;
-let emergencyAlertSent = false;
 
 function loadEmergencyAlertStatus() {
   fetch('/student/emergency-alert/status', { headers: { 'Authorization': authHeader } })
     .then(res => res.ok ? res.json() : null)
-    .then(data => { if (data && data.sentToday) markEmergencyAlertSent(data.sentAt); })
+    .then(data => { if (data) { emergencyState = data; renderEmergencyPanels(); } })
     .catch(() => {});
 }
 
-// Swaps the form for a clear "already sent" panel, so a locked form is never
-// left looking editable.
-function markEmergencyAlertSent(sentAt) {
-  emergencyAlertSent = true;
-  emergencyAlertSending = false;
-  const time = HC.timeOf(sentAt || new Date().toISOString());
-  const pill = document.getElementById('em-state-pill');
-  pill.textContent = 'Today’s request used';
-  pill.className = 'pill';
-  document.getElementById('em-state-sub').textContent = `You sent an emergency request today at ${time} Fiji.`;
-  document.getElementById('em-locked-title').textContent = `Emergency request sent today at ${time}`;
-  document.getElementById('em-heading').textContent = 'Today’s emergency request';
-  document.getElementById('em-form').hidden = true;
-  document.getElementById('em-locked').hidden = false;
-  document.getElementById('em-confirm').hidden = true;
-  const overviewBtn = document.querySelector('.urgent-card .btn-danger');
-  overviewBtn.textContent = 'View today’s request';
-  overviewBtn.className = 'btn btn-block';
+function emergencyPanelHtml() {
+  const s = emergencyState;
+  if (s.active) {
+    const status = s.acknowledgedBy
+      ? `<div class="sos-status acked"><strong>Help is on the way</strong>${esc(s.acknowledgedBy)} acknowledged your alert at ${esc(HC.timeOf(s.acknowledgedAt))}. Go to the Health Center if you can, otherwise stay where you are and keep your phone on.</div>`
+      : `<div class="sos-status waiting"><strong>Alert sent — waiting for staff</strong>Sent at ${esc(HC.timeOf(s.sentAt))} Fiji. Every nurse and doctor on duty has been alerted. Keep your phone on — they may call you.</div>`;
+    return `<h2>Emergency alert active</h2>${status}
+      <button class="btn-link danger" style="margin-top:12px;" onclick="cancelEmergencyAlert()">Sent by mistake? Cancel alert</button>
+      <p class="urgent-note">If it is life-threatening, also contact emergency services or campus security.</p>`;
+  }
+  if (s.sentToday) {
+    // Today's alert is used up - no button, so it can't look like it'll work.
+    const outcome = !s.resolvedAt ? 'It is no longer active.'
+      : s.cancelledByStudent ? `You cancelled it at ${esc(HC.timeOf(s.resolvedAt))}. The clinic was told it was a false alarm.`
+      : `The clinic marked it done at ${esc(HC.timeOf(s.resolvedAt))}.`;
+    return `<h2>Today’s emergency alert used</h2>
+      <div class="sos-status acked"><strong>Alert sent at ${esc(HC.timeOf(s.sentAt))} Fiji</strong>${outcome}</div>
+      <p class="small muted" style="margin-top:12px;">You can send one emergency alert per day. A new one can be sent from tomorrow.</p>
+      <p class="urgent-note">If you need help now, go straight to the Health Center, or contact emergency services or campus security.</p>`;
+  }
+  let note = '';
+  if (s.resolvedAt) {
+    // A previous day's alert can still show here until it expires.
+    note = s.cancelledByStudent
+      ? `You cancelled your alert at ${esc(HC.timeOf(s.resolvedAt))}.`
+      : `Your alert from ${esc(HC.timeOf(s.sentAt))} was marked done by the clinic at ${esc(HC.timeOf(s.resolvedAt))}.`;
+  }
+  return `<h2>Emergency?</h2>
+    <p class="small muted" style="margin:8px 0 14px;">One tap alerts every nurse and doctor on duty. No form to fill in — they get your name, student ID and phone number.</p>
+    <button class="btn btn-danger btn-block sos-btn" ${emergencyAlertSending ? 'disabled' : ''} onclick="sendEmergencyAlert()">
+      ${emergencyAlertSending ? '<span class="sos-btn-main"><span class="spinner"></span>Sending alert…</span>'
+        : `<span class="sos-btn-main">${HC.icon('alert')}EMERGENCY</span><span class="sos-btn-sub">Tap once to alert the clinic now</span>`}</button>
+    ${note ? `<p class="tiny muted" style="margin-top:10px;">${note}</p>` : ''}
+    <div class="form-msg" id="emergencyResult"></div>
+    <p class="urgent-note">This is not an ambulance service. For immediate danger, contact emergency services or campus security.</p>`;
 }
 
-function reviewEmergency() {
-  if (emergencyAlertSent || emergencyAlertSending) return;
-  const what = document.getElementById('emergencyReason').value.trim();
-  const where = document.getElementById('emergencyLocation').value.trim();
-  const result = document.getElementById('emergencyResult');
-  document.getElementById('em-what-field').classList.toggle('invalid', !what);
-  document.getElementById('em-where-field').classList.toggle('invalid', !where);
-  if (!what || !where) {
-    result.className = 'form-msg err';
-    result.textContent = 'Please describe what is happening and where you are now.';
-    return;
-  }
-  result.textContent = '';
-  document.getElementById('em-confirm').hidden = false;
-  if (window.innerWidth <= 1080) document.getElementById('em-confirm').scrollIntoView({ behavior: 'smooth' });
+function renderEmergencyPanels() {
+  const html = emergencyPanelHtml();
+  document.querySelectorAll('.em-panel').forEach(el => { el.innerHTML = html; });
+}
+
+function showEmergencyError(message) {
+  document.querySelectorAll('#emergencyResult').forEach(el => { el.className = 'form-msg err'; el.textContent = message; });
 }
 
 function sendEmergencyAlert() {
-  if (emergencyAlertSending || emergencyAlertSent) return;
-  const what = document.getElementById('emergencyReason').value.trim();
-  const where = document.getElementById('emergencyLocation').value.trim();
-  const result = document.getElementById('emergencyResult');
-  const btn = document.getElementById('emergency-send-btn');
-  const back = document.getElementById('em-back-btn');
-  const pill = document.getElementById('em-state-pill');
-
+  if (emergencyAlertSending || emergencyState.active || emergencyState.sentToday) return;
   emergencyAlertSending = true;
-  btn.disabled = true;
-  back.disabled = true;
-  btn.innerHTML = '<span class="spinner"></span>Sending request…';
-  pill.textContent = 'Sending';
+  renderEmergencyPanels();
 
-  const resetSending = () => {
-    emergencyAlertSending = false;
-    btn.disabled = false;
-    back.disabled = false;
-    btn.textContent = 'Send emergency request';
-    pill.textContent = 'Ready to request';
-  };
+  fetch('/student/emergency-alert', { method: 'POST', headers: { 'Authorization': authHeader } })
+    .then(res => res.json())
+    .then(data => {
+      emergencyAlertSending = false;
+      if (data.error) {
+        // Most likely already active (e.g. sent from another tab) - show its status.
+        loadEmergencyAlertStatus();
+        renderEmergencyPanels();
+        showEmergencyError(data.error);
+        return;
+      }
+      emergencyState = { active: true, sentAt: new Date().toISOString() };
+      renderEmergencyPanels();
+      loadEmergencyAlertStatus();
+    })
+    .catch(() => {
+      emergencyAlertSending = false;
+      renderEmergencyPanels();
+      showEmergencyError('Unable to reach the server. If this is an emergency, contact campus security or emergency services directly.');
+    });
+}
 
-  fetch('/student/emergency-alert', {
-    method: 'POST',
-    headers: { 'Authorization': authHeader, 'Content-Type': 'application/json' },
-    body: JSON.stringify({ reason: what + ' — Location: ' + where })
-  })
-  .then(res => res.json())
-  .then(data => {
-    if (data.error) {
-      resetSending();
-      result.className = 'form-msg err';
-      result.textContent = data.error;
-      // Already sent earlier today (e.g. from another tab) - lock it.
-      if (/already sent/i.test(data.error)) { result.textContent = ''; loadEmergencyAlertStatus(); }
-      return;
-    }
-    btn.textContent = 'Send emergency request';
-    markEmergencyAlertSent();
-  })
-  .catch(() => {
-    resetSending();
-    result.className = 'form-msg err';
-    result.textContent = 'Unable to reach the server. If this is an emergency, contact campus security or emergency services directly.';
-  });
+function cancelEmergencyAlert() {
+  if (!confirm('Cancel your emergency alert? The nurses and doctors will be told it was a false alarm, and you won’t be able to send another one today.')) return;
+  fetch('/student/emergency-alert/cancel', { method: 'POST', headers: { 'Authorization': authHeader } })
+    .then(res => res.json())
+    .then(() => loadEmergencyAlertStatus())
+    .catch(() => {});
 }
 
 // ---------- Change password ----------

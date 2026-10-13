@@ -24,6 +24,9 @@ public interface NotificationRepository extends JpaRepository<Notification, Long
     boolean existsByTypeAndRecipientUsernameAndStudentUsernameAndCreatedAtGreaterThanEqual(
             String type, String recipientUsername, String studentUsername, LocalDateTime since);
 
+    // A student's emergency alerts that nobody has resolved yet.
+    List<Notification> findByTypeAndStudentUsernameAndResolvedAtIsNullOrderByCreatedAtDesc(String type, String studentUsername);
+
     // Staff-feed emergencies raised since a given time (today's emergencies).
     List<Notification> findByRecipientUsernameIsNullAndTypeInAndCreatedAtGreaterThanEqual(List<String> types, LocalDateTime since);
 }

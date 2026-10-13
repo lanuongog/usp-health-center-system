@@ -163,22 +163,6 @@
   </div>
 </div>
 
-<!-- Incoming emergency popup -->
-<div class="modal-overlay" id="incoming-emergency-overlay" hidden>
-  <div class="modal-box danger">
-    <div class="modal-icon">!</div>
-    <p class="eyebrow" style="color:var(--emergency);font-weight:700;">Emergency request</p>
-    <h2 style="font-size:20px;margin-top:6px;" id="incoming-emergency-name"></h2>
-    <p class="small" style="margin-top:10px;" id="incoming-emergency-message"></p>
-    <p class="tiny muted" style="margin-top:8px;" id="incoming-emergency-time"></p>
-    <div class="btn-row" style="margin-top:20px;">
-      <button class="btn btn-danger" onclick="checkInFromEmergencyPopup()">They’ve arrived — check in now</button>
-      <button class="btn" onclick="acknowledgeEmergencyPopup()">Acknowledge</button>
-    </div>
-    <p class="tiny muted" style="margin-top:12px;">Acknowledging only confirms you’ve seen this request. It stays unread until the student is checked in.</p>
-  </div>
-</div>
-
 <!-- Consultation report -->
 <div class="modal-overlay" id="report-modal-overlay" hidden onclick="if (event.target === this) closeConsultationReport()">
   <div class="modal-box" style="max-width:540px;">
@@ -220,6 +204,7 @@
 </div>
 
 <script src="/js/app-shell.js"></script>
+<script src="/js/emergency-alerts.js"></script>
 <script>
 const esc = HC.esc;
 let authHeader = null;
@@ -261,6 +246,7 @@ window.addEventListener('DOMContentLoaded', () => {
     }
   });
 
+  EmergencyAlerts.init({ authHeader: () => authHeader, onCheckIn: openEmergencyModal, refresh: pollNotifCount });
   loadDirectory().then(refreshQueue);
   pollNotifCount();
   setInterval(pollNotifCount, 4000);
@@ -810,64 +796,16 @@ function renderDoctorReport(report) {
 }
 
 // ---------- Notifications ----------
-// Emergency alerts are polled; any unread EMERGENCY_ALERT not seen yet pops an
-// unmissable overlay. Acknowledged popups are remembered in this browser so a
-// reload doesn't pop them again - acknowledging leaves the alert UNREAD.
-const ACK_EMERGENCY_KEY = 'acknowledgedEmergencyAlertIds';
-function loadAcknowledgedEmergencyIds() {
-  try { return new Set(JSON.parse(localStorage.getItem(ACK_EMERGENCY_KEY) || '[]')); } catch (e) { return new Set(); }
-}
-function rememberAcknowledgedEmergencyId(id) {
-  try {
-    const ids = loadAcknowledgedEmergencyIds();
-    ids.add(Number(id));
-    localStorage.setItem(ACK_EMERGENCY_KEY, JSON.stringify([...ids].slice(-200)));
-  } catch (e) {}
-}
-let seenEmergencyAlertIds = loadAcknowledgedEmergencyIds();
-let emergencyPopupQueue = [];
-let emergencyPopupShowing = false;
-
+// Polled every few seconds. Active emergency alerts pop up and repeat until
+// resolved - see js/emergency-alerts.js.
 function pollNotifCount() {
   fetch('/notifications', { headers: { 'Authorization': authHeader } })
     .then(res => res.ok ? res.json() : [])
     .then(items => {
       Shell.setAlertCount(items.filter(n => !n.read).length);
-      const unseen = items.filter(n => n.type === 'EMERGENCY_ALERT' && !n.read && !seenEmergencyAlertIds.has(n.id));
-      unseen.forEach(n => { seenEmergencyAlertIds.add(n.id); emergencyPopupQueue.push(n); });
-      showNextEmergencyPopup();
+      EmergencyAlerts.update(items);
     })
     .catch(() => {});
-}
-
-function showNextEmergencyPopup() {
-  if (emergencyPopupShowing || emergencyPopupQueue.length === 0) return;
-  const n = emergencyPopupQueue.shift();
-  emergencyPopupShowing = true;
-  const overlay = document.getElementById('incoming-emergency-overlay');
-  overlay.dataset.notifId = n.id;
-  overlay.dataset.studentId = n.studentUsername;
-  document.getElementById('incoming-emergency-name').textContent = n.studentName + ' (' + n.studentUsername + ')';
-  document.getElementById('incoming-emergency-message').textContent = n.message;
-  document.getElementById('incoming-emergency-time').textContent = HC.fmtDateTime(n.createdAt);
-  overlay.hidden = false;
-}
-
-function acknowledgeEmergencyPopup() {
-  const overlay = document.getElementById('incoming-emergency-overlay');
-  rememberAcknowledgedEmergencyId(overlay.dataset.notifId);
-  overlay.hidden = true;
-  emergencyPopupShowing = false;
-  showNextEmergencyPopup();
-}
-
-function checkInFromEmergencyPopup() {
-  const overlay = document.getElementById('incoming-emergency-overlay');
-  fetch('/notifications/' + overlay.dataset.notifId + '/read', { method: 'POST', headers: { 'Authorization': authHeader } })
-    .then(() => pollNotifCount()).catch(() => {});
-  overlay.hidden = true;
-  emergencyPopupShowing = false;
-  openEmergencyModal(overlay.dataset.studentId);
 }
 
 let lastNotifItems = [];
@@ -907,7 +845,7 @@ function handleNotifClick(index) {
       })
       .catch(() => {});
   } else if (n.type === 'EMERGENCY_ALERT') {
-    openEmergencyModal(n.studentUsername);
+    if (!EmergencyAlerts.open(n.id)) openEmergencyModal(n.studentUsername);
   }
 }
 
@@ -946,6 +884,7 @@ function submitEmergencyCheckIn() {
     resultEl.className = 'toast ok';
     resultEl.textContent = data.message;
     refreshQueue();
+    pollNotifCount();
     setTimeout(closeEmergencyModal, 2500);
   })
   .catch(() => { resultEl.className = 'toast err'; resultEl.textContent = 'Unable to reach the server.'; });

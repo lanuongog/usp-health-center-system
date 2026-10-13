@@ -267,7 +267,7 @@ public class StudentController {
     }
 
     public static class EmergencyAlertRequest {
-        public String reason;
+        public String reason; // optional - the portal sends the alert with one click and no details
     }
 
     // Guards the "one emergency alert per day" check-then-save so a double
@@ -279,49 +279,77 @@ public class StudentController {
                 "EMERGENCY_ALERT", username, LocalDate.now().atStartOfDay());
     }
 
-    // Lets the portal show today's request as already sent (and when) after a reload.
-    @GetMapping("/emergency-alert/status")
-    public Map<String, Object> getEmergencyAlertStatus(Authentication auth) {
-        Notification sent = notificationRepository.findFirstByTypeAndStudentUsernameAndCreatedAtGreaterThanEqualOrderByCreatedAtDesc(
-                "EMERGENCY_ALERT", auth.getName(), LocalDate.now().atStartOfDay());
-        if (sent == null) {
-            return Map.of("sentToday", false);
-        }
-        return Map.of("sentToday", true, "sentAt", sent.getCreatedAt().toString());
+    private Notification findActiveEmergencyAlert(String username) {
+        return notificationRepository.findByTypeAndStudentUsernameAndResolvedAtIsNullOrderByCreatedAtDesc(
+                "EMERGENCY_ALERT", username).stream()
+                .filter(Notification::isActiveEmergency)
+                .findFirst()
+                .orElse(null);
     }
 
-    // A quick, low-friction heads-up a student sends before they've arrived -
-    // it only notifies staff so they can prepare; it does NOT create an
-    // appointment or check the student in, since they aren't physically here
-    // yet. The actual check-in still happens through the nurse/doctor
-    // dashboard's Emergency Check-in action once the student arrives.
-    // Limited to one alert per student per day.
-    @PostMapping("/emergency-alert")
-    public Object sendEmergencyAlert(@RequestBody EmergencyAlertRequest request, Authentication auth) {
-        if (request.reason == null || request.reason.isBlank()) {
-            return Map.of("error", "Please briefly describe what's happening.");
+    // Drives the portal's emergency panel: whether an alert is active, and
+    // whether a nurse/doctor has acknowledged it yet. Also reports the most
+    // recent alert from today once it's been resolved, so the student sees
+    // that it was dealt with.
+    @GetMapping("/emergency-alert/status")
+    public Map<String, Object> getEmergencyAlertStatus(Authentication auth) {
+        Notification alert = findActiveEmergencyAlert(auth.getName());
+        if (alert == null) {
+            alert = notificationRepository.findFirstByTypeAndStudentUsernameAndCreatedAtGreaterThanEqualOrderByCreatedAtDesc(
+                    "EMERGENCY_ALERT", auth.getName(), LocalDate.now().atStartOfDay());
         }
-        if (request.reason.trim().length() > MAX_EMERGENCY_REASON_LENGTH) {
+        if (alert == null) {
+            return Map.of("active", false, "sentToday", false);
+        }
+        Map<String, Object> status = new java.util.HashMap<>();
+        status.put("active", alert.isActiveEmergency());
+        status.put("sentToday", hasSentEmergencyAlertToday(auth.getName()));
+        status.put("sentAt", alert.getCreatedAt().toString());
+        status.put("acknowledgedBy", alert.getAcknowledgedBy());
+        status.put("acknowledgedAt", alert.getAcknowledgedAt() != null ? alert.getAcknowledgedAt().toString() : null);
+        status.put("resolvedAt", alert.getResolvedAt() != null ? alert.getResolvedAt().toString() : null);
+        status.put("cancelledByStudent", alert.isCancelledByStudent());
+        return status;
+    }
+
+    // One-click emergency button. No form to fill in - in an emergency the
+    // student shouldn't have to type anything. Staff get the student's name,
+    // ID and phone number so they can call or find them. It does NOT create an
+    // appointment or check the student in; that still happens through the
+    // nurse/doctor Emergency Check-in once the student arrives, which also
+    // resolves this alert. Limited to one alert per student per day - a
+    // cancelled alert still counts.
+    @PostMapping("/emergency-alert")
+    public Object sendEmergencyAlert(@RequestBody(required = false) EmergencyAlertRequest request, Authentication auth) {
+        String reason = (request == null || request.reason == null) ? "" : request.reason.trim();
+        if (reason.length() > MAX_EMERGENCY_REASON_LENGTH) {
             return Map.of("error", "Description must be " + MAX_EMERGENCY_REASON_LENGTH + " characters or fewer.");
         }
 
         User student = userRepository.findByUsername(auth.getName()).orElse(null);
         String displayName = (student != null && student.getFullName() != null && !student.getFullName().isBlank())
                 ? student.getFullName() : auth.getName();
+        String phone = (student != null && student.getPhoneNumber() != null && !student.getPhoneNumber().isBlank())
+                ? student.getPhoneNumber() : "not on file";
 
         synchronized (emergencyAlertLock) {
+            if (findActiveEmergencyAlert(auth.getName()) != null) {
+                return Map.of("error", "Your emergency alert is already active - nurses and doctors have been "
+                        + "notified. If this is life-threatening, contact campus security or emergency services immediately.");
+            }
             if (hasSentEmergencyAlertToday(auth.getName())) {
-                return Map.of("error", "You have already sent an emergency alert today - Health Center staff have been "
-                        + "notified and are expecting you. If this is life-threatening, contact campus security or "
-                        + "emergency services immediately.");
+                return Map.of("error", "You have already used your emergency alert for today. If this is "
+                        + "life-threatening, contact campus security or emergency services immediately, or go "
+                        + "straight to the Health Center.");
             }
 
             Notification alert = new Notification();
             alert.setType("EMERGENCY_ALERT");
             alert.setStudentUsername(auth.getName());
             alert.setStudentName(displayName);
-            alert.setMessage("EMERGENCY ALERT from " + displayName + " (" + auth.getName() + "): " + request.reason.trim()
-                    + " — not yet checked in, will need immediate attention on arrival.");
+            alert.setMessage("EMERGENCY ALERT from " + displayName + " (" + auth.getName() + "), phone " + phone
+                    + (reason.isEmpty() ? "" : ": " + reason)
+                    + " — the student needs help now. Call them or check the Health Center for their arrival.");
             alert.setCreatedAt(LocalDateTime.now());
             notificationRepository.save(alert);
         }
@@ -329,8 +357,26 @@ public class StudentController {
         // Students with a visit today are warned their appointment may be delayed.
         delayNoticeService.notifyStudentsWithVisitToday(auth.getName(), displayName, null);
 
-        return Map.of("message", "Alert sent. Health Center staff have been notified and will prioritize you on "
-                + "arrival. If this is life-threatening, also contact campus security or emergency services immediately.");
+        return Map.of("message", "Emergency alert sent. Nurses and doctors have been notified. If this is "
+                + "life-threatening, also contact campus security or emergency services immediately.");
+    }
+
+    // For an alert sent by mistake. Staff aren't left wondering where it went:
+    // every nurse/doctor screen is told it was a false alarm, the alert stays on
+    // record as cancelled, and the cancel is audit-logged.
+    @PostMapping("/emergency-alert/cancel")
+    public Object cancelEmergencyAlert(Authentication auth) {
+        Notification alert = findActiveEmergencyAlert(auth.getName());
+        if (alert == null) {
+            return Map.of("error", "You have no active emergency alert.");
+        }
+        alert.resolve(auth.getName());
+        alert.setMessage(alert.getMessage() + " [CANCELLED by the student at "
+                + alert.getResolvedAt().format(java.time.format.DateTimeFormatter.ofPattern("HH:mm")) + " - false alarm]");
+        notificationRepository.save(alert);
+        auditLogService.record(auth.getName(), "STUDENT", "EMERGENCY_CANCELLED", auth.getName(),
+                "Alert #" + alert.getId() + " cancelled by the student as a false alarm");
+        return Map.of("message", "Your emergency alert has been cancelled. The clinic has been told it was a false alarm.");
     }
 
     // Drives the "emergency today - your appointment may be delayed" banner.
@@ -353,6 +399,7 @@ public class StudentController {
                 .findByRecipientUsernameIsNullAndTypeInAndCreatedAtGreaterThanEqual(
                         List.of("EMERGENCY_ALERT", "EMERGENCY_BOOKING"), today.atStartOfDay())
                 .stream()
+                .filter(n -> !n.isCancelledByStudent())
                 .anyMatch(n -> !auth.getName().equals(n.getStudentUsername()));
         if (!emergencyToday) {
             return Map.of("delayed", false);

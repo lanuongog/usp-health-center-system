@@ -111,6 +111,13 @@ public class EmergencyController {
         staffAlert.setCreatedAt(LocalDateTime.now());
         notificationRepository.save(staffAlert);
 
+        // The student is now with staff, so their one-click alert is done.
+        notificationRepository.findByTypeAndStudentUsernameAndResolvedAtIsNullOrderByCreatedAtDesc("EMERGENCY_ALERT", studentId)
+                .forEach(alert -> {
+                    alert.resolve(auth.getName());
+                    notificationRepository.save(alert);
+                });
+
         // Everyone with a visit today - booked, or already checked in ahead of
         // a doctor - gets bumped behind this emergency and is notified.
         int notifiedCount = delayNoticeService.notifyStudentsWithVisitToday(studentId, displayName, appointment.getId());

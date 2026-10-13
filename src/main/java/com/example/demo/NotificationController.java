@@ -1,9 +1,11 @@
 package com.example.demo;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
 
 import org.springframework.http.HttpStatus;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -19,9 +21,17 @@ import org.springframework.web.server.ResponseStatusException;
 public class NotificationController {
 
     private final NotificationRepository notificationRepository;
+    private final AuditLogService auditLogService;
 
-    public NotificationController(NotificationRepository notificationRepository) {
+    public NotificationController(NotificationRepository notificationRepository, AuditLogService auditLogService) {
         this.notificationRepository = notificationRepository;
+        this.auditLogService = auditLogService;
+    }
+
+    private Notification findEmergencyAlert(Long id) {
+        return notificationRepository.findById(id)
+                .filter(n -> "EMERGENCY_ALERT".equals(n.getType()))
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Emergency alert not found"));
     }
 
     @GetMapping
@@ -51,5 +61,33 @@ public class NotificationController {
         unread.forEach(n -> n.setRead(true));
         notificationRepository.saveAll(unread);
         return Map.of("message", "All notifications marked as read.");
+    }
+
+    // "I'm responding" - records who picked it up so other staff (and the
+    // student) can see it. The alert stays active and keeps re-appearing on
+    // staff screens until it's resolved. The first responder is kept.
+    @PostMapping("/{id}/acknowledge")
+    public Notification acknowledgeEmergency(@PathVariable Long id, Authentication auth) {
+        Notification alert = findEmergencyAlert(id);
+        if (alert.getAcknowledgedBy() == null) {
+            alert.setAcknowledgedBy(auth.getName());
+            alert.setAcknowledgedAt(LocalDateTime.now());
+            notificationRepository.save(alert);
+            auditLogService.recordAccess(auth, "EMERGENCY_ACKNOWLEDGED", alert.getStudentUsername(), "Alert #" + id);
+        }
+        return alert;
+    }
+
+    // The emergency has been dealt with - stops it popping up for everyone.
+    // An Emergency Check-in resolves the student's alert automatically.
+    @PostMapping("/{id}/resolve")
+    public Notification resolveEmergency(@PathVariable Long id, Authentication auth) {
+        Notification alert = findEmergencyAlert(id);
+        if (alert.getResolvedAt() == null) {
+            alert.resolve(auth.getName());
+            notificationRepository.save(alert);
+            auditLogService.recordAccess(auth, "EMERGENCY_RESOLVED", alert.getStudentUsername(), "Alert #" + id);
+        }
+        return alert;
     }
 }

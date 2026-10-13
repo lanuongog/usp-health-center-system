@@ -540,6 +540,44 @@ input:disabled, select:disabled, textarea:disabled { background: var(--panel-mut
   display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 14px; margin-bottom: 14px;
 }
 
+/* ---------- One-click emergency alerts ---------- */
+/* Staff: full-screen red popup + banner (js/emergency-alerts.js) */
+.sos-overlay { background: rgba(147, 38, 46, 0.72); z-index: 200; align-items: center; animation: sos-flash 1.2s ease-in-out infinite alternate; }
+@keyframes sos-flash { from { background: rgba(147, 38, 46, 0.55); } to { background: rgba(180, 49, 58, 0.85); } }
+.sos-box { max-width: 520px; border-top: 8px solid var(--emergency); }
+.sos-box h2 { font-size: 24px; margin-top: 8px; }
+.sos-eyebrow { display: flex; align-items: center; gap: 8px; color: var(--emergency); font-weight: 800; font-size: 15px; letter-spacing: 0.06em; text-transform: uppercase; }
+.sos-eyebrow svg { width: 22px; height: 22px; }
+.sos-sent { font-weight: 600; margin-top: 6px; }
+.sos-ack { font-size: 13px; margin: 10px 0; padding: 8px 10px; border-radius: 6px; background: var(--ok-bg); color: var(--ok); font-weight: 600; }
+.sos-ack.pending { background: var(--emergency-bg); color: var(--emergency); }
+.sos-actions { display: flex; flex-direction: column; gap: 8px; margin-top: 18px; }
+#sos-banner { margin-bottom: 20px; border-radius: 8px; overflow: hidden; border: 2px solid var(--emergency); }
+.sos-banner-row { display: flex; align-items: center; gap: 12px; padding: 12px 14px; background: var(--emergency); color: #fff; }
+.sos-banner-row + .sos-banner-row { border-top: 1px solid rgba(255, 255, 255, 0.3); }
+.sos-banner-text { flex: 1; min-width: 0; }
+.sos-banner-text strong { display: block; font-size: 14px; }
+.sos-banner-text span { font-size: 12.5px; opacity: 0.92; }
+.sos-dot { width: 12px; height: 12px; border-radius: 50%; background: #fff; flex-shrink: 0; animation: sos-pulse 1s ease-in-out infinite; }
+@keyframes sos-pulse { 50% { opacity: 0.25; } }
+/* Cancelled by the student - calm amber, not flashing; sits under any live emergency popup */
+.sos-cancel-overlay { z-index: 150; align-items: center; }
+.sos-cancel-box { max-width: 460px; border-top: 8px solid var(--urgent); }
+.sos-cancel-box h2 { font-size: 22px; margin-top: 8px; }
+.sos-cancel-box .sos-eyebrow { color: var(--urgent); }
+.sos-cancel-box .sos-ack { background: var(--urgent-bg); color: var(--urgent); }
+/* Student: the one-click button */
+.sos-btn { flex-direction: column; gap: 4px; white-space: normal; text-align: center; padding: 16px; box-shadow: 0 4px 14px rgba(180, 49, 58, 0.35); }
+.sos-btn .sos-btn-main { display: flex; align-items: center; gap: 8px; font-size: 20px; font-weight: 800; letter-spacing: 0.06em; }
+.sos-btn .sos-btn-sub { font-size: 12.5px; font-weight: 500; opacity: 0.92; }
+.sos-btn svg { width: 22px; height: 22px; }
+.sos-status { padding: 12px 14px; border-radius: 8px; margin-top: 12px; font-size: 13.5px; }
+.sos-status strong { display: block; font-size: 15px; margin-bottom: 4px; }
+.sos-status.waiting { background: var(--emergency-bg); color: var(--emergency); border: 1px solid var(--emergency-line); }
+.sos-status.waiting strong::before { content: ""; display: inline-block; width: 9px; height: 9px; border-radius: 50%; background: var(--emergency); margin-right: 8px; animation: sos-pulse 1s ease-in-out infinite; }
+.sos-status.acked { background: var(--ok-bg); color: var(--ok); border: 1px solid #BFE0CD; }
+@media (prefers-reduced-motion: reduce) { .sos-overlay, .sos-dot, .sos-status.waiting strong::before { animation: none; } }
+
 /* ---------- Dropdowns ---------- */
 #notif-panel, #account-menu {
   position: absolute; right: 0; top: calc(100% + 8px);
