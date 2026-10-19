@@ -33,7 +33,7 @@ public class StudentController {
     );
     private static final long MAX_RECEIPT_SIZE_BYTES = 5L * 1024 * 1024;
     // Official USP student ID format: "S" followed by exactly 8 digits.
-    private static final Pattern STUDENT_ID_PATTERN = Pattern.compile("^S\\d{8}$");
+    private static final Pattern STUDENT_ID_PATTERN = Pattern.compile("^S11\\d{6}$");
     private static final int MIN_PASSWORD_LENGTH = 6;
     private static final int MAX_PASSWORD_LENGTH = 100;
     private static final int MAX_FULL_NAME_LENGTH = 100;

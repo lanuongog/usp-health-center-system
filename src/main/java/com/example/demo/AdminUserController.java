@@ -281,6 +281,10 @@ public class AdminUserController {
                 ? request.reason.trim()
                 : "Your receipt was rejected. Please upload a valid payment receipt.";
 
+        if (reason.length() > 200) {
+            return Map.of("error", "Rejection reason must be 200 characters or fewer.");
+        }
+
         // NOTE: keep the rejected receipt on file instead of deleting it
         // (DEF-03). Deleting it here left the account with nothing to act on -
         // hasReceipt showed false, and re-approving a null receipt threw a 500.

@@ -31,6 +31,7 @@
 .block .b-state { font-weight: 600; margin-top: 6px; color: var(--ink-soft); }
 .block.open .b-state { color: var(--brand); }
 </style>
+<link rel="stylesheet" href="/css/form-helper.css">
 </head>
 <body>
 
@@ -578,5 +579,6 @@ function submitChangePassword() {
   .catch(() => { resultEl.className = 'toast err'; resultEl.textContent = 'Unable to reach the server.'; });
 }
 </script>
+<script src="/js/form-helper.js"></script>
 </body>
 </html>

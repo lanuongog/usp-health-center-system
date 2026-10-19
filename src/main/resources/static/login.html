@@ -74,6 +74,7 @@
   .reg-legal { padding: 0 16px 30px; }
 }
 </style>
+<link rel="stylesheet" href="/css/form-helper.css">
 </head>
 <body>
 
@@ -103,7 +104,7 @@
       <form id="loginForm" onsubmit="handleLogin(event)" novalidate>
         <div class="field">
           <label for="loginUsername">Student ID or staff username *</label>
-          <input type="text" id="loginUsername" required autofocus autocomplete="username" maxlength="200" placeholder="e.g. S12345678 or dr.patel" />
+          <input type="text" id="loginUsername" required autofocus autocomplete="username" maxlength="200" placeholder="e.g. S11222222 or dr.patel" />
         </div>
         <div class="field">
           <div class="label-row">
@@ -179,7 +180,7 @@
       </div>
       <div class="field">
         <label for="regEmail">Email address *</label>
-        <input type="email" id="regEmail" placeholder="e.g. s12345678@student.usp.ac.fj" maxlength="254" autocomplete="email" />
+        <input type="email" id="regEmail" placeholder="e.g. s11222222@student.usp.ac.fj" maxlength="254" autocomplete="email" />
       </div>
       <div class="field">
         <label for="regSemesterAddress">Where you live during the semester *</label>
@@ -208,9 +209,9 @@
       <h3 style="margin-top:0;">Account details</h3>
       <div class="field">
         <label for="regStudentId">Student ID *</label>
-        <input type="text" id="regStudentId" placeholder="e.g. S12345678" maxlength="9"
+        <input type="text" id="regStudentId" placeholder="e.g. S11222222" maxlength="9"
                oninput="this.value = this.value.toUpperCase();" />
-        <p class="help">Use your own student ID (S followed by 8 digits). Already registered? <button type="button" class="btn-link" style="font-size:12px;" onclick="showSignIn()">Sign in instead.</button></p>
+        <p class="help">Use your own student ID: S11 followed by 6 digits, for example S11222222. Already registered? <button type="button" class="btn-link" style="font-size:12px;" onclick="showSignIn()">Sign in instead.</button></p>
       </div>
       <div class="field-row">
         <div class="field"><label for="regPassword">Password *</label><input type="password" id="regPassword" minlength="6" maxlength="100" autocomplete="new-password" /></div>
@@ -422,7 +423,7 @@ async function handleRegister(e) {
   if (emergencyPhone.replace(/\D/g, '') === phoneNumber.replace(/\D/g, '')) return showRegAlert('Your emergency contact’s phone number must be different from your own.');
   if (!receiptFile) return showRegAlert('Please attach a PDF receipt showing you have paid your Laucala Health Services Fee.');
   if (receiptFile.type !== 'application/pdf') return showRegAlert('The payment receipt must be a PDF file.');
-  if (!/^S\d{8}$/.test(studentId)) return showRegAlert('Student ID must be S followed by 8 digits (e.g. S12345678).');
+  if (!/^S11\d{6}$/.test(studentId)) return showRegAlert('Student ID must be S11 followed by 6 digits (e.g. S11222222).');
   if (password.length < 6 || password.length > 100) return showRegAlert('Password must be between 6 and 100 characters.');
   if (password !== passwordConfirm) return showRegAlert('The passwords do not match.');
   if (password.toUpperCase() === studentId) return showRegAlert('Do not use your student ID as your password.');
@@ -464,5 +465,6 @@ async function handleRegister(e) {
   }
 }
 </script>
+<script src="/js/form-helper.js"></script>
 </body>
 </html>

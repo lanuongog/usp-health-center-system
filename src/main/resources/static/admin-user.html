@@ -18,6 +18,7 @@
 .receipt-frame { width: 100%; height: 70vh; min-height: 420px; border: 1px solid var(--line); border-radius: var(--radius); margin-top: 16px; background: var(--panel-muted); }
 @media (max-width: 900px) { .user-grid { grid-template-columns: minmax(0, 1fr); } }
 </style>
+<link rel="stylesheet" href="/css/form-helper.css">
 </head>
 <body>
 
@@ -240,7 +241,7 @@ function render() {
     const rejectPanel = panel === 'reject' ? `
       <div class="confirm-panel">
         <h3>${u.feePaid ? 'Revoke verification' : 'Reject receipt'}</h3>
-        <div class="field" style="margin-top:12px;"><label for="rejectReason">Reason (shown to the student)</label><textarea id="rejectReason" rows="2" maxlength="300"></textarea></div>
+        <div class="field" style="margin-top:12px;"><label for="rejectReason">Reason (shown to the student)</label><textarea id="rejectReason" rows="2" maxlength="200"></textarea></div>
         <div class="btn-row"><button class="btn btn-danger" onclick="rejectReceipt()">${u.feePaid ? 'Revoke' : 'Reject'}</button><button class="btn" onclick="openPanel(null)">Cancel</button></div>
       </div>` : '';
     paymentCard = `
@@ -427,5 +428,6 @@ function submitChangePassword() {
   .catch(() => { resultEl.className = 'toast err'; resultEl.textContent = 'Unable to reach the server.'; });
 }
 </script>
+<script src="/js/form-helper.js"></script>
 </body>
 </html>

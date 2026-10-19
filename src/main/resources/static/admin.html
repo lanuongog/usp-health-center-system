@@ -27,6 +27,7 @@
   #printable-report { position: absolute; left: 0; top: 0; width: 100%; padding: 20px; }
 }
 </style>
+<link rel="stylesheet" href="/css/form-helper.css">
 </head>
 <body>
 
@@ -757,5 +758,6 @@ function submitChangePassword() {
   .catch(() => { resultEl.className = 'toast err'; resultEl.textContent = 'Unable to reach the server.'; });
 }
 </script>
+<script src="/js/form-helper.js"></script>
 </body>
 </html>

@@ -1,0 +1,33 @@
+/* Form guide text, live error messages and clearer section headings. */
+
+/* guide text and messages under text boxes */
+.fh-hint { margin-top: 6px; }
+.fh-count { margin-left: 6px; color: var(--ink-faint); font-variant-numeric: tabular-nums; }
+.fh-count.fh-over { color: var(--emergency); font-weight: 600; }
+.fh-error { min-height: 0; }
+.fh-error:empty { display: none; }
+input.fh-invalid, textarea.fh-invalid, select.fh-invalid { border-color: var(--emergency); }
+
+/* email suggestion shown after the student ID is typed */
+.fh-suggest {
+  display: inline-block; margin-top: 8px; padding: 7px 12px;
+  border: 1px dashed var(--brand); border-radius: 999px;
+  background: var(--brand-soft); color: var(--brand);
+  font: inherit; font-size: 13px; font-weight: 600; cursor: pointer;
+}
+.fh-suggest:hover, .fh-suggest:focus { background: #fff; outline: none; box-shadow: var(--focus); }
+.fh-suggest[hidden] { display: none; }
+
+/* sections: a clear accent on each section title */
+.card h2 { display: flex; align-items: center; gap: 10px; }
+.card h2::before {
+  content: ""; flex: none; width: 4px; height: 1.15em;
+  border-radius: 3px; background: var(--brand);
+}
+.card h3:not([style*="font-size"]) {
+  margin: 24px 0 14px; padding: 9px 12px;
+  background: var(--brand-soft); border-left: 3px solid var(--brand);
+  border-radius: 6px; font-size: 14.5px; font-weight: 600;
+}
+.card h3:not([style*="font-size"]):first-child { margin-top: 0; }
+.reg-card .divider { margin: 6px 0 0; border-top-style: dashed; }

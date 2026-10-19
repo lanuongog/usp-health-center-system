@@ -38,6 +38,7 @@
 .urgent-note { font-size: 12px; color: var(--emergency); margin-top: 12px; }
 #banner-holder { display: none; }
 </style>
+<link rel="stylesheet" href="/css/form-helper.css">
 </head>
 <body>
 
@@ -1562,5 +1563,6 @@ function submitChangePassword() {
   .catch(() => { resultEl.className = 'toast err'; resultEl.textContent = 'Unable to reach the server.'; });
 }
 </script>
+<script src="/js/form-helper.js"></script>
 </body>
 </html>
