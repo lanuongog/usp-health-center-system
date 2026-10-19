@@ -29,15 +29,18 @@ public class FeeSettingsService {
     private final FeeChangeRequestRepository changeRequestRepository;
     private final UserRepository userRepository;
     private final AuditLogService auditLogService;
+    private final NotificationRepository notificationRepository;
 
     public FeeSettingsService(FeeSettingsRepository feeSettingsRepository,
                               FeeChangeRequestRepository changeRequestRepository,
                               UserRepository userRepository,
-                              AuditLogService auditLogService) {
+                              AuditLogService auditLogService,
+                              NotificationRepository notificationRepository) {
         this.feeSettingsRepository = feeSettingsRepository;
         this.changeRequestRepository = changeRequestRepository;
         this.userRepository = userRepository;
         this.auditLogService = auditLogService;
+        this.notificationRepository = notificationRepository;
     }
 
     public FeeSettings current() {
@@ -120,6 +123,9 @@ public class FeeSettingsService {
         auditLogService.recordAccess(auth, "FEE_CHANGE_APPROVED", null,
                 "Proposal #" + id + " by " + request.getProposedBy() + " approved: " + change.trim()
                         + " Applies to new registrations.");
+        notifyProposer(request, "FEE_CHANGE_APPROVED",
+                "Finance (" + auth.getName() + ") approved your fee change: " + change.trim()
+                        + " Applies to new registrations.");
         return request;
     }
 
@@ -132,7 +138,21 @@ public class FeeSettingsService {
         decide(request, FeeChangeRequest.REJECTED, why, auth);
         auditLogService.recordAccess(auth, "FEE_CHANGE_REJECTED", null,
                 "Proposal #" + id + " by " + request.getProposedBy() + " rejected. Reason: " + why);
+        notifyProposer(request, "FEE_CHANGE_REJECTED",
+                "Finance (" + auth.getName() + ") rejected your fee change. Reason: " + why);
         return request;
+    }
+
+    // Tells the admin who proposed the change that Finance has responded. Shown in
+    // that admin's bell (recipientUsername = the admin, so it never appears in the
+    // nurse/doctor staff feed or a student's feed).
+    private void notifyProposer(FeeChangeRequest request, String type, String message) {
+        Notification n = new Notification();
+        n.setType(type);
+        n.setRecipientUsername(request.getProposedBy());
+        n.setMessage(message);
+        n.setCreatedAt(LocalDateTime.now());
+        notificationRepository.save(n);
     }
 
     private FeeChangeRequest findPending(Long id) {

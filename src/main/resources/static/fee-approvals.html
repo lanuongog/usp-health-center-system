@@ -82,6 +82,7 @@ const esc = HC.esc;
 let authHeader = null;
 let currentUser = null;
 let pending = null;
+let pendingBlocked = null;
 
 window.addEventListener('DOMContentLoaded', () => {
   const storedAuth = localStorage.getItem('authHeader');
@@ -98,7 +99,11 @@ window.addEventListener('DOMContentLoaded', () => {
     workspace: staff.workspace,
     nav: staff.nav,
     user: currentUser,
-    alerts: 'none',
+    alerts: 'panel',
+    alertsLabel: 'Fee changes waiting for approval',
+    alertsFirst: true,
+    alertsIcon: true,
+    mobileAlertsHref: '#approvals',
     defaultView: 'approvals',
     onView(view) {
       if (view === 'approvals') loadOverview();
@@ -137,6 +142,28 @@ function showMsg(kind, text) {
   el.textContent = text;
 }
 
+// ---------- Bell: a fee change is waiting ----------
+// Fills the top-bar bell's dropdown (Shell calls this when it opens).
+function loadNotifPanel() {
+  const panel = document.getElementById('notif-panel');
+  if (!pending) { panel.innerHTML = '<div class="empty">No fee changes waiting for approval.</div>'; return; }
+  const m = FeeChanges.money;
+  panel.innerHTML =
+    `<div class="np-head"><span>Fee change waiting for approval</span></div>
+     <div class="notif-item ${pendingBlocked ? 'read' : 'unread'}" onclick="viewPending()">
+       <div>${esc(pending.proposedBy)} proposed: Local ${m(pending.previousLocalFee)} → ${m(pending.proposedLocalFee)},
+         Regional ${m(pending.previousRegionalFee)} → ${m(pending.proposedRegionalFee)}</div>
+       <div class="notif-time">${esc(HC.fmtDateTime(pending.proposedAt))} · ${pendingBlocked ? 'Another approver must decide' : 'Review →'}</div>
+     </div>`;
+}
+
+// Clicking the bell item closes it and jumps to the approve / reject card.
+function viewPending() {
+  document.getElementById('notif-panel').hidden = true;
+  const card = document.getElementById('pending-card');
+  if (card && !card.hidden) card.scrollIntoView({ behavior: 'smooth', block: 'center' });
+}
+
 // ---------- Fee changes ----------
 async function loadOverview() {
   try {
@@ -145,7 +172,10 @@ async function loadOverview() {
     const data = await res.json();
     const wasId = pending ? pending.id : null;
     pending = data.pending;
-    Shell.setAlertCount(pending ? 1 : 0);
+    pendingBlocked = data.blockedReason || null;
+    // Only counts as a waiting alert if this account is allowed to decide it.
+    Shell.setAlertCount(pending && !pendingBlocked ? 1 : 0);
+    if (!document.getElementById('notif-panel').hidden) loadNotifPanel();
     document.getElementById('current-body').innerHTML = FeeChanges.currentHtml(data.current);
     document.getElementById('history-body').innerHTML = FeeChanges.historyHtml(data.history);
     document.getElementById('none-card').hidden = !!pending;

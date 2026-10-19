@@ -297,7 +297,7 @@ window.addEventListener('DOMContentLoaded', () => {
     nav: staff.nav,
     user: localStorage.getItem('currentUser'),
     alerts: 'panel',
-    alertsLabel: 'Receipts waiting for approval',
+    alertsLabel: 'Notifications',
     alertsFirst: true,
     alertsIcon: true,
     mobileAlertsHref: '#dashboard',
@@ -399,17 +399,25 @@ async function withdrawFeeProposal() {
 // admin approves it, so the bell and the dashboard card surface them straight away.
 let pendingReceipts = [];
 
+// Finance's answers (approved / rejected) to fee changes this admin proposed.
+let feeNotifs = [];
+
+function updateAlertCount() {
+  Shell.setAlertCount(pendingReceipts.length + feeNotifs.filter(n => !n.read).length);
+}
+
 function pollPendingReceipts() {
-  fetch('/admin/users/pending-receipts', { headers: { 'Authorization': authHeader } })
-    .then(res => res.ok ? res.json() : null)
-    .then(items => {
-      if (!items) return;
-      pendingReceipts = items;
-      Shell.setAlertCount(items.length);
-      renderPendingCard();
-      if (!document.getElementById('notif-panel').hidden) loadNotifPanel();
-    })
-    .catch(() => {});
+  Promise.all([
+    fetch('/admin/users/pending-receipts', { headers: { 'Authorization': authHeader } })
+      .then(res => res.ok ? res.json() : null).catch(() => null),
+    fetch('/admin/fees/notifications', { headers: { 'Authorization': authHeader } })
+      .then(res => res.ok ? res.json() : null).catch(() => null)
+  ]).then(([items, notifs]) => {
+    if (items) { pendingReceipts = items; renderPendingCard(); }
+    if (notifs) feeNotifs = notifs;
+    updateAlertCount();
+    if (!document.getElementById('notif-panel').hidden) loadNotifPanel();
+  });
 }
 
 function uploadedLabel(p) {
@@ -435,14 +443,37 @@ function renderPendingCard() {
 // Fills the top-bar bell's dropdown (Shell calls this when it opens).
 function loadNotifPanel() {
   const panel = document.getElementById('notif-panel');
-  if (!pendingReceipts.length) { panel.innerHTML = '<div class="empty">No receipts waiting for approval.</div>'; return; }
-  panel.innerHTML =
-    `<div class="np-head"><span>Receipts waiting for approval</span></div>` +
-    pendingReceipts.map(p => `
-      <div class="notif-item unread" onclick="location.href='/admin-user.html?id=${p.id}'">
-        <div>${esc(p.fullName || p.username)} (${esc(p.username)}) uploaded a payment receipt</div>
-        <div class="notif-time">${esc(uploadedLabel(p))} · Review receipt →</div>
-      </div>`).join('');
+  if (!pendingReceipts.length && !feeNotifs.length) { panel.innerHTML = '<div class="empty">No notifications.</div>'; return; }
+  let html = '';
+  if (feeNotifs.length) {
+    html += `<div class="np-head"><span>Fee change decisions</span></div>` +
+      feeNotifs.slice(0, 10).map(n => `
+        <div class="notif-item ${n.read ? 'read' : 'unread'}" onclick="openFeeNotif(${n.id})">
+          <div>${n.type === 'FEE_CHANGE_APPROVED' ? '✅ Approved' : '❌ Rejected'} — ${esc(n.message)}</div>
+          <div class="notif-time">${esc(HC.fmtDateTime(n.createdAt))} · View in Fees →</div>
+        </div>`).join('');
+  }
+  if (pendingReceipts.length) {
+    html += `<div class="np-head"><span>Receipts waiting for approval</span></div>` +
+      pendingReceipts.map(p => `
+        <div class="notif-item unread" onclick="location.href='/admin-user.html?id=${p.id}'">
+          <div>${esc(p.fullName || p.username)} (${esc(p.username)}) uploaded a payment receipt</div>
+          <div class="notif-time">${esc(uploadedLabel(p))} · Review receipt →</div>
+        </div>`).join('');
+  }
+  panel.innerHTML = html;
+}
+
+// Clicking a fee decision marks it read and opens the Fees page (history shows the outcome).
+function openFeeNotif(id) {
+  const n = feeNotifs.find(x => x.id === id);
+  if (n && !n.read) {
+    n.read = true;
+    fetch('/admin/fees/notifications/' + id + '/read', { method: 'POST', headers: { 'Authorization': authHeader } }).catch(() => {});
+    updateAlertCount();
+  }
+  document.getElementById('notif-panel').hidden = true;
+  if (location.hash === '#fees') loadFees(); else location.hash = '#fees';
 }
 
 function logout() {
