@@ -27,17 +27,20 @@ public class EmergencyController {
     private final CheckInRepository checkInRepository;
     private final NotificationRepository notificationRepository;
     private final DelayNoticeService delayNoticeService;
+    private final AuditLogService auditLogService;
 
     public EmergencyController(UserRepository userRepository,
                                 AppointmentRepository appointmentRepository,
                                 CheckInRepository checkInRepository,
                                 NotificationRepository notificationRepository,
-                                DelayNoticeService delayNoticeService) {
+                                DelayNoticeService delayNoticeService,
+                                AuditLogService auditLogService) {
         this.userRepository = userRepository;
         this.appointmentRepository = appointmentRepository;
         this.checkInRepository = checkInRepository;
         this.notificationRepository = notificationRepository;
         this.delayNoticeService = delayNoticeService;
+        this.auditLogService = auditLogService;
     }
 
     // Tries the ID as typed first, then upper-cased - new registrations are
@@ -64,14 +67,13 @@ public class EmergencyController {
     public static class EmergencyCheckInRequest {
         public String studentId;
         public String reason;
+        public boolean notifyDelay; // staff ticked "tell today's booked students of a delay"
     }
 
     // Registers AND checks in the student in a single step, skipping the
     // normal BOOKED -> nurse-queue -> check-in flow, so they land directly at
-    // the top of the doctor's active queue. Every student currently waiting -
-    // whether booked for today or already checked in ahead of a doctor - is
-    // warned of a possible delay; they'll be seen once the doctor is free of
-    // the emergency.
+    // the top of the doctor's active queue. Students booked today are only
+    // warned of a delay if the nurse/doctor ticked that option.
     @PostMapping("/checkin")
     public Object emergencyCheckIn(@RequestBody EmergencyCheckInRequest request, Authentication auth) {
         User student = findStudent(request.studentId);
@@ -118,15 +120,45 @@ public class EmergencyController {
                     notificationRepository.save(alert);
                 });
 
-        // Everyone with a visit today - booked, or already checked in ahead of
-        // a doctor - gets bumped behind this emergency and is notified.
-        int notifiedCount = delayNoticeService.notifyStudentsWithVisitToday(studentId, displayName, appointment.getId());
+        String delayNote = "";
+        if (request.notifyDelay) {
+            DelayNoticeService.Announcement sent = announceDelay(auth, studentId);
+            delayNote = " " + sent.notified() + " student(s) booked today notified of a possible delay"
+                    + (sent.alreadyNotified() > 0 ? " (" + sent.alreadyNotified() + " already told earlier today)." : ".");
+        }
 
         return Map.of(
-                "message", "Emergency check-in complete for " + displayName + ". Doctors have been alerted and "
-                        + notifiedCount + " student(s) notified of a possible delay.",
-                "appointmentId", appointment.getId(),
-                "notifiedCount", notifiedCount
+                "message", "Emergency check-in complete for " + displayName + ". Doctors have been alerted." + delayNote,
+                "appointmentId", appointment.getId()
         );
+    }
+
+    public static class NotifyDelayRequest {
+        public Long alertId; // the emergency alert this is about, if any
+    }
+
+    // "Notify today's students of a delay" - pressed by a nurse/doctor once
+    // they know an emergency will hold up today's appointments. Never sent
+    // automatically, since a student's alert may be a false alarm.
+    @PostMapping("/notify-delay")
+    public Map<String, Object> notifyDelay(@RequestBody(required = false) NotifyDelayRequest request, Authentication auth) {
+        String emergencyStudentId = null;
+        if (request != null && request.alertId != null) {
+            emergencyStudentId = notificationRepository.findById(request.alertId)
+                    .map(Notification::getStudentUsername).orElse(null);
+        }
+        DelayNoticeService.Announcement sent = announceDelay(auth, emergencyStudentId);
+        String message = sent.notified() == 0 && sent.alreadyNotified() == 0
+                ? "No other students are booked for today, so nobody needed to be notified."
+                : "Notified " + sent.notified() + " student(s) booked today that their appointment may be delayed."
+                        + (sent.alreadyNotified() > 0 ? " " + sent.alreadyNotified() + " had already been told today." : "");
+        return Map.of("message", message, "notified", sent.notified(), "alreadyNotified", sent.alreadyNotified());
+    }
+
+    private DelayNoticeService.Announcement announceDelay(Authentication auth, String emergencyStudentId) {
+        DelayNoticeService.Announcement sent = delayNoticeService.announceDelay(auth.getName(), emergencyStudentId);
+        auditLogService.recordAccess(auth, "DELAY_NOTICE_SENT", emergencyStudentId,
+                sent.notified() + " student(s) booked today notified of a possible delay");
+        return sent;
     }
 }

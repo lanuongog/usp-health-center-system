@@ -37,17 +37,23 @@ public class ScheduleController {
     private final NotificationRepository notificationRepository;
     private final UserRepository userRepository;
     private final AuditLogService auditLogService;
+    private final DoctorAbsenceRepository absenceRepository;
+    private final DoctorAbsenceStudentRepository absenceStudentRepository;
 
     public ScheduleController(DoctorScheduleRepository scheduleRepository,
                               AppointmentRepository appointmentRepository,
                               NotificationRepository notificationRepository,
                               UserRepository userRepository,
-                              AuditLogService auditLogService) {
+                              AuditLogService auditLogService,
+                              DoctorAbsenceRepository absenceRepository,
+                              DoctorAbsenceStudentRepository absenceStudentRepository) {
         this.scheduleRepository = scheduleRepository;
         this.appointmentRepository = appointmentRepository;
         this.notificationRepository = notificationRepository;
         this.userRepository = userRepository;
         this.auditLogService = auditLogService;
+        this.absenceRepository = absenceRepository;
+        this.absenceStudentRepository = absenceStudentRepository;
     }
 
     // students view slots for a date (booked and open), optionally filtered by doctor,
@@ -306,6 +312,17 @@ public class ScheduleController {
             }
         }
 
+        DoctorAbsence absence = absenceRepository.findByDoctorNameAndAbsenceDate(doctorName, request.date)
+                .orElseGet(() -> {
+                    DoctorAbsence created = new DoctorAbsence();
+                    created.setDoctorName(doctorName);
+                    created.setAbsenceDate(request.date);
+                    return created;
+                });
+        absence.setMarkedBy(auth.getName());
+        absence.setMarkedAt(LocalDateTime.now());
+        absence = absenceRepository.save(absence);
+
         int removed = 0;
         int keptCheckedIn = 0;
         List<Map<String, Object>> affected = new ArrayList<>();
@@ -343,6 +360,14 @@ public class ScheduleController {
                     "Appointment #" + appointment.getId() + " on " + slot.getScheduleDate() + " " + slot.getTimeSlot()
                             + " (" + doctorName + ")");
 
+            DoctorAbsenceStudent absenceStudent = new DoctorAbsenceStudent();
+            absenceStudent.setAbsenceId(absence.getId());
+            absenceStudent.setAppointmentId(appointment.getId());
+            absenceStudent.setStudentId(studentId);
+            absenceStudent.setFullName(fullName);
+            absenceStudent.setTimeSlot(slot.getTimeSlot());
+            absenceStudentRepository.save(absenceStudent);
+
             Map<String, Object> row = new LinkedHashMap<>();
             row.put("studentId", studentId);
             row.put("fullName", fullName);
@@ -351,6 +376,15 @@ public class ScheduleController {
             row.put("timeSlot", slot.getTimeSlot());
             affected.add(row);
         }
+
+        absence.setRemovedSlots(absence.getRemovedSlots() + removed);
+        absence.setCancelledCount(absence.getCancelledCount() + affected.size());
+        absence.setKeptCheckedIn(absence.getKeptCheckedIn() + keptCheckedIn);
+        absenceRepository.save(absence);
+        // One line for the whole action, even when nobody had booked yet.
+        auditLogService.recordAccess(auth, "DOCTOR_MARKED_UNAVAILABLE", null,
+                doctorName + " on " + request.date + ": removed " + removed + " time(s), cancelled "
+                        + affected.size() + " appointment(s)" + (keptCheckedIn > 0 ? ", " + keptCheckedIn + " already checked in" : ""));
 
         Map<String, Object> result = new LinkedHashMap<>();
         result.put("removedSlots", removed);

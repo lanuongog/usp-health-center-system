@@ -39,8 +39,10 @@
     <div>
       <h1>Queue &amp; consultation</h1>
       <p>Emergency-first care, with each part of the clinical record preserved.</p>
+      <p class="tiny muted" data-delay-status></p>
     </div>
     <div class="btn-row">
+      <button class="btn" onclick="EmergencyAlerts.notifyDelay()">Notify today’s students of a delay</button>
       <button class="btn" onclick="openEmergencyModal('')">Emergency check-in</button>
       <button class="btn" onclick="refreshQueue()"><span data-icon="refresh"></span>Refresh queue</button>
     </div>
@@ -152,9 +154,10 @@
 <div class="modal-overlay" id="emergency-modal-overlay" hidden onclick="if (event.target === this) closeEmergencyModal()">
   <div class="modal-box danger">
     <div class="modal-head"><h2>Emergency check-in</h2><button class="modal-close" aria-label="Close" onclick="closeEmergencyModal()">✕</button></div>
-    <p class="small muted" style="margin-bottom:16px;">For a patient who needs to see a doctor immediately. This checks them in at the top of the queue, alerts every doctor, and warns students with a visit today of a possible delay.</p>
+    <p class="small muted" style="margin-bottom:16px;">For a patient who needs to see a doctor immediately. This checks them in at the top of the queue, alerts every doctor.</p>
     <div class="field"><label for="emergencyStudentId">Student ID *</label><input type="text" id="emergencyStudentId" placeholder="e.g. S12345678" /></div>
     <div class="field"><label for="emergencyReason">What is happening?</label><textarea id="emergencyReason" rows="3" maxlength="300" placeholder="e.g. Severe allergic reaction"></textarea></div>
+    <label class="small" style="display:flex;gap:8px;align-items:flex-start;margin-bottom:12px;"><input type="checkbox" id="emergencyNotifyDelay" style="margin-top:2px;"> Also notify students booked today that their appointment may be delayed</label>
     <div class="toast" id="emergencyResult"></div>
     <div class="btn-row" style="margin-top:16px;">
       <button class="btn btn-danger" onclick="submitEmergencyCheckIn()">Check in now</button>
@@ -866,6 +869,7 @@ function markAllNotifRead() {
 function openEmergencyModal(prefillStudentId) {
   document.getElementById('emergencyStudentId').value = prefillStudentId || '';
   document.getElementById('emergencyReason').value = '';
+  document.getElementById('emergencyNotifyDelay').checked = false;
   document.getElementById('emergencyResult').textContent = '';
   document.getElementById('emergency-modal-overlay').hidden = false;
 }
@@ -883,7 +887,7 @@ function submitEmergencyCheckIn() {
   fetch('/emergency/checkin', {
     method: 'POST',
     headers: { 'Authorization': authHeader, 'Content-Type': 'application/json' },
-    body: JSON.stringify({ studentId, reason })
+    body: JSON.stringify({ studentId, reason, notifyDelay: document.getElementById('emergencyNotifyDelay').checked })
   })
   .then(res => res.json())
   .then(data => {

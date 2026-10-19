@@ -69,6 +69,7 @@ public class SecurityConfig {
                 .requestMatchers("/schedule/available").permitAll()
                 .requestMatchers("/schedule/manage/**").hasAnyRole("DOCTOR", "ADMIN")
                 .requestMatchers("/directory/**").hasAnyRole("NURSE", "DOCTOR", "ADMIN")
+                .requestMatchers("/absences/**").hasAnyRole("NURSE", "ADMIN")
                 .requestMatchers("/notifications/**").hasAnyRole("NURSE", "DOCTOR", "ADMIN")
                 .requestMatchers("/emergency/**").hasAnyRole("NURSE", "DOCTOR", "ADMIN")
                 .requestMatchers("/account/**").authenticated()

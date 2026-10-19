@@ -172,7 +172,7 @@ public class BookingController {
 
         // Booked for today after an emergency was already raised today -
         // let them know up front that their visit may be delayed.
-        boolean delayed = delayNoticeService.notifyLateBookingIfEmergencyToday(appointment);
+        boolean delayed = delayNoticeService.notifyLateBookingIfDelayAnnounced(appointment);
 
         return Map.of(
                 "message", "Appointment confirmed.",
@@ -267,7 +267,7 @@ public class BookingController {
         appointment.setScheduleSlotId(newSlot.getId());
         appointmentRepository.save(appointment);
 
-        boolean delayed = delayNoticeService.notifyLateBookingIfEmergencyToday(appointment);
+        boolean delayed = delayNoticeService.notifyLateBookingIfDelayAnnounced(appointment);
 
         return Map.of(
                 "message", "Appointment rescheduled.",

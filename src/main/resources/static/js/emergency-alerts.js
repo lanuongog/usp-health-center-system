@@ -10,6 +10,10 @@
 //  - If the student cancels it (sent by mistake), each nurse/doctor gets an
 //    amber "false alarm" notice to dismiss, instead of the alert silently
 //    vanishing while someone may already be on their way.
+//  - Students booked today are NOT told of a delay automatically (the alert
+//    may be a false alarm). Staff press "Notify today's students of a delay"
+//    - in the popup, or a page button calling EmergencyAlerts.notifyDelay() -
+//    and any [data-delay-status] element shows whether that's been done today.
 // The page calls EmergencyAlerts.init() once and EmergencyAlerts.update(items)
 // each time it polls /notifications.
 const EmergencyAlerts = (() => {
@@ -21,6 +25,7 @@ const EmergencyAlerts = (() => {
   let opts = null;
   let active = [];
   let shownId = null;
+  let delayAnnouncement = null; // today's latest DELAY_ANNOUNCED staff entry
 
   function init(options) {
     opts = options;
@@ -44,8 +49,10 @@ const EmergencyAlerts = (() => {
         <div class="sos-actions">
           <button class="btn btn-danger" onclick="EmergencyAlerts.acknowledge()">Acknowledge — I’m responding</button>
           <button class="btn" onclick="EmergencyAlerts.checkIn()">Student arrived — check in</button>
+          <button class="btn" onclick="EmergencyAlerts.notifyDelay(true)">Notify today’s students of a delay</button>
           <button class="btn" onclick="EmergencyAlerts.resolve()">Mark emergency done</button>
         </div>
+        <p class="tiny" id="sos-delay"></p>
         <p class="tiny muted" style="margin-top:14px;">This will pop up again in 1 minute until it’s marked done.</p>
         <p class="tiny" id="sos-more"></p>
       </div>`;
@@ -99,6 +106,9 @@ const EmergencyAlerts = (() => {
 
   function update(items) {
     active = items.filter(n => n.activeEmergency);
+    const today = HC.todayIso();
+    delayAnnouncement = items.find(n => n.type === 'DELAY_ANNOUNCED' && n.createdAt && n.createdAt.slice(0, 10) === today) || null;
+    renderDelayStatus();
     renderBanner();
     if (shownId !== null) {
       // Resolved elsewhere (another staff member, or the student cancelled).
@@ -134,6 +144,35 @@ const EmergencyAlerts = (() => {
     const others = active.length - 1;
     document.getElementById('sos-more').textContent = others > 0
       ? `${others} other active emergenc${others === 1 ? 'y' : 'ies'} — see the red banner.` : '';
+  }
+
+  function delayStatusText() {
+    return delayAnnouncement
+      ? `Delay notice sent today at ${HC.timeOf(delayAnnouncement.createdAt)}: ${delayAnnouncement.message}`
+      : 'Students booked today have not been told of a delay.';
+  }
+
+  function renderDelayStatus() {
+    document.querySelectorAll('[data-delay-status]').forEach(el => { el.textContent = delayStatusText(); });
+    const popupLine = document.getElementById('sos-delay');
+    if (popupLine) popupLine.textContent = delayStatusText();
+  }
+
+  // Tell every student booked today that their appointment may be delayed.
+  // fromPopup ties the notice to the emergency on screen, so that student
+  // isn't told they'll be delayed.
+  function notifyDelay(fromPopup) {
+    const n = fromPopup ? shown() : null;
+    const again = delayAnnouncement ? ' A notice was already sent today; only students not yet told will get one.' : '';
+    if (!confirm('Notify every student booked for today that their appointment may be delayed by an emergency?' + again)) return;
+    fetch('/emergency/notify-delay', {
+      method: 'POST',
+      headers: { 'Authorization': opts.authHeader(), 'Content-Type': 'application/json' },
+      body: JSON.stringify({ alertId: n ? n.id : null })
+    })
+      .then(res => res.ok ? res.json() : Promise.reject())
+      .then(data => { alert(data.message); opts.refresh(); })
+      .catch(() => alert('Unable to send the delay notice. Please try again.'));
   }
 
   function showPopup(n) {
@@ -228,5 +267,5 @@ const EmergencyAlerts = (() => {
     } catch (e) {}
   }
 
-  return { init, update, acknowledge, checkIn, resolve, open, dismissCancelled };
+  return { init, update, acknowledge, checkIn, resolve, open, dismissCancelled, notifyDelay };
 })();

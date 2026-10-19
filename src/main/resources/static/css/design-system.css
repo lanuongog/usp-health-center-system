@@ -638,3 +638,10 @@ footer { background: var(--navy); color: var(--footer-text); }
   .app { display: block; }
   body { background: #fff; }
 }
+
+/* Doctor absences card (js/doctor-absences.js) - nurse check-in and admin dashboard */
+.absence-card { margin-bottom: 20px; border-left: 4px solid var(--urgent); }
+.absence-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; flex-wrap: wrap; }
+.absence-item { margin-top: 18px; padding-top: 16px; border-top: 1px solid var(--line); }
+.absence-item.past { opacity: 0.7; }
+.absence-tick { display: inline-flex; align-items: center; gap: 6px; font-size: 12.5px; font-weight: 600; cursor: pointer; white-space: nowrap; }

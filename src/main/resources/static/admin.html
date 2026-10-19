@@ -61,6 +61,8 @@
     </div>
   </div>
 
+  <div class="card absence-card" id="absences-card" hidden></div>
+
   <div class="card filter-card">
     <div class="field"><label for="startDate">From</label><input type="date" id="startDate"></div>
     <div class="field"><label for="endDate">To</label><input type="date" id="endDate"></div>
@@ -241,6 +243,7 @@
 </div>
 
 <script src="/js/app-shell.js"></script>
+<script src="/js/doctor-absences.js"></script>
 <script>
 const esc = HC.esc;
 let authHeader = null;
@@ -283,6 +286,9 @@ window.addEventListener('DOMContentLoaded', () => {
   loadDashboard();
   pollPendingReceipts();
   setInterval(pollPendingReceipts, 30000);
+  // Upcoming absences plus the past month, for following up and arranging cover.
+  DoctorAbsences.mount({ el: document.getElementById('absences-card'), authHeader: () => authHeader, daysBack: 30, daysAhead: 120 });
+  setInterval(DoctorAbsences.load, 60000);
 });
 
 // ---------- Fees ----------

@@ -1376,8 +1376,8 @@ function markNotifRead(id) {
 }
 
 // ---------- Today's delay ----------
-// Shown only when another student's emergency today may delay THIS student's
-// appointment today. Bookings on other days never show it.
+// Shown only when clinic staff have announced that an emergency today may
+// delay THIS student's appointment today. Bookings on other days never show it.
 function checkTodayDelay() {
   fetch('/student/today-delay', { headers: { 'Authorization': authHeader } })
     .then(res => res.ok ? res.json() : null)

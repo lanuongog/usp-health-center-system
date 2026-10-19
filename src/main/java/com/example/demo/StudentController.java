@@ -359,8 +359,8 @@ public class StudentController {
             notificationRepository.save(alert);
         }
 
-        // Students with a visit today are warned their appointment may be delayed.
-        delayNoticeService.notifyStudentsWithVisitToday(auth.getName(), displayName, null);
+        // Other students booked today are NOT told of a delay here - this may be
+        // a false alarm. A nurse/doctor sends that notice once they know.
 
         return Map.of("message", "Emergency alert sent. Nurses and doctors have been notified. If this is "
                 + "life-threatening, also contact campus security or emergency services immediately.");
@@ -386,11 +386,10 @@ public class StudentController {
 
     // Drives the "emergency today - your appointment may be delayed" banner.
     // Only shown when the student has a normal (non-emergency) booking for
-    // TODAY and some other student has raised an emergency today; bookings on
-    // other days, and the emergency patient themselves, are unaffected.
+    // TODAY and a nurse/doctor has announced a delay today; bookings on other
+    // days, and the emergency patient themselves, are unaffected.
     @GetMapping("/today-delay")
     public Map<String, Object> getTodayDelay(Authentication auth) {
-        LocalDate today = LocalDate.now();
         // The emergency patient themselves is never told they'll be delayed.
         if (hasSentEmergencyAlertToday(auth.getName())) {
             return Map.of("delayed", false);
@@ -400,13 +399,8 @@ public class StudentController {
             return Map.of("delayed", false);
         }
 
-        boolean emergencyToday = notificationRepository
-                .findByRecipientUsernameIsNullAndTypeInAndCreatedAtGreaterThanEqual(
-                        List.of("EMERGENCY_ALERT", "EMERGENCY_BOOKING"), today.atStartOfDay())
-                .stream()
-                .filter(n -> !n.isCancelledByStudent())
-                .anyMatch(n -> !auth.getName().equals(n.getStudentUsername()));
-        if (!emergencyToday) {
+        Notification announcement = delayNoticeService.findDelayAnnouncementToday();
+        if (announcement == null || auth.getName().equals(announcement.getStudentUsername())) {
             return Map.of("delayed", false);
         }
 

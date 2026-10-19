@@ -3,16 +3,20 @@ package com.example.demo;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 import org.springframework.stereotype.Service;
 
 // Warns students who have a visit TODAY that an emergency is being prioritized
-// and their appointment may be delayed. Only today's bookings are affected - a
-// student booked for another day is never notified. Each student gets at most
-// one notice per emergency student per day, so an emergency that is first
-// alerted from the student portal and later checked in by staff doesn't
-// notify the same people twice.
+// and their appointment may be delayed. Nothing is sent automatically - a
+// student's emergency alert may be a false alarm - so a nurse or doctor
+// decides, by pressing "Notify today's students of a delay". That press is
+// recorded as a DELAY_ANNOUNCED entry in the staff feed (so other staff can
+// see it's been done), and each student booked today gets one DELAY_NOTICE.
+// Only today's bookings are affected, and each student is told at most once a
+// day; a student who books into today after the announcement is told then.
 @Service
 public class DelayNoticeService {
 
@@ -53,66 +57,75 @@ public class DelayNoticeService {
                 .orElse(null);
     }
 
-    // Returns how many students were notified.
-    public int notifyStudentsWithVisitToday(String emergencyStudentId, String emergencyDisplayName, Long excludeAppointmentId) {
-        LocalDate today = LocalDate.now();
-        LocalDateTime startOfToday = today.atStartOfDay();
+    // The most recent staff announcement today, or null if nobody has pressed it.
+    public Notification findDelayAnnouncementToday() {
+        return notificationRepository.findFirstByTypeAndCreatedAtGreaterThanEqualOrderByCreatedAtDesc(
+                "DELAY_ANNOUNCED", LocalDate.now().atStartOfDay());
+    }
+
+    public record Announcement(int notified, int alreadyNotified) {}
+
+    // A nurse/doctor pressed "Notify today's students of a delay". Students
+    // already told today are skipped, so pressing it again (e.g. for a second
+    // emergency, or by a colleague) only reaches anyone who booked since.
+    public Announcement announceDelay(String staffUsername, String emergencyStudentId) {
+        LocalDateTime startOfToday = LocalDate.now().atStartOfDay();
 
         List<Appointment> waiting = new ArrayList<>();
         waiting.addAll(appointmentRepository.findByStatus("BOOKED"));
         waiting.addAll(appointmentRepository.findByStatus("CHECKED_IN"));
 
         int notified = 0;
-        java.util.Set<String> alreadyNotified = new java.util.HashSet<>();
-        for (Appointment prior : waiting) {
-            if (!today.equals(prior.getAppointmentDate())) continue;
-            if (excludeAppointmentId != null && excludeAppointmentId.equals(prior.getId())) continue;
-            if (isEmergencyVisit(prior)) continue;
-            String recipient = prior.getStudentName();
+        int alreadyNotified = 0;
+        Set<String> seen = new HashSet<>();
+        for (Appointment visit : waiting) {
+            if (!LocalDate.now().equals(visit.getAppointmentDate()) || isEmergencyVisit(visit)) continue;
+            String recipient = visit.getStudentName();
             if (recipient == null || recipient.equals(emergencyStudentId)) continue;
             if (hasRaisedEmergencyToday(recipient)) continue;
-            if (!alreadyNotified.add(recipient)) continue;
-            if (notificationRepository.existsByTypeAndRecipientUsernameAndStudentUsernameAndCreatedAtGreaterThanEqual(
-                    "DELAY_NOTICE", recipient, emergencyStudentId, startOfToday)) continue;
-
-            saveDelayNotice(recipient, emergencyStudentId, emergencyDisplayName, prior.getId());
+            if (!seen.add(recipient)) continue;
+            if (wasToldToday(recipient, startOfToday)) { alreadyNotified++; continue; }
+            saveDelayNotice(recipient, visit.getId());
             notified++;
         }
-        return notified;
+
+        Notification staffNote = new Notification();
+        staffNote.setType("DELAY_ANNOUNCED");
+        staffNote.setStudentUsername(emergencyStudentId);
+        staffNote.setMessage(staffUsername + " notified " + notified + " student" + (notified == 1 ? "" : "s")
+                + " booked today that their appointment may be delayed"
+                + (alreadyNotified > 0 ? " (" + alreadyNotified + " already told earlier today)." : "."));
+        staffNote.setCreatedAt(LocalDateTime.now());
+        staffNote.setRead(true); // a record for staff, not something to act on
+        notificationRepository.save(staffNote);
+
+        return new Announcement(notified, alreadyNotified);
     }
 
-    // For a student who books (or reschedules) into TODAY after an emergency
-    // has already been raised today: they weren't around when the original
-    // delay notices went out, so send theirs now. Bookings for any other day
-    // never get one. Returns true if a notice was sent.
-    public boolean notifyLateBookingIfEmergencyToday(Appointment booking) {
+    // For a student who books (or reschedules) into TODAY after staff have
+    // announced a delay today: they weren't around when the notices went out,
+    // so send theirs now. Returns true if a notice was sent.
+    public boolean notifyLateBookingIfDelayAnnounced(Appointment booking) {
         LocalDate today = LocalDate.now();
         String recipient = booking.getStudentName();
         if (recipient == null || !today.equals(booking.getAppointmentDate()) || isEmergencyVisit(booking)) return false;
-        if (hasRaisedEmergencyToday(recipient)) return false;
-
-        LocalDateTime startOfToday = today.atStartOfDay();
-        boolean sent = false;
-        java.util.Set<String> seenEmergencies = new java.util.HashSet<>();
-        for (Notification emergency : notificationRepository.findByRecipientUsernameIsNullAndTypeInAndCreatedAtGreaterThanEqual(
-                List.of("EMERGENCY_ALERT", "EMERGENCY_BOOKING"), startOfToday)) {
-            String emergencyStudentId = emergency.getStudentUsername();
-            if (emergencyStudentId == null || emergencyStudentId.equals(recipient)) continue;
-            if (!seenEmergencies.add(emergencyStudentId)) continue;
-            if (notificationRepository.existsByTypeAndRecipientUsernameAndStudentUsernameAndCreatedAtGreaterThanEqual(
-                    "DELAY_NOTICE", recipient, emergencyStudentId, startOfToday)) continue;
-            saveDelayNotice(recipient, emergencyStudentId, emergency.getStudentName(), booking.getId());
-            sent = true;
-        }
-        return sent;
+        if (hasRaisedEmergencyToday(recipient) || findDelayAnnouncementToday() == null) return false;
+        if (wasToldToday(recipient, today.atStartOfDay())) return false;
+        saveDelayNotice(recipient, booking.getId());
+        return true;
     }
 
-    private void saveDelayNotice(String recipient, String emergencyStudentId, String emergencyDisplayName, Long appointmentId) {
+    private boolean wasToldToday(String recipient, LocalDateTime startOfToday) {
+        return notificationRepository.existsByTypeAndRecipientUsernameAndCreatedAtGreaterThanEqual(
+                "DELAY_NOTICE", recipient, startOfToday);
+    }
+
+    // The notice doesn't name the emergency patient - other students only need
+    // to know their own visit may be late.
+    private void saveDelayNotice(String recipient, Long appointmentId) {
         Notification delayNotice = new Notification();
         delayNotice.setType("DELAY_NOTICE");
         delayNotice.setRecipientUsername(recipient);
-        delayNotice.setStudentUsername(emergencyStudentId);
-        delayNotice.setStudentName(emergencyDisplayName);
         delayNotice.setAppointmentId(appointmentId);
         delayNotice.setMessage(DELAY_MESSAGE);
         delayNotice.setCreatedAt(LocalDateTime.now());

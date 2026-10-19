@@ -19,10 +19,12 @@ public interface NotificationRepository extends JpaRepository<Notification, Long
     Notification findFirstByTypeAndStudentUsernameAndCreatedAtGreaterThanEqualOrderByCreatedAtDesc(
             String type, String studentUsername, LocalDateTime since);
 
-    // Avoids sending a student a second delay notice about the same emergency
-    // (e.g. once when the alert is sent, again when they're checked in).
-    boolean existsByTypeAndRecipientUsernameAndStudentUsernameAndCreatedAtGreaterThanEqual(
-            String type, String recipientUsername, String studentUsername, LocalDateTime since);
+    // A student is sent at most one delay notice a day.
+    boolean existsByTypeAndRecipientUsernameAndCreatedAtGreaterThanEqual(
+            String type, String recipientUsername, LocalDateTime since);
+
+    // Today's staff delay announcement, if any (DELAY_ANNOUNCED).
+    Notification findFirstByTypeAndCreatedAtGreaterThanEqualOrderByCreatedAtDesc(String type, LocalDateTime since);
 
     // A student's emergency alerts that nobody has resolved yet.
     List<Notification> findByTypeAndStudentUsernameAndResolvedAtIsNullOrderByCreatedAtDesc(String type, String studentUsername);
