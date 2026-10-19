@@ -59,6 +59,7 @@ public class DataSeeder {
                 student1.setFullName("Elena Prasad");
                 student1.setCountry("Fiji");
                 student1.setPhoneNumber("+679 912 3456");
+                student1.setEmail("elena.prasad@example.com");
                 student1.setSemesterAddress("Ratu Sukuna Hall, Room 214, Laucala Campus, Suva");
                 student1.setHomeAddress("Lot 12, Namaka, Nadi");
                 student1.setEmergencyContactName("Anita Prasad");

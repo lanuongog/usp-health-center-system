@@ -60,6 +60,14 @@
     <strong id="delay-banner-title">Today’s appointment may start later</strong>
     <span id="delay-banner-text">An emergency patient is being seen first at the clinic today. Your appointment today remains booked. Appointments on other days are not affected.</span>
   </div>
+  <div id="cancel-banner" class="notice danger" hidden>
+    <div class="notice-title">Your appointment has been cancelled</div>
+    <div class="notice-body" id="cancel-banner-text"></div>
+    <div class="btn-row" style="margin-top:10px;">
+      <a class="btn btn-sm btn-primary" href="#book">Book another day</a>
+      <button class="btn btn-sm" onclick="dismissCancelBanner()">Dismiss</button>
+    </div>
+  </div>
   <div id="flash-banner" class="notice ok" hidden></div>
 </div>
 
@@ -453,9 +461,11 @@ function onView(view) {
   const flash = document.getElementById('flash-banner');
   const fee = document.getElementById('fee-banner');
   const delay = document.getElementById('delay-banner');
-  [flash, fee, delay].forEach(b => holder.appendChild(b));
+  const cancel = document.getElementById('cancel-banner');
+  [flash, fee, delay, cancel].forEach(b => holder.appendChild(b));
   if (slot) {
     if (view === 'appointments' && !flash.hidden) slot.appendChild(flash);
+    if (view === 'overview' || view === 'appointments' || view === 'book') slot.appendChild(cancel);
     if (view === 'overview' || view === 'book') slot.appendChild(fee);
     if (view !== 'book') slot.appendChild(delay);
   }
@@ -617,6 +627,9 @@ function nextOpenDate(afterIso) {
   return iso ? { date: iso, firstTime: openDates.get(iso) } : null;
 }
 
+// Shown wherever a day has no doctor, so students know where else to be seen.
+const ELSEWHERE_HTML = '<p class="small" style="margin-top:8px;">Need to see a doctor that day? Visit Raiwaqa Health Centre or CWM Hospital with your student ID.</p>';
+
 function nextAvailableHtml(afterIso) {
   const next = nextOpenDate(afterIso);
   if (!next) {
@@ -642,7 +655,8 @@ function goToBookingDate(iso) {
   }
 }
 
-function statusLabel(s) {
+function statusLabel(s, cancellationReason) {
+  if (s === 'CANCELLED' && cancellationReason) return 'Cancelled – ' + esc(cancellationReason.toLowerCase());
   return { COMPLETED: 'Completed', CANCELLED: 'Cancelled', NO_SHOW: 'No-show', BOOKED: 'Booked', CHECKED_IN: 'Checked in' }[s] || esc(s);
 }
 
@@ -692,7 +706,7 @@ function loadAvailabilityToday() {
         `Last refreshed today at ${HC.nowLabel().time} · Refresh to check for changes.`;
       if (!slots.length) {
         loadOpenDates().then(() => {
-          body.innerHTML = `<tr><td colspan="3"><span class="muted">No doctors are working today.</span>${nextAvailableHtml(today)}</td></tr>`;
+          body.innerHTML = `<tr><td colspan="3"><span class="muted">No doctors are working today.</span>${ELSEWHERE_HTML}${nextAvailableHtml(today)}</td></tr>`;
         });
         return;
       }
@@ -730,7 +744,7 @@ function renderRecentVisits() {
     <tr>
       <td>${esc(HC.fmtDate(h.appointmentDate, 'day'))}</td>
       <td>${esc(h.visitReason)}</td>
-      <td>${statusLabel(h.status)}</td>
+      <td>${statusLabel(h.status, h.cancellationReason)}</td>
       <td><a href="#history?id=${h.id}">View summary →</a></td>
     </tr>`).join('');
 }
@@ -810,7 +824,7 @@ function loadSlots() {
       if (!slots.length || !bookable.length) {
         const why = !slots.length ? `No doctor is working on ${esc(HC.fmtDate(date))}.`
           : `All times on ${esc(HC.fmtDate(date))} are taken or have passed.`;
-        container.innerHTML = `<div class="empty">${why}${nextAvailableHtml(date)}</div>`
+        container.innerHTML = `<div class="empty">${why}${slots.length ? '' : ELSEWHERE_HTML}${nextAvailableHtml(date)}</div>`
           + (slots.length ? '<div class="slot-grid" style="margin-top:12px;">' + uniqueSlots(slots).map(s => slotTile(s, date, 'pickSlot')).join('') + '</div>' : '');
         return;
       }
@@ -1013,7 +1027,7 @@ function renderPastTable() {
     <tr>
       <td>${esc(HC.fmtDate(h.appointmentDate, 'dm'))} · ${esc(HC.parseSlot(h.timeSlot).start || h.timeSlot || '')}</td>
       <td>${h.consultedByDoctor ? esc(doctorLabel(h.consultedByDoctor)) : '<span class="muted">—</span>'}</td>
-      <td>${statusLabel(h.status)}</td>
+      <td>${statusLabel(h.status, h.cancellationReason)}</td>
       <td><a href="#history?id=${h.id}">View visit →</a></td>
     </tr>`).join('');
 }
@@ -1213,7 +1227,8 @@ function renderVisitSummary(v) {
     ? `${v.consultedByDoctor ? `<p class="rs-meta">Recorded by ${esc(doctorLabel(v.consultedByDoctor))}</p>` : ''}
        <p><strong>Diagnosis: ${esc(v.diagnosis || '—')}</strong></p>
        ${v.consultationNotes ? `<p>Consultation notes: ${esc(v.consultationNotes)}</p>` : ''}`
-    : `<p class="muted">No consultation was recorded — this visit was ${v.status === 'NO_SHOW' ? 'marked as a no-show' : 'cancelled'}.</p>`;
+    : `<p class="muted">No consultation was recorded — this visit was ${v.status === 'NO_SHOW' ? 'marked as a no-show'
+        : v.cancellationReason ? 'cancelled by the clinic (' + esc(v.cancellationReason.toLowerCase()) + ')' : 'cancelled'}.</p>`;
 
   box.innerHTML = `
     <h2>Visit summary · ${esc(HC.fmtDate(v.appointmentDate, 'day'))}</h2>
@@ -1264,6 +1279,7 @@ function loadNotifications() {
       renderAlerts();
       renderOverviewAlerts();
       showDelayPopupIfNew();
+      renderCancelBanner();
     })
     .catch(() => {
       document.getElementById('alert-list').innerHTML = '<div class="card"><div class="empty">Unable to load notifications.</div></div>';
@@ -1271,10 +1287,37 @@ function loadNotifications() {
 }
 
 function alertTitle(n) {
+  if (n.type === 'APPOINTMENT_CANCELLED') return 'Your appointment has been cancelled';
   return n.type === 'DELAY_NOTICE' ? 'Your appointment today may start later' : 'Health Center update';
 }
 function alertIcon(n) {
+  if (n.type === 'APPOINTMENT_CANCELLED') return HC.icon('alert');
   return HC.icon(n.type === 'DELAY_NOTICE' ? 'clock' : 'file');
+}
+
+// ---------- Clinic cancellations ----------
+// When a doctor is marked unavailable, the student's booking is cancelled and
+// an APPOINTMENT_CANCELLED notice arrives. The latest unread one is shown as a
+// banner until dismissed (which marks it read), and the appointment lists are
+// reloaded so the cancelled booking leaves "Upcoming" straight away.
+let seenCancelIds = null;
+function renderCancelBanner() {
+  const cancels = notifications.filter(n => n.type === 'APPOINTMENT_CANCELLED');
+  const ids = cancels.map(n => n.id).join(',');
+  if (seenCancelIds !== null && ids !== seenCancelIds) { refreshAppointments(); loadHistory(); }
+  seenCancelIds = ids;
+
+  const latest = cancels.find(n => !n.read);
+  const banner = document.getElementById('cancel-banner');
+  banner.hidden = !latest;
+  banner.dataset.id = latest ? latest.id : '';
+  if (latest) document.getElementById('cancel-banner-text').textContent = latest.message;
+}
+
+function dismissCancelBanner() {
+  const id = Number(document.getElementById('cancel-banner').dataset.id);
+  document.getElementById('cancel-banner').hidden = true;
+  if (id) markNotifRead(id);
 }
 
 function setAlertFilter(f) {

@@ -178,6 +178,10 @@
         <input type="tel" id="regPhone" placeholder="e.g. +679 912 3456" maxlength="20" autocomplete="tel" />
       </div>
       <div class="field">
+        <label for="regEmail">Email address *</label>
+        <input type="email" id="regEmail" placeholder="e.g. s12345678@student.usp.ac.fj" maxlength="254" autocomplete="email" />
+      </div>
+      <div class="field">
         <label for="regSemesterAddress">Where you live during the semester *</label>
         <textarea id="regSemesterAddress" rows="2" maxlength="200" placeholder="e.g. Ratu Sukuna Hall, Room 214, Laucala Campus" oninput="updateWordCount(this)"></textarea>
         <p class="help">Hall of residence and room, or your off-campus address. <span class="word-count" data-for="regSemesterAddress">0 / 30 words</span></p>
@@ -391,6 +395,7 @@ async function handleRegister(e) {
   const country = document.getElementById('regCountry').value;
   const receiptFile = document.getElementById('regReceipt').files[0];
   const phoneNumber = document.getElementById('regPhone').value.trim();
+  const email = document.getElementById('regEmail').value.trim();
   const semesterAddress = document.getElementById('regSemesterAddress').value.trim();
   const homeAddress = document.getElementById('regHomeAddress').value.trim();
   const emergencyName = document.getElementById('regEmergencyName').value.trim();
@@ -405,6 +410,7 @@ async function handleRegister(e) {
   if (fullName.length > 100) return showRegAlert('Your full name must be 100 characters or fewer.');
   if (!country) return showRegAlert('Please select your country.');
   if (!isPhone(phoneNumber)) return showRegAlert('Please enter a valid phone number (7-15 digits).');
+  if (email.length > 254 || !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) return showRegAlert('Please enter a valid email address.');
   if (!semesterAddress) return showRegAlert('Please enter where you live during the semester.');
   if (!homeAddress) return showRegAlert('Please enter where you live outside the semester.');
   if (countWords(semesterAddress) > MAX_ADDRESS_WORDS) return showRegAlert(`Where you live during the semester must be ${MAX_ADDRESS_WORDS} words or fewer.`);
@@ -431,6 +437,7 @@ async function handleRegister(e) {
     formData.append('fullName', fullName);
     formData.append('country', country);
     formData.append('phoneNumber', phoneNumber);
+    formData.append('email', email);
     formData.append('semesterAddress', semesterAddress);
     formData.append('homeAddress', homeAddress);
     formData.append('emergencyContactName', emergencyName);

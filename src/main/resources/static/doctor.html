@@ -247,6 +247,12 @@ window.addEventListener('DOMContentLoaded', () => {
   });
 
   EmergencyAlerts.init({ authHeader: () => authHeader, onCheckIn: openEmergencyModal, refresh: pollNotifCount });
+  // Arrived from "Student arrived - check in" on the schedule page.
+  const emergencyStudent = Shell.hashParam('emergency');
+  if (emergencyStudent !== null) {
+    history.replaceState(null, '', '#queue');
+    openEmergencyModal(emergencyStudent);
+  }
   loadDirectory().then(refreshQueue);
   pollNotifCount();
   setInterval(pollNotifCount, 4000);
@@ -475,6 +481,7 @@ function studentDetailsHtml(s) {
     <p class="meta-label">Contact</p>
     ${row('Registered', s.registeredAt ? HC.fmtDateTime(s.registeredAt) : '')}
     ${row('Phone', s.phoneNumber)}
+    ${row('Email', s.email)}
     ${row('Country', s.country)}
     <p class="meta-label" style="margin-top:14px;">Residence</p>
     ${row('During semester', s.semesterAddress)}

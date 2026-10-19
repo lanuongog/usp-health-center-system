@@ -47,6 +47,7 @@
     <button class="btn" onclick="loadSchedule()"><span data-icon="refresh"></span>Refresh schedule</button>
   </div>
   <div id="pageError" class="notice danger" style="margin-bottom:20px;" hidden></div>
+  <div id="unavailResult" class="notice ok" style="margin-bottom:20px;" hidden></div>
 
   <div class="grid-main-side sched-grid">
     <div class="stack">
@@ -70,6 +71,7 @@
       <div class="card">
         <h2 id="day-title"></h2>
         <p class="card-sub">Existing bookings are protected · Fiji local time</p>
+        <div class="btn-row" id="day-actions" style="margin-top:12px;"></div>
         <div class="table-wrap" style="margin-top:16px;">
           <table class="table">
             <thead><tr><th>Time (Fiji)</th><th id="doctor-col">Doctor</th><th>Status</th><th>Manage</th></tr></thead>
@@ -134,6 +136,7 @@
 </div>
 
 <script src="/js/app-shell.js"></script>
+<script src="/js/emergency-alerts.js"></script>
 <script>
 const esc = HC.esc;
 let authHeader = null;
@@ -177,7 +180,26 @@ window.addEventListener('DOMContentLoaded', () => {
   goToday();
   resetForm();
   loadSchedule();
+
+  // Student emergencies must reach a doctor on this page too, not only on the
+  // queue. Checking the student in happens on the doctor page.
+  if (role === 'DOCTOR') {
+    EmergencyAlerts.init({
+      authHeader: () => authHeader,
+      onCheckIn: studentId => { location.href = '/doctor.html#queue?emergency=' + encodeURIComponent(studentId || ''); },
+      refresh: pollEmergencies
+    });
+    pollEmergencies();
+    setInterval(pollEmergencies, 4000);
+  }
 });
+
+function pollEmergencies() {
+  fetch('/notifications', { headers: { 'Authorization': authHeader } })
+    .then(res => res.ok ? res.json() : [])
+    .then(items => EmergencyAlerts.update(items))
+    .catch(() => {});
+}
 
 function doctorLabel(name) {
   if (!name) return '';
@@ -326,6 +348,7 @@ function renderDay() {
   const list = slotsOn(selectedDay);
   const body = document.getElementById('day-body');
   const isAdmin = role === 'ADMIN';
+  renderDayActions(list);
   if (!list.length) {
     body.innerHTML = `<tr><td colspan="${isAdmin ? 4 : 3}" class="muted">No consultation slots on this day.</td></tr>`;
     return;
@@ -467,6 +490,75 @@ async function deleteSlot(id) {
   } catch (e) {
     showPageError('Service temporarily unavailable');
   }
+}
+
+// ---------- Doctor unavailable ----------
+// One button per doctor who still has times left on the selected day.
+function renderDayActions(list) {
+  const live = list.filter(s => !HC.isSlotPast(selectedDay, s.timeSlot));
+  dayActionDoctors = [...new Set(live.map(s => s.doctorName))].sort();
+  document.getElementById('day-actions').innerHTML = dayActionDoctors.map((d, i) =>
+    `<button class="btn btn-sm" onclick="markUnavailable(${i})">${role === 'ADMIN' ? 'Mark ' + esc(doctorLabel(d)) : 'Mark me'} unavailable this day</button>`
+  ).join('');
+}
+let dayActionDoctors = [];
+
+async function markUnavailable(index) {
+  const doctorName = dayActionDoctors[index];
+  const live = slotsOn(selectedDay).filter(s => s.doctorName === doctorName && !HC.isSlotPast(selectedDay, s.timeSlot));
+  const booked = live.filter(s => s.booked).length;
+  const who = role === 'ADMIN' ? doctorLabel(doctorName) : 'you';
+  const msg = `Mark ${who} unavailable on ${HC.fmtDate(selectedDay)}?\n\n`
+    + `All ${live.length} remaining time${live.length === 1 ? '' : 's'} will be removed.`
+    + (booked ? ` ${booked} booked appointment${booked === 1 ? '' : 's'} will be cancelled and ${booked === 1 ? 'that student' : 'each student'} will get a notification.` : ' No students have booked yet.')
+    + '\n\nThis cannot be undone.';
+  if (!confirm(msg)) return;
+  try {
+    const res = await fetch('/schedule/manage/unavailable', {
+      method: 'POST',
+      headers: { 'Authorization': authHeader, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ doctorName, date: selectedDay })
+    });
+    if (!res.ok) {
+      const err = await res.json();
+      showPageError(err.message || 'Unable to mark the day unavailable');
+      return;
+    }
+    showPageError(null);
+    showUnavailableResult(doctorName, await res.json());
+    loadSchedule();
+  } catch (e) {
+    showPageError('Service temporarily unavailable');
+  }
+}
+
+// Summary plus a call list, so a nurse can phone students who may not open the
+// portal before their appointment (notices are in-app only).
+function showUnavailableResult(doctorName, r) {
+  const box = document.getElementById('unavailResult');
+  const n = r.cancelled;
+  let html = `<strong>${esc(doctorLabel(doctorName))} marked unavailable on ${esc(HC.fmtDate(selectedDay))}</strong>
+    <span class="notice-body">Removed ${r.removedSlots} time${r.removedSlots === 1 ? '' : 's'}. `
+    + (n ? `Cancelled ${n} appointment${n === 1 ? '' : 's'} and notified ${n === 1 ? 'the student' : 'each student'} in the portal.` : 'No appointments were booked.')
+    + (r.keptCheckedIn ? ` ${r.keptCheckedIn} student${r.keptCheckedIn === 1 ? ' is' : 's are'} already checked in and ${r.keptCheckedIn === 1 ? 'was' : 'were'} not cancelled.` : '')
+    + '</span>';
+  if (n) {
+    const opt = v => v ? esc(v) : '<span class="muted">Not provided</span>';
+    html += `<p class="small" style="margin-top:10px;">Students who may not check the portal in time can be contacted directly:</p>
+      <div class="table-wrap" style="margin-top:8px;"><table class="table">
+        <thead><tr><th>Time</th><th>Student</th><th>Phone</th><th>Email</th></tr></thead>
+        <tbody>${r.affected.map(a => `<tr>
+          <td>${esc(HC.slotRange(a.timeSlot))}</td>
+          <td>${esc(a.fullName)} <span class="muted">${esc(a.studentId)}</span></td>
+          <td>${opt(a.phoneNumber)}</td>
+          <td>${opt(a.email)}</td>
+        </tr>`).join('')}</tbody>
+      </table></div>`;
+  }
+  html += '<button class="btn btn-sm" style="margin-top:12px;" onclick="document.getElementById(\'unavailResult\').hidden = true">Dismiss</button>';
+  box.innerHTML = html;
+  box.hidden = false;
+  box.scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
 
 // ---------- Change password ----------

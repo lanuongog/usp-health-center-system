@@ -29,6 +29,8 @@ public class Appointment {
     private String diagnosis;
     private String consultationNotes;
     private String consultedByDoctor;
+    // Set when the clinic (not the student) cancels, e.g. "Doctor unavailable".
+    private String cancellationReason;
 
     public Appointment() {}
 
@@ -68,4 +70,7 @@ public class Appointment {
 
     public Long getScheduleSlotId() { return scheduleSlotId; }
     public void setScheduleSlotId(Long scheduleSlotId) { this.scheduleSlotId = scheduleSlotId; }
+
+    public String getCancellationReason() { return cancellationReason; }
+    public void setCancellationReason(String cancellationReason) { this.cancellationReason = cancellationReason; }
 }

@@ -23,7 +23,7 @@ public class Notification {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    private String type; // EMERGENCY_BOOKING, URGENT_BOOKING, DELAY_NOTICE
+    private String type; // EMERGENCY_BOOKING, URGENT_BOOKING, DELAY_NOTICE, APPOINTMENT_CANCELLED
     private String studentUsername; // the student this alert is ABOUT
     private String studentName;
     private String recipientUsername; // null = staff broadcast; set = that student only

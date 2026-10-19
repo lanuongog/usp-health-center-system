@@ -28,6 +28,7 @@ public class User {
     private String fullName;
     private String country; // one of the 12 USP member countries
     private String phoneNumber;
+    private String email; // so clinical staff can follow up by email
     private String semesterAddress; // where the student lives during the semester
     private String homeAddress; // where the student lives outside the semester (breaks/holidays)
     private String emergencyContactName;
@@ -77,6 +78,9 @@ public class User {
 
     public String getPhoneNumber() { return phoneNumber; }
     public void setPhoneNumber(String phoneNumber) { this.phoneNumber = phoneNumber; }
+
+    public String getEmail() { return email; }
+    public void setEmail(String email) { this.email = email; }
 
     public String getSemesterAddress() { return semesterAddress; }
     public void setSemesterAddress(String semesterAddress) { this.semesterAddress = semesterAddress; }

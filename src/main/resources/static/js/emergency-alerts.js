@@ -1,7 +1,8 @@
 // Staff-side emergency alerts, shared by the nurse (checkin.html) and doctor
-// (doctor.html) pages. Every unresolved EMERGENCY_ALERT - sent by a student
-// with one tap from their portal - pops up a full-screen red overlay and a red
-// banner across the top of every view.
+// (doctor.html, schedule.html) pages, so an alert reaches staff on any screen.
+// Every unresolved EMERGENCY_ALERT - sent by a student with one tap from their
+// portal - pops up a full-screen red overlay and a red banner across the top
+// of every view.
 //  - "Acknowledge" records who is responding and hides the popup for one
 //    minute. If the emergency still isn't done by then, it pops up again.
 //  - Only "Mark emergency done" or an Emergency Check-in resolves the alert,
@@ -157,7 +158,7 @@ const EmergencyAlerts = (() => {
   }
 
   function post(path) {
-    return fetch('/notifications/' + path, { method: 'POST', headers: { 'Authorization': opts.authHeader() } });
+    return fetch('/notifications/' + path, { method: 'POST', headers: { 'Authorization': opts.authHeader() }, keepalive: true });
   }
 
   function acknowledge() {

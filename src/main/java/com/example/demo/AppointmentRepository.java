@@ -1,6 +1,7 @@
 package com.example.demo;
 
 import java.time.LocalDate;
+import java.util.Collection;
 import java.util.List;
 
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -22,6 +23,9 @@ public interface AppointmentRepository extends JpaRepository<Appointment, Long> 
 
     List<Appointment> findByStudentNameAndStatusAndAppointmentDateAndTimeSlot(
             String studentName, String status, LocalDate appointmentDate, String timeSlot);
+
+    // Appointments tied to particular schedule rows (e.g. one doctor's day).
+    List<Appointment> findByScheduleSlotIdIn(Collection<Long> scheduleSlotIds);
 
     long countByStatus(String status);
 

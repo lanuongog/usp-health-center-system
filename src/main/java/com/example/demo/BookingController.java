@@ -95,6 +95,7 @@ public class BookingController {
                     map.put("visitReason", a.getVisitReason());
                     map.put("urgencyLevel", a.getUrgencyLevel());
                     map.put("status", a.getStatus());
+                    map.put("cancellationReason", a.getCancellationReason());
                     map.put("diagnosis", a.getDiagnosis());
                     map.put("consultationNotes", a.getConsultationNotes());
                     map.put("consultedByDoctor", a.getConsultedByDoctor());
@@ -132,7 +133,7 @@ public class BookingController {
         }
 
         DoctorSchedule slot = scheduleRepository.findById(request.slotId).orElse(null);
-        if (slot == null) {
+        if (slot == null || slot.isArchived()) {
             return Map.of("error", "This slot is no longer available.");
         }
         if (isSlotInPast(slot)) {
@@ -149,7 +150,7 @@ public class BookingController {
         // doctor's row is booked independently of every other doctor's.
         synchronized (this) {
             slot = scheduleRepository.findById(request.slotId).orElse(null);
-            if (slot == null || slot.isBooked()) {
+            if (slot == null || slot.isBooked() || slot.isArchived()) {
                 return Map.of("error", "This slot is no longer available.");
             }
             slot.setBooked(true);
@@ -252,7 +253,7 @@ public class BookingController {
         DoctorSchedule newSlot;
         synchronized (this) {
             newSlot = scheduleRepository.findById(request.newSlotId).orElse(null);
-            if (newSlot == null || newSlot.isBooked()) {
+            if (newSlot == null || newSlot.isBooked() || newSlot.isArchived()) {
                 return Map.of("error", "This slot is no longer available.");
             }
             newSlot.setBooked(true);

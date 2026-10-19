@@ -31,6 +31,7 @@ public class StudentDirectoryController {
         public String fullName;
         public String country;
         public String phoneNumber;
+        public String email;
         public String semesterAddress;
         public String homeAddress;
         public String emergencyContactName;
@@ -48,6 +49,7 @@ public class StudentDirectoryController {
             this.fullName = u.getFullName();
             this.country = u.getCountry();
             this.phoneNumber = u.getPhoneNumber();
+            this.email = u.getEmail();
             this.semesterAddress = u.getSemesterAddress();
             this.homeAddress = u.getHomeAddress();
             this.emergencyContactName = u.getEmergencyContactName();

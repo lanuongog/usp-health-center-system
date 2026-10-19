@@ -1,10 +1,14 @@
 package com.example.demo;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.LocalTime;
+import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
+import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -12,6 +16,7 @@ import java.util.stream.Collectors;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.Authentication;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -28,9 +33,21 @@ import org.springframework.web.server.ResponseStatusException;
 public class ScheduleController {
 
     private final DoctorScheduleRepository scheduleRepository;
+    private final AppointmentRepository appointmentRepository;
+    private final NotificationRepository notificationRepository;
+    private final UserRepository userRepository;
+    private final AuditLogService auditLogService;
 
-    public ScheduleController(DoctorScheduleRepository scheduleRepository) {
+    public ScheduleController(DoctorScheduleRepository scheduleRepository,
+                              AppointmentRepository appointmentRepository,
+                              NotificationRepository notificationRepository,
+                              UserRepository userRepository,
+                              AuditLogService auditLogService) {
         this.scheduleRepository = scheduleRepository;
+        this.appointmentRepository = appointmentRepository;
+        this.notificationRepository = notificationRepository;
+        this.userRepository = userRepository;
+        this.auditLogService = auditLogService;
     }
 
     // students view slots for a date (booked and open), optionally filtered by doctor,
@@ -245,6 +262,111 @@ public class ScheduleController {
         existing.setArchived(true);
         scheduleRepository.save(existing);
         return Map.of("message", "Slot removed.");
+    }
+
+    static final String DOCTOR_UNAVAILABLE_REASON = "Doctor unavailable";
+    private static final DateTimeFormatter NOTICE_DATE_FORMAT = DateTimeFormatter.ofPattern("EEE d MMM", Locale.ENGLISH);
+    private static final DateTimeFormatter NOTICE_TIME_FORMAT = DateTimeFormatter.ofPattern("h:mm a", Locale.ENGLISH);
+
+    public static class UnavailableRequest {
+        public String doctorName;
+        public LocalDate date;
+    }
+
+    // doctor/admin marks a doctor as not working on a day (e.g. off sick). Every
+    // remaining time that day is removed, each booked student's appointment is
+    // cancelled, and each of them gets an in-app notice pointing them to rebook
+    // or go to Raiwaqa / CWM. Times already passed and students already checked
+    // in are left alone - staff deal with those in person. The response lists
+    // the affected students' contact details so a nurse can follow up by phone.
+    @PostMapping("/manage/unavailable")
+    @Transactional
+    public Map<String, Object> markDoctorUnavailable(@RequestBody UnavailableRequest request, Authentication auth) {
+        if (isBlank(request.doctorName) || request.date == null) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Choose the doctor and the date.");
+        }
+        String doctorName = request.doctorName.trim();
+        validateOwnership(doctorName, auth);
+        if (request.date.isBefore(LocalDate.now())) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "That day has already passed.");
+        }
+
+        List<DoctorSchedule> remaining = scheduleRepository
+                .findByDoctorNameAndScheduleDateAndArchivedFalse(doctorName, request.date).stream()
+                .filter(s -> !BookingController.isSlotInPast(s))
+                .toList();
+        if (remaining.isEmpty()) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "There are no remaining times for this doctor on that day.");
+        }
+
+        Map<Long, Appointment> activeBySlot = new java.util.HashMap<>();
+        for (Appointment a : appointmentRepository.findByScheduleSlotIdIn(remaining.stream().map(DoctorSchedule::getId).toList())) {
+            if ("BOOKED".equals(a.getStatus()) || "CHECKED_IN".equals(a.getStatus())) {
+                activeBySlot.put(a.getScheduleSlotId(), a);
+            }
+        }
+
+        int removed = 0;
+        int keptCheckedIn = 0;
+        List<Map<String, Object>> affected = new ArrayList<>();
+        for (DoctorSchedule slot : remaining) {
+            Appointment appointment = activeBySlot.get(slot.getId());
+            if (appointment != null && "CHECKED_IN".equals(appointment.getStatus())) {
+                keptCheckedIn++;
+                continue;
+            }
+            slot.setArchived(true);
+            slot.setBooked(false);
+            scheduleRepository.save(slot);
+            removed++;
+            if (appointment == null) continue;
+
+            appointment.setStatus("CANCELLED");
+            appointment.setCancellationReason(DOCTOR_UNAVAILABLE_REASON);
+            appointmentRepository.save(appointment);
+
+            String studentId = appointment.getStudentName();
+            User student = userRepository.findByUsername(studentId).orElse(null);
+            String fullName = student != null && student.getFullName() != null ? student.getFullName() : studentId;
+
+            Notification notice = new Notification();
+            notice.setType("APPOINTMENT_CANCELLED");
+            notice.setRecipientUsername(studentId);
+            notice.setStudentUsername(studentId);
+            notice.setStudentName(fullName);
+            notice.setAppointmentId(appointment.getId());
+            notice.setMessage(doctorUnavailableMessage(slot));
+            notice.setCreatedAt(LocalDateTime.now());
+            notificationRepository.save(notice);
+
+            auditLogService.recordAccess(auth, "APPOINTMENT_CANCELLED_DOCTOR_UNAVAILABLE", studentId,
+                    "Appointment #" + appointment.getId() + " on " + slot.getScheduleDate() + " " + slot.getTimeSlot()
+                            + " (" + doctorName + ")");
+
+            Map<String, Object> row = new LinkedHashMap<>();
+            row.put("studentId", studentId);
+            row.put("fullName", fullName);
+            row.put("phoneNumber", student != null ? student.getPhoneNumber() : null);
+            row.put("email", student != null ? student.getEmail() : null);
+            row.put("timeSlot", slot.getTimeSlot());
+            affected.add(row);
+        }
+
+        Map<String, Object> result = new LinkedHashMap<>();
+        result.put("removedSlots", removed);
+        result.put("cancelled", affected.size());
+        result.put("keptCheckedIn", keptCheckedIn);
+        result.put("affected", affected);
+        return result;
+    }
+
+    // e.g. "Your appointment on Tue 21 Oct at 10:00 AM has been cancelled because ..."
+    private static String doctorUnavailableMessage(DoctorSchedule slot) {
+        LocalTime start = BookingController.slotStartTime(slot);
+        String time = start != null ? start.format(NOTICE_TIME_FORMAT) : slot.getTimeSlot();
+        return "Your appointment on " + slot.getScheduleDate().format(NOTICE_DATE_FORMAT) + " at " + time
+                + " has been cancelled because no doctor is available that day. Please book another day"
+                + " or visit Raiwaqa Health Centre or CWM Hospital with your student ID.";
     }
 
     // Doctors and admins need to see the FULL schedule (booked + open) to manage it,

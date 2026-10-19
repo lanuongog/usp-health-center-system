@@ -46,6 +46,9 @@ public class StudentController {
     private static final Pattern PHONE_PATTERN = Pattern.compile("^\\+?[0-9 ()-]+$");
     private static final int MIN_PHONE_DIGITS = 7;
     private static final int MAX_PHONE_DIGITS = 15;
+    // Deliberately loose: one "@", no spaces, and a dot in the domain part.
+    private static final Pattern EMAIL_PATTERN = Pattern.compile("^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$");
+    private static final int MAX_EMAIL_LENGTH = 254;
 
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
@@ -77,6 +80,7 @@ public class StudentController {
                             @RequestParam String fullName,
                             @RequestParam String country,
                             @RequestParam String phoneNumber,
+                            @RequestParam String email,
                             @RequestParam String semesterAddress,
                             @RequestParam String homeAddress,
                             @RequestParam String emergencyContactName,
@@ -103,7 +107,7 @@ public class StudentController {
         if (country == null || !MEMBER_COUNTRIES.contains(country)) {
             return Map.of("error", "Please select a valid country.");
         }
-        String contactError = validateContactDetails(phoneNumber, semesterAddress, homeAddress,
+        String contactError = validateContactDetails(phoneNumber, email, semesterAddress, homeAddress,
                 emergencyContactName, emergencyContactRelationship, emergencyContactPhone);
         if (contactError != null) {
             return Map.of("error", contactError);
@@ -130,6 +134,7 @@ public class StudentController {
         student.setFullName(fullName.trim());
         student.setCountry(country);
         student.setPhoneNumber(phoneNumber.trim());
+        student.setEmail(email.trim().toLowerCase());
         student.setSemesterAddress(semesterAddress.trim());
         student.setHomeAddress(homeAddress.trim());
         student.setEmergencyContactName(emergencyContactName.trim());
@@ -414,11 +419,14 @@ public class StudentController {
 
     // Contact, residence and emergency contact details collected at registration
     // so clinical staff can reach the student (or someone on their behalf).
-    private String validateContactDetails(String phoneNumber, String semesterAddress, String homeAddress,
+    private String validateContactDetails(String phoneNumber, String email, String semesterAddress, String homeAddress,
                                           String emergencyContactName, String emergencyContactRelationship,
                                           String emergencyContactPhone) {
         if (!isValidPhone(phoneNumber)) {
             return "Please enter a valid phone number (" + MIN_PHONE_DIGITS + "-" + MAX_PHONE_DIGITS + " digits).";
+        }
+        if (email == null || email.trim().length() > MAX_EMAIL_LENGTH || !EMAIL_PATTERN.matcher(email.trim()).matches()) {
+            return "Please enter a valid email address.";
         }
         if (semesterAddress == null || semesterAddress.isBlank()) {
             return "Please enter where you live during the semester.";
