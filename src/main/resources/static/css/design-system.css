@@ -380,8 +380,8 @@ input:disabled, select:disabled, textarea:disabled { background: var(--panel-mut
 .table td { padding: 15px 12px; border-bottom: 1px solid var(--line); color: var(--ink); vertical-align: middle; }
 .table tr.clickable { cursor: pointer; }
 .table tr.clickable:hover td { background: var(--brand-softer); }
-.table td a { color: var(--brand); font-weight: 500; text-decoration: none; }
-.table td a:hover { text-decoration: underline; }
+.table td a:not(.btn) { color: var(--brand); font-weight: 500; text-decoration: none; }
+.table td a:not(.btn):hover { text-decoration: underline; }
 
 /* ---------- Key/value rows ---------- */
 .kv { display: flex; justify-content: space-between; gap: 12px; padding: 11px 0; border-bottom: 1px solid var(--line); font-size: 13.5px; }
