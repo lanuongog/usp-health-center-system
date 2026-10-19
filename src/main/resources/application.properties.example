@@ -1,5 +1,5 @@
 spring.application.name=demo
-spring.datasource.url=jdbc:postgresql://localhost:3433/usp_health_center
+spring.datasource.url=jdbc:postgresql://localhost:5433/usp_health_center
 spring.datasource.password=grp123
 spring.datasource.username=postgres
 spring.jpa.hibernate.ddl-auto=update
