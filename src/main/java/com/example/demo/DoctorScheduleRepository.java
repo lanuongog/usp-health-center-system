@@ -25,7 +25,6 @@ public interface DoctorScheduleRepository extends JpaRepository<DoctorSchedule, 
     // A time slot is booked as a unit across every doctor scheduled for that
     // date+time, so these two helpers keep all of a time slot's rows in sync.
     // Archived rows are excluded since a removed slot no longer participates
-    // in booking/availability for that date+time.
     default boolean anyBookedForTimeSlot(LocalDate scheduleDate, String timeSlot) {
         return findByScheduleDateAndTimeSlotAndArchivedFalse(scheduleDate, timeSlot).stream().anyMatch(DoctorSchedule::isBooked);
     }
