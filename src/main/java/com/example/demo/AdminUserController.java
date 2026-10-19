@@ -12,6 +12,7 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -25,7 +26,8 @@ import org.springframework.web.server.ResponseStatusException;
 @RequestMapping("/admin/users")
 public class AdminUserController {
 
-    private static final List<String> STAFF_ROLES = List.of("ADMIN", "DOCTOR", "NURSE");
+    // FEE_APPROVER = "Finance": approves fee changes proposed by admins (FeeSettingsService).
+    private static final List<String> STAFF_ROLES = List.of("ADMIN", "DOCTOR", "NURSE", FeeSettingsService.APPROVER_ROLE);
     private static final int MIN_USERNAME_LENGTH = 3;
     private static final int MAX_USERNAME_LENGTH = 50;
     private static final int MIN_PASSWORD_LENGTH = 6;
@@ -35,15 +37,18 @@ public class AdminUserController {
     private final AppointmentRepository appointmentRepository;
     private final CheckInRepository checkInRepository;
     private final PasswordEncoder passwordEncoder;
+    private final AuditLogService auditLogService;
 
     public AdminUserController(UserRepository userRepository,
                              AppointmentRepository appointmentRepository,
                              CheckInRepository checkInRepository,
-                             PasswordEncoder passwordEncoder) {
+                             PasswordEncoder passwordEncoder,
+                             AuditLogService auditLogService) {
         this.userRepository = userRepository;
         this.appointmentRepository = appointmentRepository;
         this.checkInRepository = checkInRepository;
         this.passwordEncoder = passwordEncoder;
+        this.auditLogService = auditLogService;
     }
 
     // A safe view of a user account - never exposes the password hash.
@@ -132,12 +137,12 @@ public class AdminUserController {
     public static class CreateUserRequest {
         public String username;
         public String password;
-        public String role; // ADMIN, DOCTOR, or NURSE
+        public String role; // ADMIN, DOCTOR, NURSE, or FEE_APPROVER (Finance)
     }
 
     // "the admin is able to add ... staff ... accounts"
     @PostMapping
-    public Object createUser(@RequestBody CreateUserRequest request) {
+    public Object createUser(@RequestBody CreateUserRequest request, Authentication auth) {
         if (request.username == null || request.username.isBlank()
                 || request.password == null || request.password.isBlank()) {
             return Map.of("error", "Username and password are required.");
@@ -150,7 +155,7 @@ public class AdminUserController {
             return Map.of("error", "Password must be between " + MIN_PASSWORD_LENGTH + " and " + MAX_PASSWORD_LENGTH + " characters.");
         }
         if (request.role == null || !STAFF_ROLES.contains(request.role)) {
-            return Map.of("error", "Role must be one of: ADMIN, DOCTOR, NURSE.");
+            return Map.of("error", "Role must be one of: ADMIN, DOCTOR, NURSE, FEE_APPROVER.");
         }
         if (userRepository.findByUsername(username).isPresent()) {
             return Map.of("error", "This username is already registered.");
@@ -158,7 +163,16 @@ public class AdminUserController {
         request.username = username;
 
         User user = new User(request.username, passwordEncoder.encode(request.password), request.role);
+        user.setCreatedBy(auth.getName());
         userRepository.save(user);
+        // Every account created is on record, so who could act as whom is traceable.
+        if (FeeSettingsService.APPROVER_ROLE.equals(request.role)) {
+            auditLogService.recordAccess(auth, "FEE_APPROVER_ADDED", null,
+                    "Added Finance (fee approver) account " + user.getUsername());
+        } else {
+            auditLogService.recordAccess(auth, "STAFF_ACCOUNT_CREATED", null,
+                    "Added " + request.role + " account " + user.getUsername());
+        }
 
         return new UserView(user);
     }
@@ -170,9 +184,13 @@ public class AdminUserController {
     // lets an admin set a new password for any account (e.g. a student or
     // staff member locked out of their own account)
     @PostMapping("/{id}/reset-password")
-    public Object resetPassword(@PathVariable Long id, @RequestBody ResetPasswordRequest request) {
+    public Object resetPassword(@PathVariable Long id, @RequestBody ResetPasswordRequest request, Authentication auth) {
         User user = userRepository.findById(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User account not found"));
+        // An admin taking over an approver account would defeat the fee two-person rule.
+        if (FeeSettingsService.APPROVER_ROLE.equals(user.getRole())) {
+            return Map.of("error", "Admins can't reset a Finance account's password. The account holder changes it after signing in.");
+        }
 
         if (request.newPassword == null || request.newPassword.isBlank()) {
             return Map.of("error", "A new password is required.");
@@ -183,6 +201,8 @@ public class AdminUserController {
 
         user.setPassword(passwordEncoder.encode(request.newPassword));
         userRepository.save(user);
+        auditLogService.recordAccess(auth, "PASSWORD_RESET", "STUDENT".equals(user.getRole()) ? user.getUsername() : null,
+                "Reset the password of " + user.getRole() + " account " + user.getUsername());
 
         return Map.of("message", "Password reset for " + user.getUsername() + ".");
     }

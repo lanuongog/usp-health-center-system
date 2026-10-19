@@ -124,7 +124,7 @@ function showMsg(message) {
 }
 
 function roleLabel(r) {
-  return { STUDENT: 'Student', DOCTOR: 'Doctor', NURSE: 'Nurse', ADMIN: 'Admin' }[r] || r;
+  return { STUDENT: 'Student', DOCTOR: 'Doctor', NURSE: 'Nurse', ADMIN: 'Admin', FEE_APPROVER: 'Finance' }[r] || r;
 }
 
 async function loadUser() {
@@ -194,7 +194,9 @@ function render() {
         ${u.role === 'ADMIN'
           ? '<span class="small muted">Admin accounts cannot be activated or deactivated here.</span>'
           : `<button class="btn${u.active ? '' : ' btn-primary'}" onclick="openPanel('toggle')">${u.active ? 'Deactivate' : 'Activate'}</button>`}
-        <button class="btn" onclick="openPanel('reset')">Reset password</button>
+        ${u.role === 'FEE_APPROVER'
+          ? '<span class="small muted">Admins can’t reset a Finance password; the account holder changes it after signing in.</span>'
+          : '<button class="btn" onclick="openPanel(\'reset\')">Reset password</button>'}
       </div>
       ${togglePanel}${resetPanel}
     </div>`;

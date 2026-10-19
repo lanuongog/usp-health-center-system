@@ -6,9 +6,10 @@ import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 
-// The Laucala Health Services Fee amounts, set by an admin. A single row (id 1).
-// The amount is copied onto each student at registration, so changing it here
-// only affects students who register afterwards.
+// The Laucala Health Services Fee amounts in force. A single row (id 1). Only
+// changed by an approved FeeChangeRequest (proposed by an admin, approved by a
+// fee approver). The amount is copied onto each student at registration, so a
+// change only affects students who register afterwards.
 @Entity
 @Table(name = "fee_settings")
 public class FeeSettings {
@@ -20,7 +21,8 @@ public class FeeSettings {
     private double localFee;    // students from Fiji
     private double regionalFee; // students from the other USP member countries
     private LocalDateTime updatedAt;
-    private String updatedBy;
+    private String updatedBy;  // the admin who proposed the change
+    private String approvedBy; // the fee approver who approved it
 
     public FeeSettings() {}
 
@@ -42,4 +44,7 @@ public class FeeSettings {
 
     public String getUpdatedBy() { return updatedBy; }
     public void setUpdatedBy(String updatedBy) { this.updatedBy = updatedBy; }
+
+    public String getApprovedBy() { return approvedBy; }
+    public void setApprovedBy(String approvedBy) { this.approvedBy = approvedBy; }
 }

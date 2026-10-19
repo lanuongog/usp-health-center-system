@@ -153,6 +153,9 @@ When launched, the system automatically seeds default accounts and sample appoin
 | **Doctor**          | `http://localhost:8080/doctor.html`     | `dr.sharma`                   | `doctor123`     | Patient queue, clinical consultations, diagnoses   |
 | **Admin**           | `http://localhost:8080/admin.html`      | `admin`                       | `admin123`      | Analytics dashboard, receipts, schedules, fees     |
 | **User Admin**      | `http://localhost:8080/admin-user.html` | `admin`                       | `admin123`      | Staff account provisioning, system audit logs      |
+| **Finance**         | `http://localhost:8080/fee-approvals.html` | `feeapprover`              | `approver123`   | Approves or rejects fee changes proposed by admins |
+
+Admins create Finance accounts on the Accounts page (role **Finance**). Any Finance account can approve a proposed change, and admins can't reset Finance passwords. Developers can also create one with `app.fee-approver.username` / `app.fee-approver.password` in `application.properties` (see `application.properties.example`).
 
 ---
 

@@ -230,7 +230,7 @@ window.addEventListener('DOMContentLoaded', () => {
   const storedAuth = localStorage.getItem('authHeader');
   const storedRole = localStorage.getItem('userRole');
   const storedUser = localStorage.getItem('currentUser');
-  if (!storedAuth || (storedRole !== 'NURSE' && storedRole !== 'ADMIN')) {
+  if (!storedAuth || storedRole !== 'NURSE') {
     window.location.href = '/login.html';
     return;
   }

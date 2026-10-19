@@ -11,3 +11,9 @@ spring.servlet.multipart.max-request-size=5MB
 # Auto-create open slots for the demo doctors (dr.patel, dr.lee, dr.sharma) for the
 # next 7 days on every startup. Testing only - leave off so doctors create their own slots.
 app.demo-slots=false
+
+# Fee changes need a Finance (fee approver) account: admins propose, Finance approves.
+# Admins can add Finance accounts on the Accounts page; these optional settings create
+# one at startup instead. (A brand-new database seeds feeapprover / approver123.)
+# app.fee-approver.username=feeapprover
+# app.fee-approver.password=CHANGE_ME

@@ -62,7 +62,8 @@ public class SecurityConfig {
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers("/dashboard/**").hasRole("ADMIN")
                 .requestMatchers("/admin/**").hasRole("ADMIN")
-                .requestMatchers("/nurse/**").hasAnyRole("NURSE", "ADMIN")
+                .requestMatchers("/fee-approvals/**").hasRole("FEE_APPROVER")
+                .requestMatchers("/nurse/**").hasRole("NURSE")
                 .requestMatchers("/doctor/**").hasRole("DOCTOR")
                 .requestMatchers("/student/register", "/student/fee-schedule").permitAll()
                 .requestMatchers("/student/**").hasRole("STUDENT")
@@ -71,7 +72,7 @@ public class SecurityConfig {
                 .requestMatchers("/directory/**").hasAnyRole("NURSE", "DOCTOR", "ADMIN")
                 .requestMatchers("/absences/**").hasAnyRole("NURSE", "ADMIN")
                 .requestMatchers("/notifications/**").hasAnyRole("NURSE", "DOCTOR", "ADMIN")
-                .requestMatchers("/emergency/**").hasAnyRole("NURSE", "DOCTOR", "ADMIN")
+                .requestMatchers("/emergency/**").hasAnyRole("NURSE", "DOCTOR")
                 .requestMatchers("/account/**").authenticated()
                 .anyRequest().permitAll()
             )

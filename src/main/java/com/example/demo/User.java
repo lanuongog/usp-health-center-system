@@ -45,6 +45,7 @@ public class User {
     private String receiptAutoCheckNote; // system's automated amount/name check on the current receipt
     private LocalDateTime receiptUploadedAt; // when the current receipt was uploaded, for the admin's pending queue
     private LocalDateTime registeredAt; // when the student self-registered (null for staff and older accounts)
+    private String createdBy; // who created a staff account in the app (null for seeded and older accounts)
 
     public User() {}
 
@@ -120,4 +121,7 @@ public class User {
 
     public LocalDateTime getRegisteredAt() { return registeredAt; }
     public void setRegisteredAt(LocalDateTime registeredAt) { this.registeredAt = registeredAt; }
+
+    public String getCreatedBy() { return createdBy; }
+    public void setCreatedBy(String createdBy) { this.createdBy = createdBy; }
 }

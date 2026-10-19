@@ -136,7 +136,7 @@
         <div class="field"><label for="newUsername">Username *</label><input type="text" id="newUsername" minlength="3" maxlength="50" /></div>
         <div class="field"><label for="newPassword">Password *</label><input type="password" id="newPassword" placeholder="Min 6 characters" minlength="6" maxlength="100" /></div>
         <div class="field"><label for="newRole">Role *</label>
-          <select id="newRole"><option value="DOCTOR">Doctor</option><option value="NURSE">Nurse</option><option value="ADMIN">Admin</option></select>
+          <select id="newRole"><option value="DOCTOR">Doctor</option><option value="NURSE">Nurse</option><option value="ADMIN">Admin</option><option value="FEE_APPROVER">Finance (approves fee changes)</option></select>
         </div>
       </div>
       <div class="btn-row" style="margin-top:16px;">
@@ -164,18 +164,42 @@
       <p>Laucala Health Services Fee charged when a student registers.</p>
     </div>
   </div>
-  <div class="card" style="max-width:640px;">
-    <h2>Health Services Fee</h2>
-    <p class="card-sub">Students pay this and upload the receipt before they can book. Changes apply to new registrations only; students already registered keep the fee they signed up with.</p>
-    <div class="field-row" style="margin-top:18px;">
-      <div class="field"><label for="feeLocal">Local students (Fiji) <span class="unit">FJ$</span></label><input type="number" id="feeLocal" min="0.01" step="0.01" inputmode="decimal" /></div>
-      <div class="field"><label for="feeRegional">Regional students (other USP countries) <span class="unit">FJ$</span></label><input type="number" id="feeRegional" min="0.01" step="0.01" inputmode="decimal" /></div>
+  <div class="notice warn" id="no-approver" style="margin-bottom:20px;max-width:760px;" hidden>
+    <strong>No Finance account is set up</strong>
+    <span class="notice-body">Fee changes need sign-off from a Finance account, and none exists yet. Add one under Accounts with the role Finance.</span>
+  </div>
+  <div class="stack" style="max-width:760px;">
+    <div class="card">
+      <h2>Current Health Services Fee</h2>
+      <p class="card-sub">Students pay this and upload the receipt before they can book. Changes apply to new registrations only.</p>
+      <div style="margin-top:12px;" id="fee-current"></div>
     </div>
-    <div class="btn-row" style="margin-top:18px;">
-      <button class="btn btn-primary" id="fee-save-btn" onclick="saveFees()">Save fees</button>
+
+    <div class="card" id="fee-pending-card" hidden>
+      <div class="absence-head"><h2>Waiting for approval</h2><span class="pill amber">Not in effect yet</span></div>
+      <div id="fee-pending" style="margin-top:12px;"></div>
+      <div class="btn-row" style="margin-top:16px;"><button class="btn" onclick="withdrawFeeProposal()">Withdraw proposal</button></div>
+    </div>
+
+    <div class="card" id="fee-propose-card">
+      <h2>Propose a fee change</h2>
+      <p class="card-sub">A Finance account must approve the change before students are charged the new amount.</p>
+      <div class="field-row" style="margin-top:18px;">
+        <div class="field"><label for="feeLocal">Local students (Fiji) <span class="unit">FJ$</span></label><input type="number" id="feeLocal" min="0.01" step="0.01" inputmode="decimal" /></div>
+        <div class="field"><label for="feeRegional">Regional students (other USP countries) <span class="unit">FJ$</span></label><input type="number" id="feeRegional" min="0.01" step="0.01" inputmode="decimal" /></div>
+      </div>
+      <div class="field"><label for="feeReason">Reason for the change *</label><textarea id="feeReason" rows="2" maxlength="500" placeholder="e.g. Fee increase approved by the USP Council for Semester 1, 2027"></textarea></div>
+      <div class="btn-row" style="margin-top:6px;">
+        <button class="btn btn-primary" id="fee-save-btn" onclick="proposeFees()">Send for approval</button>
+      </div>
     </div>
     <div class="form-msg" id="feeMsg"></div>
-    <p class="tiny muted" style="margin-top:14px;" id="fee-updated"></p>
+
+    <div class="card">
+      <h2>Fee change history</h2>
+      <p class="card-sub">Every proposal, who made it and who decided. Also recorded in the audit log.</p>
+      <div id="fee-history"></div>
+    </div>
   </div>
 </section>
 
@@ -244,6 +268,7 @@
 
 <script src="/js/app-shell.js"></script>
 <script src="/js/doctor-absences.js"></script>
+<script src="/js/fee-changes.js"></script>
 <script>
 const esc = HC.esc;
 let authHeader = null;
@@ -292,58 +317,79 @@ window.addEventListener('DOMContentLoaded', () => {
 });
 
 // ---------- Fees ----------
-function renderFees(f) {
-  document.getElementById('feeLocal').value = Number(f.localFee).toFixed(2);
-  document.getElementById('feeRegional').value = Number(f.regionalFee).toFixed(2);
-  document.getElementById('fee-updated').textContent = f.updatedAt
-    ? `Last changed ${HC.fmtDateTime(f.updatedAt)} by ${f.updatedBy}. Every change is recorded in the audit log.`
-    : 'Default fees. Every change is recorded in the audit log.';
-}
+// Two-person rule: an admin proposes, a fee approver approves (js/fee-changes.js).
+let feePending = null;
 
 async function loadFees() {
-  const msg = document.getElementById('feeMsg');
-  msg.textContent = '';
   try {
-    const res = await fetch('/admin/fees', { headers: { 'Authorization': authHeader } });
-    if (!res.ok) throw new Error();
-    renderFees(await res.json());
+    const [feesRes, propRes] = await Promise.all([
+      fetch('/admin/fees', { headers: { 'Authorization': authHeader } }),
+      fetch('/admin/fees/proposals', { headers: { 'Authorization': authHeader } })
+    ]);
+    if (!feesRes.ok || !propRes.ok) throw new Error('load failed');
+    const fees = await feesRes.json();
+    const proposals = await propRes.json();
+    feePending = proposals.pending;
+    document.getElementById('fee-current').innerHTML = FeeChanges.currentHtml(fees);
+    document.getElementById('no-approver').hidden = proposals.approverExists;
+    document.getElementById('fee-pending-card').hidden = !feePending;
+    document.getElementById('fee-propose-card').hidden = !!feePending;
+    if (feePending) {
+      document.getElementById('fee-pending').innerHTML = FeeChanges.changeRows(feePending)
+        + `<p class="small" style="margin-top:10px;"><strong>Reason:</strong> ${esc(feePending.reason)}</p>
+           <p class="tiny muted">Proposed by ${esc(feePending.proposedBy)} · ${esc(HC.fmtDateTime(feePending.proposedAt))}</p>`;
+    } else {
+      document.getElementById('feeLocal').value = Number(fees.localFee).toFixed(2);
+      document.getElementById('feeRegional').value = Number(fees.regionalFee).toFixed(2);
+    }
+    document.getElementById('fee-history').innerHTML = FeeChanges.historyHtml(proposals.history);
   } catch (e) {
-    msg.className = 'form-msg err';
-    msg.textContent = 'Unable to load the current fees.';
+    showFeeMsg('err', 'Unable to load the fees.');
   }
 }
 
-async function saveFees() {
+function showFeeMsg(kind, text) {
   const msg = document.getElementById('feeMsg');
+  msg.className = 'form-msg ' + kind;
+  msg.textContent = text;
+}
+
+async function proposeFees() {
   const localFee = parseFloat(document.getElementById('feeLocal').value);
   const regionalFee = parseFloat(document.getElementById('feeRegional').value);
-  if (!(localFee > 0) || !(regionalFee > 0)) {
-    msg.className = 'form-msg err';
-    msg.textContent = 'Enter both fees as amounts greater than FJ$0.';
-    return;
-  }
+  const reason = document.getElementById('feeReason').value.trim();
+  if (!(localFee > 0) || !(regionalFee > 0)) { showFeeMsg('err', 'Enter both fees as amounts greater than FJ$0.'); return; }
+  if (!reason) { showFeeMsg('err', 'Give a reason for the change so the approver knows why.'); return; }
   const btn = document.getElementById('fee-save-btn');
   btn.disabled = true;
   try {
-    const res = await fetch('/admin/fees', {
-      method: 'PUT',
+    const res = await fetch('/admin/fees/proposals', {
+      method: 'POST',
       headers: { 'Authorization': authHeader, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ localFee, regionalFee })
+      body: JSON.stringify({ localFee, regionalFee, reason })
     });
     const data = await res.json();
-    if (!res.ok) {
-      msg.className = 'form-msg err';
-      msg.textContent = data.message || 'Unable to save the fees.';
-      return;
-    }
-    renderFees(data);
-    msg.className = 'form-msg ok';
-    msg.textContent = 'Fees saved. New registrations will be charged these amounts.';
+    if (!res.ok) { showFeeMsg('err', data.message || 'Unable to send the change for approval.'); return; }
+    document.getElementById('feeReason').value = '';
+    showFeeMsg('ok', 'Sent for approval. The current fees stay in place until Finance approves the change.');
+    loadFees();
   } catch (e) {
-    msg.className = 'form-msg err';
-    msg.textContent = 'Service temporarily unavailable';
+    showFeeMsg('err', 'Service temporarily unavailable');
   } finally {
     btn.disabled = false;
+  }
+}
+
+async function withdrawFeeProposal() {
+  if (!feePending || !confirm('Withdraw this fee change? The current fees stay as they are.')) return;
+  try {
+    const res = await fetch(`/admin/fees/proposals/${feePending.id}/withdraw`, { method: 'POST', headers: { 'Authorization': authHeader } });
+    const data = await res.json();
+    if (!res.ok) { showFeeMsg('err', data.message || 'Unable to withdraw the change.'); return; }
+    showFeeMsg('ok', 'Proposal withdrawn.');
+    loadFees();
+  } catch (e) {
+    showFeeMsg('err', 'Service temporarily unavailable');
   }
 }
 
@@ -434,7 +480,7 @@ function doctorLabel(name) {
 }
 
 function roleLabel(r) {
-  return { STUDENT: 'Student', DOCTOR: 'Doctor', NURSE: 'Nurse', ADMIN: 'Admin' }[r] || r;
+  return { STUDENT: 'Student', DOCTOR: 'Doctor', NURSE: 'Nurse', ADMIN: 'Admin', FEE_APPROVER: 'Finance' }[r] || r;
 }
 
 // ---------- Dashboard ----------

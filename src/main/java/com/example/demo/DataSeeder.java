@@ -20,6 +20,14 @@ public class DataSeeder {
     @Value("${app.demo-slots:false}")
     private boolean demoSlotsEnabled;
 
+    // Optional: create a Finance (fee approver) account at startup. Admins can
+    // also add them on the Accounts page. Created once if the username doesn't
+    // exist; never changes an existing account.
+    @Value("${app.fee-approver.username:}")
+    private String feeApproverUsername;
+    @Value("${app.fee-approver.password:}")
+    private String feeApproverPassword;
+
     @Bean
     public CommandLineRunner seedData(UserRepository userRepository,
                                        AppointmentRepository appointmentRepository,
@@ -69,6 +77,22 @@ public class DataSeeder {
                 student1.setFeePaid(true);
                 userRepository.save(student1);
                 System.out.println("Seeded default student user: student1 / student123");
+
+                User feeApprover = new User("feeapprover", passwordEncoder.encode("approver123"), FeeSettingsService.APPROVER_ROLE);
+                userRepository.save(feeApprover);
+                System.out.println("Seeded default fee approver user: feeapprover / approver123");
+            }
+
+            if (!feeApproverUsername.isBlank() && !feeApproverPassword.isBlank()) {
+                String username = feeApproverUsername.trim();
+                var existing = userRepository.findByUsername(username);
+                if (existing.isEmpty()) {
+                    userRepository.save(new User(username, passwordEncoder.encode(feeApproverPassword), FeeSettingsService.APPROVER_ROLE));
+                    System.out.println("Created fee approver account from app.fee-approver.*: " + username);
+                } else if (!FeeSettingsService.APPROVER_ROLE.equals(existing.get().getRole())) {
+                    System.out.println("app.fee-approver.username '" + username + "' already belongs to a "
+                            + existing.get().getRole() + " account - no fee approver was created.");
+                }
             }
 
             // One-time migration: earlier seed data identified doctors by display name

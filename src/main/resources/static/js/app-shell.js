@@ -145,8 +145,8 @@
   };
   window.HC = HC;
 
-  // Sidebar menus for staff roles. Pages shared by more than one role (check-in,
-  // schedule) show the menu of whoever is signed in.
+  // Sidebar menus for staff roles. Pages shared by more than one role (schedule)
+  // show the menu of whoever is signed in.
   const STAFF = {
     NURSE: {
       workspace: 'Nurse workspace',
@@ -175,8 +175,13 @@
         { key: 'fees', label: 'Fees', href: '/admin.html#fees' },
         { key: 'schedules', label: 'Schedules', href: '/schedule.html' },
         { key: 'reports', label: 'Aggregate reports', href: '/admin.html#reports' },
-        { key: 'audit', label: 'Audit log', href: '/admin.html#audit' },
-        { key: 'checkin', label: 'Check-in workspace', href: '/checkin.html#checkin' }
+        { key: 'audit', label: 'Audit log', href: '/admin.html#audit' }
+      ]
+    },
+    FEE_APPROVER: {
+      workspace: 'Finance workspace',
+      nav: [
+        { key: 'approvals', label: 'Fee changes', href: '/fee-approvals.html#approvals', count: true }
       ]
     }
   };

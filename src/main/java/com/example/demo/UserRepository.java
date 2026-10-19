@@ -7,6 +7,7 @@ import java.util.Optional;
 
 public interface UserRepository extends JpaRepository<User, Long> {
     Optional<User> findByUsername(String username);
+    List<User> findByRoleAndActiveTrue(String role);
 
     // Students whose uploaded receipt is waiting for an admin: not yet approved and
     // not rejected. Selects columns rather than whole users so the receipt PDFs
