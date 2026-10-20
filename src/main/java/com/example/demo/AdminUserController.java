@@ -38,17 +38,20 @@ public class AdminUserController {
     private final CheckInRepository checkInRepository;
     private final PasswordEncoder passwordEncoder;
     private final AuditLogService auditLogService;
+    private final NotificationRepository notificationRepository;
 
     public AdminUserController(UserRepository userRepository,
                              AppointmentRepository appointmentRepository,
                              CheckInRepository checkInRepository,
                              PasswordEncoder passwordEncoder,
-                             AuditLogService auditLogService) {
+                             AuditLogService auditLogService,
+                             NotificationRepository notificationRepository) {
         this.userRepository = userRepository;
         this.appointmentRepository = appointmentRepository;
         this.checkInRepository = checkInRepository;
         this.passwordEncoder = passwordEncoder;
         this.auditLogService = auditLogService;
+        this.notificationRepository = notificationRepository;
     }
 
     // A safe view of a user account - never exposes the password hash.
@@ -213,7 +216,7 @@ public class AdminUserController {
 
     // activate or deactivate an account
     @PostMapping("/{id}/toggle")
-    public Map<String, Object> toggleStatus(@PathVariable Long id, @RequestBody(required = false) ToggleRequest request) {
+    public Map<String, Object> toggleStatus(@PathVariable Long id, @RequestBody(required = false) ToggleRequest request, Authentication auth) {
         User user = userRepository.findById(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User account not found"));
 
@@ -236,6 +239,9 @@ public class AdminUserController {
 
         user.setActive(!user.isActive());
         userRepository.save(user);
+        auditLogService.recordAccess(auth, user.isActive() ? "ACCOUNT_ACTIVATED" : "ACCOUNT_DEACTIVATED",
+                "STUDENT".equals(user.getRole()) ? user.getUsername() : null,
+                user.getRole() + " account " + user.getUsername() + (user.isActive() ? " activated" : " deactivated"));
 
         return Map.of(
                 "requiresConfirmation", false,
@@ -247,7 +253,7 @@ public class AdminUserController {
 
     // lets an admin approve a student's uploaded payment receipt, unlocking booking
     @PostMapping("/{id}/verify-receipt")
-    public Object verifyReceipt(@PathVariable Long id) {
+    public Object verifyReceipt(@PathVariable Long id, Authentication auth) {
         User user = userRepository.findById(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User account not found"));
 
@@ -259,6 +265,10 @@ public class AdminUserController {
         user.setReceiptRejectionReason(null);
         userRepository.save(user);
 
+        auditLogService.recordAccess(auth, "RECEIPT_APPROVED", user.getUsername(), "Payment receipt approved");
+        notifyStudent(user, "RECEIPT_APPROVED",
+                "Your payment receipt has been approved. You can now book appointments.");
+
         return new UserView(user);
     }
 
@@ -269,7 +279,7 @@ public class AdminUserController {
     // lets an admin reject a student's uploaded payment receipt, clearing it so
     // the student can re-upload a corrected one from their dashboard
     @PostMapping("/{id}/reject-receipt")
-    public Object rejectReceipt(@PathVariable Long id, @RequestBody(required = false) RejectReceiptRequest request) {
+    public Object rejectReceipt(@PathVariable Long id, @RequestBody(required = false) RejectReceiptRequest request, Authentication auth) {
         User user = userRepository.findById(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User account not found"));
 
@@ -295,7 +305,21 @@ public class AdminUserController {
         user.setReceiptRejectionReason(reason);
         userRepository.save(user);
 
+        auditLogService.recordAccess(auth, "RECEIPT_REJECTED", user.getUsername(), "Payment receipt rejected. Reason: " + reason);
+        notifyStudent(user, "RECEIPT_REJECTED",
+                "Your payment receipt was rejected. Reason: " + reason + " Please upload a new receipt.");
+
         return new UserView(user);
+    }
+
+    // In-app message for the student, shown in their notifications (addressed only to them).
+    private void notifyStudent(User student, String type, String message) {
+        Notification n = new Notification();
+        n.setType(type);
+        n.setRecipientUsername(student.getUsername());
+        n.setMessage(message);
+        n.setCreatedAt(LocalDateTime.now());
+        notificationRepository.save(n);
     }
 
     // lets an admin download a student's uploaded payment receipt

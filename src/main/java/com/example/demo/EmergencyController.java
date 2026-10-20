@@ -88,13 +88,35 @@ public class EmergencyController {
         String reason = (request.reason == null || request.reason.isBlank()) ? "Emergency" : request.reason.trim();
         String displayName = displayNameFor(student, studentId);
 
-        Appointment appointment = new Appointment();
-        appointment.setStudentName(studentId);
-        appointment.setAppointmentDate(LocalDate.now());
-        appointment.setTimeSlot("Emergency");
-        appointment.setVisitReason(reason);
-        appointment.setUrgencyLevel("Emergency");
-        appointment.setStatus("CHECKED_IN");
+        LocalDate today = LocalDate.now();
+        java.util.List<Appointment> studentVisits = appointmentRepository.findByStudentName(studentId);
+
+        // Already checked in as an emergency today (e.g. a double click): don't create a second visit.
+        boolean alreadyEmergency = studentVisits.stream().anyMatch(a -> today.equals(a.getAppointmentDate())
+                && "CHECKED_IN".equals(a.getStatus()) && DelayNoticeService.isEmergencyVisit(a));
+        if (alreadyEmergency) {
+            return Map.of("error", displayName + " is already checked in as an emergency today.");
+        }
+
+        // The student has a normal booking today: upgrade THAT visit to an emergency instead of
+        // adding a second one, so the old booking isn't left behind to be marked a no-show later.
+        Appointment appointment = studentVisits.stream()
+                .filter(a -> today.equals(a.getAppointmentDate()) && "BOOKED".equals(a.getStatus())
+                        && !DelayNoticeService.isEmergencyVisit(a))
+                .findFirst()
+                .orElse(null);
+        if (appointment != null) {
+            appointment.setUrgencyLevel("Emergency");
+            appointment.setStatus("CHECKED_IN");
+        } else {
+            appointment = new Appointment();
+            appointment.setStudentName(studentId);
+            appointment.setAppointmentDate(today);
+            appointment.setTimeSlot("Emergency");
+            appointment.setVisitReason(reason);
+            appointment.setUrgencyLevel("Emergency");
+            appointment.setStatus("CHECKED_IN");
+        }
         appointmentRepository.save(appointment);
 
         CheckIn checkIn = new CheckIn();

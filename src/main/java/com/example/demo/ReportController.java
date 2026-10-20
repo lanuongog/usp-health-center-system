@@ -69,9 +69,8 @@ public class ReportController {
         try {
             switch (type) {
                 case "Visit Reason Breakdown":
-                    for (Appointment a : appointments) {
-                        data.merge(a.getVisitReason(), 1L, (oldVal, one) -> oldVal + one);
-                    }
+                    // Rare free-text reasons are combined so one student's wording can't be singled out.
+                    data.putAll(VisitReasonGrouper.group(appointments));
                     break;
                 case "Doctor Workload":
                     for (Appointment a : appointments) {

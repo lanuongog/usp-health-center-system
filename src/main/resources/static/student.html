@@ -392,6 +392,7 @@ const esc = HC.esc;
 let authHeader = null;
 let currentStudentId = null;
 let bookingLocked = false;
+let lastReceiptNotifIds = null; // detects a new receipt approved/rejected notice
 let upcoming = [];
 let visitHistory = [];
 let notifications = [];
@@ -1276,6 +1277,15 @@ function loadNotifications() {
     .then(res => res.json())
     .then(items => {
       notifications = items;
+      // An admin approved/rejected the receipt: refresh the payment banner and unlock
+      // (or keep locked) booking right away, without the student reloading the page.
+      const receiptIds = items.filter(n => n.type === 'RECEIPT_APPROVED' || n.type === 'RECEIPT_REJECTED')
+        .map(n => n.id).join(',');
+      if (receiptIds !== lastReceiptNotifIds) {
+        const firstLoad = lastReceiptNotifIds === null;
+        lastReceiptNotifIds = receiptIds;
+        if (!firstLoad) loadProfile();
+      }
       Shell.setAlertCount(items.filter(n => !n.read).length);
       renderAlerts();
       renderOverviewAlerts();
@@ -1289,6 +1299,8 @@ function loadNotifications() {
 
 function alertTitle(n) {
   if (n.type === 'APPOINTMENT_CANCELLED') return 'Your appointment has been cancelled';
+  if (n.type === 'RECEIPT_APPROVED') return 'Payment receipt approved';
+  if (n.type === 'RECEIPT_REJECTED') return 'Payment receipt rejected';
   return n.type === 'DELAY_NOTICE' ? 'Your appointment today may start later' : 'Health Center update';
 }
 function alertIcon(n) {

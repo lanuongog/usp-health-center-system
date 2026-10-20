@@ -16,9 +16,11 @@ import jakarta.servlet.http.HttpServletResponse;
 public class SecurityConfig {
 
     private final UserRepository userRepository;
+    private final LoginAttemptService loginAttemptService;
 
-    public SecurityConfig(UserRepository userRepository) {
+    public SecurityConfig(UserRepository userRepository, LoginAttemptService loginAttemptService) {
         this.userRepository = userRepository;
+        this.loginAttemptService = loginAttemptService;
     }
 
     @Bean
@@ -77,6 +79,9 @@ public class SecurityConfig {
                 .anyRequest().permitAll()
             )
             .httpBasic(basic -> {})
+            // Applies the 5-attempt lockout to every endpoint, not just the login page.
+            .addFilterBefore(new LoginLockoutFilter(loginAttemptService),
+                    org.springframework.security.web.authentication.www.BasicAuthenticationFilter.class)
             .exceptionHandling(ex -> ex.accessDeniedHandler(accessDeniedHandler()))
             .csrf(csrf -> csrf.disable());
         return http.build();

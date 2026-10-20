@@ -125,14 +125,17 @@ public class ScheduleController {
         LocalTime[] range = SlotPlanner.parseRange(slot.getTimeSlot());
         if (range != null && SlotPlanner.minutesOf(range) > SlotPlanner.MAX_APPOINTMENT_MINUTES) {
             return createSplitSlots(slot.getDoctorName().trim(), slot.getScheduleDate(),
-                    range[0], range[1], SlotPlanner.DEFAULT_MINUTES);
+                    range[0], range[1], SlotPlanner.DEFAULT_MINUTES, auth);
         }
 
         validateNoConflict(slot, null);
         // Each doctor's slot is booked independently, so a newly created slot
         // always starts open regardless of other doctors' bookings.
         slot.setBooked(false);
-        return scheduleRepository.save(slot);
+        DoctorSchedule createdSlot = scheduleRepository.save(slot);
+        auditLogService.recordAccess(auth, "SCHEDULE_SLOT_CREATED", null,
+                createdSlot.getDoctorName() + " " + createdSlot.getScheduleDate() + " " + createdSlot.getTimeSlot());
+        return createdSlot;
     }
 
     public static class SlotRangeRequest {
@@ -179,12 +182,12 @@ public class ScheduleController {
         if (!ALLOWED_SLOT_MINUTES.contains(minutes)) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Appointment length must be 15, 20, 30, 45 or 60 minutes.");
         }
-        return createSplitSlots(doctorName, request.scheduleDate, start, end, minutes);
+        return createSplitSlots(doctorName, request.scheduleDate, start, end, minutes, auth);
     }
 
     // Times in the lunch break, already passed today, or overlapping one of the
     // doctor's existing slots are skipped rather than failing the whole request.
-    private Map<String, Object> createSplitSlots(String doctorName, LocalDate date, LocalTime start, LocalTime end, int minutes) {
+    private Map<String, Object> createSplitSlots(String doctorName, LocalDate date, LocalTime start, LocalTime end, int minutes, Authentication auth) {
         List<LocalTime[]> existing = scheduleRepository
                 .findByDoctorNameAndScheduleDateAndArchivedFalse(doctorName, date).stream()
                 .map(s -> SlotPlanner.parseRange(s.getTimeSlot()))
@@ -214,6 +217,8 @@ public class ScheduleController {
             return slot;
         }).toList();
         List<DoctorSchedule> saved = scheduleRepository.saveAll(toCreate);
+        auditLogService.recordAccess(auth, "SCHEDULE_SLOTS_CREATED", null,
+                doctorName + " " + date + ": " + saved.size() + " slot(s) " + start + "-" + end);
 
         Map<String, Object> result = new LinkedHashMap<>();
         result.put("created", saved.size());
@@ -234,6 +239,18 @@ public class ScheduleController {
         validateRequiredFields(updated);
         validateNoConflict(updated, id);
 
+        // A booked slot belongs to a student's appointment, which keeps its own copy of the
+        // date and time. Moving the slot would leave the student looking at the old time
+        // (and never told), so a booked slot can't be moved: use "Mark unavailable" instead.
+        boolean timeChanged = !existing.getScheduleDate().equals(updated.getScheduleDate())
+                || !existing.getTimeSlot().equals(updated.getTimeSlot());
+        if (existing.isBooked() && timeChanged) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT,
+                    "A student is booked into this slot, so its date or time can't be changed. "
+                            + "Use \"Mark unavailable\" to cancel and notify the student instead.");
+        }
+        String before = existing.getScheduleDate() + " " + existing.getTimeSlot();
+
         existing.setScheduleDate(updated.getScheduleDate());
         existing.setTimeSlot(updated.getTimeSlot());
         // booked status is left untouched - editing a slot's date/time doesn't
@@ -241,7 +258,10 @@ public class ScheduleController {
         // doctorName is intentionally not changed by an update - a slot belongs to the doctor that created it
 
         try {
-            return scheduleRepository.save(existing);
+            DoctorSchedule savedSlot = scheduleRepository.save(existing);
+            auditLogService.recordAccess(auth, "SCHEDULE_SLOT_UPDATED", null,
+                    existing.getDoctorName() + ": " + before + " -> " + savedSlot.getScheduleDate() + " " + savedSlot.getTimeSlot());
+            return savedSlot;
         } catch (Exception e) {
             throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR,
                     "Schedule update failed. Previous schedule has been retained");
@@ -267,6 +287,8 @@ public class ScheduleController {
 
         existing.setArchived(true);
         scheduleRepository.save(existing);
+        auditLogService.recordAccess(auth, "SCHEDULE_SLOT_REMOVED", null,
+                existing.getDoctorName() + " " + existing.getScheduleDate() + " " + existing.getTimeSlot());
         return Map.of("message", "Slot removed.");
     }
 

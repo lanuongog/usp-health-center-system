@@ -50,12 +50,14 @@ public class DashboardController {
 
         long total = active.size();
         long noShows = active.stream().filter(a -> "NO_SHOW".equals(a.getStatus())).count();
-        double noShowRate = total == 0 ? 0 : (double) noShows / total * 100;
+        long completed = active.stream().filter(a -> "COMPLETED".equals(a.getStatus())).count();
+        // The rate only considers visits whose outcome is known (attended or missed).
+        // Counting still-booked or in-progress visits would make it look better than it is.
+        long outcomeKnown = completed + noShows;
+        double noShowRate = outcomeKnown == 0 ? 0 : (double) noShows / outcomeKnown * 100;
 
-        Map<String, Long> byReason = new LinkedHashMap<>();
-        for (Appointment a : active) {
-            byReason.merge(a.getVisitReason(), 1L, (oldVal, one) -> oldVal + one);
-        }
+        // Free-text reasons are grouped so a rare one can't identify a single student.
+        Map<String, Long> byReason = VisitReasonGrouper.group(active);
 
         // Caseload is attributed by who actually treated the patient
         // (consultedByDoctor), not by doctorName - no doctor is assigned to an

@@ -56,7 +56,7 @@
     </div>
     <div class="table-wrap" style="margin-top:16px;">
       <table class="table">
-        <thead><tr><th>Student</th><th>Student ID</th><th>Fee</th><th>Uploaded</th><th></th></tr></thead>
+        <thead><tr><th>Student</th><th>Student ID</th><th>Fee</th><th>Uploaded</th><th>System check</th><th></th></tr></thead>
         <tbody id="pending-body"></tbody>
       </table>
     </div>
@@ -436,6 +436,7 @@ function renderPendingCard() {
       <td>${esc(p.username)}</td>
       <td>${p.feeAmount != null ? 'FJ$' + Number(p.feeAmount).toFixed(2) : '—'}</td>
       <td>${esc(uploadedLabel(p))}</td>
+      <td class="tiny muted" style="max-width:280px;">${esc(p.autoCheckNote || '—')}</td>
       <td><a class="btn btn-sm btn-primary" href="/admin-user.html?id=${p.id}">Review receipt</a></td>
     </tr>`).join('');
 }

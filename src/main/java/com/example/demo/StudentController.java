@@ -92,7 +92,7 @@ public class StudentController {
         }
         String normalizedStudentId = studentId.trim().toUpperCase();
         if (!STUDENT_ID_PATTERN.matcher(normalizedStudentId).matches()) {
-            return Map.of("error", "Student ID must be in the format S followed by 8 digits (e.g. S12345678).");
+            return Map.of("error", "Student ID must be S11 followed by 6 digits (e.g. S11222222).");
         }
         studentId = normalizedStudentId;
         if (password.length() < MIN_PASSWORD_LENGTH || password.length() > MAX_PASSWORD_LENGTH) {
@@ -216,6 +216,11 @@ public class StudentController {
         User student = userRepository.findByUsername(auth.getName())
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Account not found"));
 
+        // An approved receipt is final. Every upload goes back to admin review, so
+        // letting an approved student re-upload would lock their booking again.
+        if (student.isFeePaid()) {
+            return Map.of("error", "Your payment receipt has already been approved - there is nothing more to upload.");
+        }
         if (receipt == null || receipt.isEmpty()) {
             return Map.of("error", "Please attach a PDF receipt.");
         }

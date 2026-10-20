@@ -115,7 +115,15 @@ public class BookingController {
     @PostMapping("/book")
     public Object bookAppointment(@RequestBody BookingRequest request, Authentication auth) {
         User student = userRepository.findByUsername(auth.getName()).orElse(null);
-        if (student == null || !student.isFeePaid()) {
+        if (student == null) {
+            return Map.of("error", "Account not found.");
+        }
+        if (!student.isFeePaid()) {
+            // Say what is actually wrong: a rejected receipt needs a new upload, not more waiting.
+            if (student.getReceiptRejectionReason() != null && !student.getReceiptRejectionReason().isBlank()) {
+                return Map.of("error", "Your payment receipt was rejected (" + student.getReceiptRejectionReason()
+                        + "). Upload a corrected receipt to unlock booking.");
+            }
             return Map.of("error", "Your payment receipt is still pending verification by an admin. Please wait for approval before booking an appointment.");
         }
         if (request.visitReason == null || request.visitReason.isBlank()) {
@@ -223,6 +231,12 @@ public class BookingController {
     // reschedule to a new open slot, freeing the old one
     @PostMapping("/reschedule")
     public Object rescheduleAppointment(@RequestBody RescheduleRequest request, Authentication auth) {
+        if (request.appointmentId == null) {
+            return Map.of("error", "Appointment not found.");
+        }
+        if (request.newSlotId == null) {
+            return Map.of("error", "Please select a new time slot.");
+        }
         Appointment appointment = appointmentRepository.findById(request.appointmentId).orElse(null);
 
         if (appointment == null) {

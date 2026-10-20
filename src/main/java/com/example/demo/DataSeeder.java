@@ -42,6 +42,8 @@ public class DataSeeder {
                 User admin = new User("admin", passwordEncoder.encode("admin123"), "ADMIN");
                 userRepository.save(admin);
                 System.out.println("Seeded default admin user: admin / admin123");
+                System.out.println("WARNING: the default accounts (admin, nurse, doctor, dr.*, student1, feeapprover) use well-known "
+                        + "passwords. Reset every one of them (Accounts > reset password) before real use.");
 
                 User nurse = new User("nurse", passwordEncoder.encode("nurse123"), "NURSE");
                 userRepository.save(nurse);

@@ -192,6 +192,16 @@ public class DoctorController {
         Appointment appointment = appointmentRepository.findById(request.appointmentId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Medical record not found"));
 
+        // Only a visit that is actually happening can be completed. A cancelled or
+        // no-show appointment never took place, and a finished one may only be
+        // amended by the doctor who recorded it (checked further down).
+        String currentStatus = appointment.getStatus();
+        if (!"BOOKED".equals(currentStatus) && !"CHECKED_IN".equals(currentStatus) && !"COMPLETED".equals(currentStatus)) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT,
+                    "This appointment is " + (currentStatus == null ? "not active" : currentStatus.toLowerCase().replace('_', ' '))
+                            + ", so a consultation can't be recorded for it.");
+        }
+
         // required consultation information is missing
         if (isBlank(request.diagnosis) || isBlank(request.consultationNotes)) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
@@ -204,6 +214,11 @@ public class DoctorController {
         if (request.consultationNotes.trim().length() > MAX_NOTES_LENGTH) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
                     "Consultation notes must be " + MAX_NOTES_LENGTH + " characters or fewer.");
+        }
+
+        // a completed visit with no recorded doctor can't be taken over silently either
+        if ("COMPLETED".equals(currentStatus) && appointment.getConsultedByDoctor() == null) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "This visit is already completed.");
         }
 
         // prevent a doctor from editing another doctor's submitted consultation
